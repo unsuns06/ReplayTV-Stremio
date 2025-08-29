@@ -7,6 +7,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000
+# Set default environment variables
+ENV PORT=7860
+ENV HOST=0.0.0.0
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE $PORT
+
+CMD ["python", "run_server.py"]

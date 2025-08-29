@@ -8,7 +8,7 @@ router = APIRouter()
 @router.get("/meta/{type}/{id}.json")
 async def get_meta(type: str, id: str):
     # Get base URL for static assets
-    static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+    static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
     
     # Handle live TV channel metadata
     if type == "channel":

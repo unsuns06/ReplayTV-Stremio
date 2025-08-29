@@ -23,7 +23,3 @@ node_modules/
 
 # OS specific
 .DS_Store
-
-# Python specific
-__pycache__/
-*.pyc

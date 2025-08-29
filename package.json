@@ -4,8 +4,8 @@
   "description": "Catch-up TV & More for Stremio",
   "main": "app/main.py",
   "scripts": {
-    "start": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
-    "dev": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+    "start": "python run_server.py",
+    "dev": "python run_server.py",
     "test": "python -m pytest tests/ -v"
   },
   "keywords": [

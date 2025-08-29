@@ -7,7 +7,6 @@ import urllib.parse
 import random
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
-from app.utils.json_utils import parse_lenient_json
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -119,7 +118,7 @@ class MyTF1Provider:
             
             response = self.session.post(self.accounts_login, headers=headers_login, data=post_body_login, timeout=10)
             if response.status_code == 200:
-                login_json = parse_lenient_json(response.text)
+                login_json = response.json()
                 if login_json.get('errorCode') == 0:
                     # Get Gigya token
                     headers_gigya = {
@@ -133,7 +132,7 @@ class MyTF1Provider:
                     )
                     response = self.session.post(self.token_gigya_web, headers=headers_gigya, data=body_gigya, timeout=10)
                     if response.status_code == 200:
-                        json_token = parse_lenient_json(response.text)
+                        json_token = response.json()
                         self.auth_token = json_token['token']
                         self._authenticated = True
                         print("[MyTF1Provider] MyTF1 authentication successful!")
@@ -156,7 +155,7 @@ class MyTF1Provider:
         channels = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
         
         # Known TF1 channels - updated to use local logos
         channel_data = [
@@ -248,7 +247,7 @@ class MyTF1Provider:
             response = self.session.get(self.api_url, params=program_params, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                data = parse_lenient_json(response.text)
+                data = response.json()
                 program_id = None
                 program_slug = None
                 
@@ -288,7 +287,7 @@ class MyTF1Provider:
             response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                data = parse_lenient_json(response.text)
+                data = response.json()
                 episodes = []
                 
                 if 'data' in data and 'programBySlug' in data['data']:
@@ -411,7 +410,7 @@ class MyTF1Provider:
             response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
             
             if response.status_code == 200:
-                json_parser = parse_lenient_json(response.text)
+                json_parser = response.json()
                 print(f"[MyTF1Provider] Stream API response received for {video_id}")
                 
                 if json_parser['delivery']['code'] <= 400:
@@ -535,7 +534,7 @@ class MyTF1Provider:
             response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
             
             if response.status_code == 200:
-                json_parser = parse_lenient_json(response.text)
+                json_parser = response.json()
                 print(f"[MyTF1Provider] Stream API response received for {actual_episode_id}")
                 
                 if json_parser['delivery']['code'] <= 400:
@@ -653,7 +652,7 @@ class MyTF1Provider:
             response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                data = parse_lenient_json(response.text)
+                data = response.json()
                 
                 if 'data' in data and 'programs' in data['data'] and 'items' in data['data']['programs']:
                     programs = data['data']['programs']['items']

@@ -15,10 +15,14 @@ services:
     container_name: stremio-addon
     restart: unless-stopped
     ports:
-      - "7860:7860"
+      - "${PORT:-7860}:${PORT:-7860}"
     volumes:
       - .:/app
     environment:
+      # Server configuration
+      - PORT=${PORT:-7860}
+      - HOST=0.0.0.0
+      - ADDON_BASE_URL=${ADDON_BASE_URL:-http://localhost:7860}
       # IMPORTANT: Use a client-reachable URL here (host IP or domain). Avoid Docker-internal hostnames.
       - MEDIAFLOW_PROXY_URL=${MEDIAFLOW_PROXY_URL:-http://host.docker.internal:8888}
       - MEDIAFLOW_API_PASSWORD=${MEDIAFLOW_API_PASSWORD:-your_password}

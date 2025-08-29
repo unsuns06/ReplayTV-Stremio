@@ -8,7 +8,6 @@ import os
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
-from app.utils.json_utils import parse_lenient_json
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -71,7 +70,7 @@ class SixPlayProvider:
             if response.status_code == 200:
                 # Parse JSONP response
                 jsonp_text = response.text.replace('jsonp_3bbusffr388pem4(', '').replace(');', '')
-                login_result = parse_lenient_json(jsonp_text)
+                login_result = json.loads(jsonp_text)
                 
                 if "UID" in login_result:
                     self.account_id = login_result["UID"]
@@ -96,7 +95,7 @@ class SixPlayProvider:
                     )
                     
                     if jwt_response.status_code == 200:
-                        jwt_data = parse_lenient_json(jwt_response.text)
+                        jwt_data = jwt_response.json()
                         self.login_token = jwt_data['token']
                         self._authenticated = True
                         print("✅ 6play authentication successful")
@@ -118,7 +117,7 @@ class SixPlayProvider:
         channels = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
         
         # Known 6play channels - updated to use local logos
         channel_data = [
@@ -144,7 +143,7 @@ class SixPlayProvider:
         shows = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
         
         # 6play shows configuration with specific poster URLs and specific logo URLs
         self.shows = {
@@ -303,7 +302,7 @@ class SixPlayProvider:
             response = self.session.get(url_json, headers=headers_video_stream, timeout=10)
             
             if response.status_code == 200:
-                json_parser = parse_lenient_json(response.text)
+                json_parser = response.json()
                 print(f"[SixPlayProvider] Video API response received for {actual_episode_id}")
                 
                 # Extract video assets (same as reference plugin)
@@ -343,7 +342,7 @@ class SixPlayProvider:
                                 token_response = self.session.get(token_url, headers=payload_headers, timeout=10)
                                 
                                 if token_response.status_code == 200:
-                                    token_data = parse_lenient_json(token_response.text)
+                                    token_data = token_response.json()
                                     drm_token = token_data["token"]
                                     
                                     # Build license URL exactly like Kodi addon
@@ -412,7 +411,7 @@ class SixPlayProvider:
             token_response = self.session.get(token_url, headers=payload_headers, timeout=10)
             
             if token_response.status_code == 200:
-                token_jsonparser = parse_lenient_json(token_response.text)
+                token_jsonparser = token_response.json()
                 token = token_jsonparser["token"]
                 
                 # Get live stream information using correct URL
@@ -429,7 +428,7 @@ class SixPlayProvider:
                 )
                 
                 if video_response.status_code == 200:
-                    json_parser = parse_lenient_json(video_response.text)
+                    json_parser = video_response.json()
                     if live_item_id in json_parser and len(json_parser[live_item_id]) > 0:
                         video_assets = json_parser[live_item_id][0]['live']['assets']
                         
@@ -539,7 +538,7 @@ class SixPlayProvider:
             response = self.session.get(url, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                program_data = parse_lenient_json(response.text)
+                program_data = response.json()
                 
                 # Extract images from program data with proper mapping
                 fanart = None
@@ -632,7 +631,7 @@ class SixPlayProvider:
             response = requests.post(search_url, headers=search_headers, json=search_data, timeout=10)
             
             if response.status_code == 200:
-                data = parse_lenient_json(response.text)
+                data = response.json()
                 
                 # Find the specific show in search results
                 for result in data.get('results', []):
@@ -673,7 +672,7 @@ class SixPlayProvider:
             response = self.session.get(url, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                data = parse_lenient_json(response.text)
+                data = response.json()
                 episodes = []
                 
                 for video in data:

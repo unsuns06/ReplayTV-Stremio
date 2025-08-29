@@ -11,7 +11,6 @@ import os
 from typing import Dict, List, Optional
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
-from app.utils.json_utils import parse_lenient_json
 
 class FranceTVProvider:
     """France TV provider implementation based on source addon"""
@@ -27,7 +26,7 @@ class FranceTVProvider:
         })
         
         # Get base URL for static assets
-        self.static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+        self.static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
         
         # Enhanced show information with rich metadata
         self.shows = {
@@ -98,7 +97,7 @@ class FranceTVProvider:
             response = self.session.get(api_url, params=params, timeout=10)
             
             if response.status_code == 200:
-                data = parse_lenient_json(response.text)
+                data = response.json()
                 
                 # The API response structure is different - it's directly the show data
                 # Extract show metadata
@@ -200,7 +199,7 @@ class FranceTVProvider:
                 print(f"   Mobile API response: {response.status_code}")
                 
                 if response.status_code == 200:
-                    json_data = parse_lenient_json(response.text)
+                    json_data = response.json()
                     
                     # Look for live collection
                     for collection in json_data.get('collections', []):
@@ -223,7 +222,7 @@ class FranceTVProvider:
                     print(f"   Front API response: {response.status_code}")
                     
                     if response.status_code == 200:
-                        json_data = parse_lenient_json(response.text)
+                        json_data = response.json()
                         
                         for live in json_data.get('result', []):
                             if live.get('channel') == channel_name:
@@ -261,7 +260,7 @@ class FranceTVProvider:
             print(f"   Video API response: {video_response.status_code}")
             
             if video_response.status_code == 200:
-                video_data = parse_lenient_json(video_response.text)
+                video_data = video_response.json()
                 print(f"   Video data keys: {list(video_data.keys())}")
                 
                 if 'video' in video_data:
@@ -292,7 +291,7 @@ class FranceTVProvider:
                     print(f"   Token API response: {token_response.status_code}")
                     
                     if token_response.status_code == 200:
-                        token_data = parse_lenient_json(token_response.text)
+                        token_data = token_response.json()
                         final_url = token_data.get('url')
                         
                         if final_url:
@@ -355,7 +354,7 @@ class FranceTVProvider:
             response = self.session.get(api_url, params=params, timeout=10)
             
             if response.status_code == 200:
-                data = parse_lenient_json(response.text)
+                data = response.json()
                 episodes = []
                 
                 # Parse the response to get episodes (same logic as source addon)
@@ -492,7 +491,7 @@ class FranceTVProvider:
             response = self.session.get(video_url, params=params, timeout=10)
             
             if response.status_code == 200:
-                video_data = parse_lenient_json(response.text)
+                video_data = response.json()
                 
                 if 'video' not in video_data:
                     print("No video data found")
@@ -515,7 +514,7 @@ class FranceTVProvider:
                 token_response = self.session.get(token_url, params=token_params, timeout=10)
                 
                 if token_response.status_code == 200:
-                    token_data = parse_lenient_json(token_response.text)
+                    token_data = token_response.json()
                     final_url = token_data.get('url')
                     
                     if final_url:

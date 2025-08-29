@@ -10,4 +10,4 @@ cryptography>=3.4.0
 tenacity>=8.0.0
 pycaption>=2.0.0
 requests-mock>=1.9.3
-gunicorn
+python-dotenv>=0.19.0
