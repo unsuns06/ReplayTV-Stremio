@@ -144,3 +144,4 @@ Cache successful responses to reduce API calls
 
 ### 6. Fallback to Static Data
 Use static metadata when APIs fail
+

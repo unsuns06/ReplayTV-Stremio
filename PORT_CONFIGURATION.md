@@ -11,7 +11,7 @@ The addon now uses a centralized configuration system based on environment varia
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `7860` | Server port number |
-| `HOST` | `0.0.0.0` (Docker) / `127.0.0.1` (local) | Server host |
+| `HOST` | `127.0.0.1` (local) | Server host |
 | `ADDON_BASE_URL` | `http://localhost:7860` | Base URL used for static assets and API responses |
 
 ### Configuration Files

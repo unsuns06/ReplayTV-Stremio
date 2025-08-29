@@ -223,7 +223,7 @@ class MyTF1Provider:
         channels = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
         
         # TF1+ live channels (based on source addon)
         tf1_channels = [
@@ -261,7 +261,7 @@ class MyTF1Provider:
         shows = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
         
         try:
             # Fetch show metadata from TF1+ API with fallback
@@ -368,8 +368,8 @@ class MyTF1Provider:
             "type": "episode",
             "title": f"Latest {show_info.get('name', show_id.replace('-', ' ').title())}",
             "description": f"Latest episode of {show_info.get('name', show_id.replace('-', ' ').title())}",
-            "poster": f"{os.getenv('ADDON_BASE_URL', 'http://localhost:8000')}/static/logos/fr/tf1.png",
-            "fanart": f"{os.getenv('ADDON_BASE_URL', 'http://localhost:8000')}/static/logos/fr/tf1.png",
+            "poster": f"{os.getenv('ADDON_BASE_URL', 'http://localhost:7860')}/static/logos/fr/tf1.png",
+            "fanart": f"{os.getenv('ADDON_BASE_URL', 'http://localhost:7860')}/static/logos/fr/tf1.png",
             "episode": 1,
             "season": 1,
             "note": "Fallback episode - API unavailable"
@@ -757,7 +757,7 @@ class MyTF1Provider:
                                 fanart = decoration['background']['sources'][0].get('url', '')
                             
                             # Get logo (use poster as logo if available)
-                            logo = poster if poster else f"{os.getenv('ADDON_BASE_URL', 'http://localhost:8000')}/static/logos/fr/tf1.png"
+                            logo = poster if poster else f"{os.getenv('ADDON_BASE_URL', 'http://localhost:7860')}/static/logos/fr/tf1.png"
                             
                             print(f"[MyTF1Provider] Found show metadata for {show_id}: poster={poster[:50] if poster else 'N/A'}..., fanart={fanart[:50] if fanart else 'N/A'}...")
                             

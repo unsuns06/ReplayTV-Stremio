@@ -159,3 +159,4 @@ After deployment, you should see:
 ---
 
 **This hybrid approach gives you the best of both worlds: robust API calls with graceful fallbacks when things go wrong!** 🎉
+

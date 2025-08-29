@@ -348,3 +348,4 @@ if (typeof module !== 'undefined' && module.exports) {
 } else if (typeof window !== 'undefined') {
     window.FrenchTVClientHandler = FrenchTVClientHandler;
 }
+

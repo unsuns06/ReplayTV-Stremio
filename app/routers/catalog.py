@@ -14,7 +14,7 @@ async def get_catalog(type: str, id: str):
     logger.info(f"🔍 CATALOG REQUEST: type={type}, id={id}")
     
     # Get base URL for static assets
-    static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
+    static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
     
     # Get live TV channels
     if type == "channel" and id == "fr-live":
