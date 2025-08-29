@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+6play provider implementation
+Hybrid approach with robust error handling, fallbacks, and retry logic
+"""
+
 import json
 import requests
 import time
@@ -8,7 +14,6 @@ import os
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
-from app.utils.json_proxy import proxy_client
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -24,7 +29,7 @@ def get_random_windows_ua():
     return random.choice(user_agents)
 
 class SixPlayProvider:
-    """6play provider implementation with authentication"""
+    """6play provider implementation with robust error handling and fallbacks"""
     
     def __init__(self):
         self.credentials = get_provider_credentials('6play')
@@ -35,86 +40,78 @@ class SixPlayProvider:
         self.live_url = "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live"
         self.api_key = "3_hH5KBv25qZTd_sURpixbQW6a4OsiIzIEF2Ei_2H7TXTGLJb_1Hr4THKZianCQhWK"
         
-        # Use proxy client instead of direct requests
-        self.proxy_client = proxy_client
+        # No MediaFlow - we'll use the exact Kodi addon approach
         
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': get_random_windows_ua()
+        })
         self.account_id = None
         self.login_token = None
         self._authenticated = False
     
-    def _authenticate(self) -> bool:
-        """Authenticate with 6play using provided credentials via proxy"""
-        if not self.credentials.get('login') or not self.credentials.get('password'):
-            print("6play credentials not provided")
-            return False
-            
-        try:
-            # Login with credentials using JSONP format via proxy
-            payload = {
-                "loginID": self.credentials['login'],
-                "password": self.credentials['password'],
-                "apiKey": self.api_key,
-                "format": "jsonp",
-                "callback": "jsonp_3bbusffr388pem4"
-            }
-            
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'referer': 'https://www.6play.fr/connexion'
-            }
-            
-            # Use proxy client for authentication
-            response = self.proxy_client.post(
-                url=self.auth_url,
-                data=payload,
-                headers=headers,
-                context="6play Authentication"
-            )
-            
-            if response and response.status_code == 200:
-                # Parse JSONP response
-                jsonp_text = response.text.replace('jsonp_3bbusffr388pem4(', '').replace(');', '')
-                login_result = json.loads(jsonp_text)
+    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3) -> Optional[Dict]:
+        """Make a safe API call with retry logic and error handling"""
+        for attempt in range(max_retries):
+            try:
+                # Rotate User-Agent for each attempt
+                current_headers = headers or {}
+                current_headers['User-Agent'] = get_random_windows_ua()
                 
-                if "UID" in login_result:
-                    self.account_id = login_result["UID"]
-                    account_timestamp = login_result["signatureTimestamp"]
-                    account_signature = login_result["UIDSignature"]
-                    
-                    # Get JWT token using the correct headers via proxy
-                    device_id = '_luid_' + str(uuid.UUID(int=uuid.getnode()))
-                    
-                    jwt_headers = {
-                        'x-auth-gigya-signature': account_signature,
-                        'x-auth-gigya-signature-timestamp': account_timestamp,
-                        'x-auth-gigya-uid': self.account_id,
-                        'x-auth-device-id': device_id,
-                        'x-customer-name': 'm6web'
-                    }
-                    
-                    jwt_response = self.proxy_client.get(
-                        url="https://front-auth.6cloud.fr/v2/platforms/m6group_web/getJwt",
-                        headers=jwt_headers,
-                        context="6play JWT Token"
-                    )
-                    
-                    if jwt_response and jwt_response.status_code == 200:
-                        jwt_data = jwt_response.json()
-                        self.login_token = jwt_data['token']
-                        self._authenticated = True
-                        print("✅ 6play authentication successful via proxy")
-                        return True
+                print(f"[6play] API call attempt {attempt + 1}/{max_retries}: {url}")
+                
+                if method.upper() == 'POST':
+                    if data:
+                        response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15)
                     else:
-                        print(f"6play JWT request failed via proxy: {jwt_response.status_code if jwt_response else 'No response'}")
+                        response = self.session.post(url, params=params, headers=current_headers, timeout=15)
                 else:
-                    print(f"6play login failed via proxy: {login_result.get('errorMessage', 'UID not found')}")
-            else:
-                print(f"6play login failed via proxy with status {response.status_code if response else 'No response'}")
+                    response = self.session.get(url, params=params, headers=current_headers, timeout=15)
                 
-        except Exception as e:
-            print(f"Error during 6play authentication via proxy: {e}")
+                if response.status_code == 200:
+                    # Try to parse JSON with multiple strategies
+                    try:
+                        return response.json()
+                    except json.JSONDecodeError as e:
+                        print(f"[6play] JSON parse error on attempt {attempt + 1}: {e}")
+                        
+                        # Strategy 1: Try to fix common JSON issues
+                        text = response.text
+                        if "'" in text and '"' not in text:
+                            # Replace single quotes with double quotes
+                            text = text.replace("'", '"')
+                            try:
+                                return json.loads(text)
+                            except:
+                                pass
+                        
+                        # Strategy 2: Try to extract JSON from larger response
+                        if '<html' in text.lower():
+                            print(f"[6play] Received HTML instead of JSON on attempt {attempt + 1}")
+                        else:
+                            print(f"[6play] Malformed response on attempt {attempt + 1}: {text[:200]}...")
+                        
+                        # Wait before retry
+                        if attempt < max_retries - 1:
+                            time.sleep(2 ** attempt)  # Exponential backoff
+                            continue
+                        
+                elif response.status_code in [403, 429, 500]:
+                    print(f"[6play] HTTP {response.status_code} on attempt {attempt + 1}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2 ** attempt)
+                        continue
+                else:
+                    print(f"[6play] HTTP {response.status_code} on attempt {attempt + 1}")
+                    
+            except Exception as e:
+                print(f"[6play] Request error on attempt {attempt + 1}: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
         
-        return False
+        print(f"[6play] All {max_retries} attempts failed for {url}")
+        return None
     
     def get_live_channels(self) -> List[Dict]:
         """Get list of live channels from 6play"""
@@ -303,9 +300,9 @@ class SixPlayProvider:
             # Get video info using the same API call as the reference plugin
             url_json = f"https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/videos/{actual_episode_id}?csa=6&with=clips,freemiumpacks"
             
-            response = self.proxy_client.get(url_json, headers=headers_video_stream, context="6play Video API")
+            response = self.session.get(url_json, headers=headers_video_stream, timeout=10)
             
-            if response and response.status_code == 200:
+            if response.status_code == 200:
                 json_parser = response.json()
                 print(f"[SixPlayProvider] Video API response received for {actual_episode_id}")
                 
@@ -343,9 +340,9 @@ class SixPlayProvider:
                                 
                                 # Use the exact URL from Kodi addon
                                 token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
-                                token_response = self.proxy_client.get(token_url, headers=payload_headers, context="6play DRM Token")
+                                token_response = self.session.get(token_url, headers=payload_headers, timeout=10)
                                 
-                                if token_response and token_response.status_code == 200:
+                                if token_response.status_code == 200:
                                     token_data = token_response.json()
                                     drm_token = token_data["token"]
                                     
@@ -363,7 +360,7 @@ class SixPlayProvider:
                                         }
                                     }
                                 else:
-                                    print(f"❌ DRM token request failed via proxy: {token_response.status_code if token_response else 'No response'}")
+                                    print(f"❌ DRM token request failed: {token_response.status_code}")
                                     return {
                                         "url": final_video_url,
                                         "manifest_type": "mpd"
@@ -379,7 +376,7 @@ class SixPlayProvider:
                 else:
                     print(f"[SixPlayProvider] No clips found in video response")
             else:
-                print(f"[SixPlayProvider] Video API error via proxy: {response.status_code if response else 'No response'}")
+                print(f"[SixPlayProvider] Video API error: {response.status_code}")
                 
         except Exception as e:
             print(f"[SixPlayProvider] Error getting stream for episode {episode_id}: {e}")
@@ -412,9 +409,9 @@ class SixPlayProvider:
             
             # Get token for live stream using correct URL pattern
             token_url = f"https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users/{self.account_id}/live/dashcenc_{live_item_id}/upfront-token"
-            token_response = self.proxy_client.get(token_url, headers=payload_headers, context="6play Live Token")
+            token_response = self.session.get(token_url, headers=payload_headers, timeout=10)
             
-            if token_response and token_response.status_code == 200:
+            if token_response.status_code == 200:
                 token_jsonparser = token_response.json()
                 token = token_jsonparser["token"]
                 
@@ -424,14 +421,14 @@ class SixPlayProvider:
                     'with': 'service_display_images,nextdiffusion,extra_data'
                 }
                 
-                video_response = self.proxy_client.get(
+                video_response = self.session.get(
                     "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live", 
                     params=params, 
                     headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
-                    context="6play Live Stream"
+                    timeout=10
                 )
                 
-                if video_response and video_response.status_code == 200:
+                if video_response.status_code == 200:
                     json_parser = video_response.json()
                     if live_item_id in json_parser and len(json_parser[live_item_id]) > 0:
                         video_assets = json_parser[live_item_id][0]['live']['assets']
@@ -462,9 +459,9 @@ class SixPlayProvider:
                             else:
                                 print("❌ No MPD streams found either")
                 else:
-                    print(f"6play live API error via proxy: {video_response.status_code if video_response else 'No response'}")
+                    print(f"6play live API error: {video_response.status_code}")
             else:
-                print(f"6play token error via proxy: {token_response.status_code if token_response else 'No response'}")
+                print(f"6play token error: {token_response.status_code}")
             
             # Fallback - return None to indicate failure
             return None
@@ -514,7 +511,7 @@ class SixPlayProvider:
         # Handle redirects for usp_dashcenc_h264 (from reference)
         if asset_type and 'usp_dashcenc_h264' in asset_type:
             try:
-                dummy_req = self.proxy_client.head(final_video_url, allow_redirects=False, timeout=10)
+                dummy_req = self.session.head(final_video_url, allow_redirects=False, timeout=10)
                 if 'location' in dummy_req.headers:
                     final_video_url = dummy_req.headers['location']
             except Exception:
@@ -539,9 +536,9 @@ class SixPlayProvider:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
             
-            response = self.proxy_client.get(url, headers=headers, context="6play Program API")
+            response = self.session.get(url, headers=headers, timeout=10)
             
-            if response and response.status_code == 200:
+            if response.status_code == 200:
                 program_data = response.json()
                 
                 # Extract images from program data with proper mapping
@@ -592,7 +589,7 @@ class SixPlayProvider:
                     # Note: poster and logo are intentionally not included to preserve specific URLs
                 }
             else:
-                print(f"[SixPlayProvider] Failed to get program data for {show_id}: {response.status_code if response else 'No response'}")
+                print(f"[SixPlayProvider] Failed to get program data for {show_id}: {response.status_code}")
             
             return {}
             
@@ -632,9 +629,9 @@ class SixPlayProvider:
                 ]
             }
             
-            response = self.proxy_client.post(search_url, headers=search_headers, json=search_data, context="6play Search API")
+            response = requests.post(search_url, headers=search_headers, json=search_data, timeout=10)
             
-            if response and response.status_code == 200:
+            if response.status_code == 200:
                 data = response.json()
                 
                 # Find the specific show in search results
@@ -673,9 +670,9 @@ class SixPlayProvider:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
             
-            response = self.proxy_client.get(url, headers=headers, context="6play Program Videos API")
+            response = self.session.get(url, headers=headers, timeout=10)
             
-            if response and response.status_code == 200:
+            if response.status_code == 200:
                 data = response.json()
                 episodes = []
                 
@@ -686,11 +683,11 @@ class SixPlayProvider:
                 
                 return episodes
             else:
-                print(f"[SixPlayProvider] Failed to get episodes via proxy: {response.status_code if response else 'No response'}")
+                print(f"[SixPlayProvider] Failed to get episodes: {response.status_code}")
                 return []
                 
         except Exception as e:
-            print(f"[SixPlayProvider] Error getting show episodes via proxy: {e}")
+            print(f"[SixPlayProvider] Error getting show episodes: {e}")
             return []
     
     def _parse_episode(self, video: Dict, episode_number: int) -> Optional[Dict]:
