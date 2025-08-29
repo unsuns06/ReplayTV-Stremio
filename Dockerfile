@@ -9,7 +9,7 @@ COPY . .
 
 # Set default environment variables
 ENV PORT=7860
-ENV HOST=0.0.0.0
+ENV HOST=127.0.0.1
 
 EXPOSE $PORT
 
