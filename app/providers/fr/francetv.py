@@ -11,6 +11,7 @@ import os
 from typing import Dict, List, Optional
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
+from app.utils.json_proxy import proxy_client
 
 class FranceTVProvider:
     """France TV provider implementation based on source addon"""
@@ -20,10 +21,9 @@ class FranceTVProvider:
         self.base_url = "https://www.france.tv"
         self.api_mobile = "https://api-mobile.yatta.francetv.fr"
         self.api_front = "http://api-front.yatta.francetv.fr"
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
+        
+        # Use proxy client instead of direct requests
+        self.proxy_client = proxy_client
         
         # Get base URL for static assets
         self.static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
@@ -73,7 +73,7 @@ class FranceTVProvider:
                 show_info
             )
             
-            # Try to get additional metadata from France TV API
+            # Try to get additional metadata from France TV API via proxy
             try:
                 api_metadata = self._get_show_api_metadata(show_info['id'])
                 if api_metadata:
@@ -88,17 +88,20 @@ class FranceTVProvider:
         return shows
     
     def _get_show_api_metadata(self, show_api_id: str) -> Optional[Dict]:
-        """Get additional metadata for a show from France TV API"""
+        """Get additional metadata for a show from France TV API via proxy"""
         try:
-            # Get show information from the front API
+            # Get show information from the front API through proxy
             api_url = f"{self.api_front}/standard/publish/taxonomies/{show_api_id}"
             params = {'platform': 'apps'}
             
-            response = self.session.get(api_url, params=params, timeout=10)
+            # Use proxy client instead of direct requests
+            data = self.proxy_client.get_json(
+                url=api_url, 
+                params=params, 
+                context=f"France TV API - {show_api_id}"
+            )
             
-            if response.status_code == 200:
-                data = response.json()
-                
+            if data:
                 # The API response structure is different - it's directly the show data
                 # Extract show metadata
                 images = data.get('media_image', {}).get('patterns', []) if 'media_image' in data else []
@@ -117,7 +120,7 @@ class FranceTVProvider:
             return None
             
         except Exception as e:
-            print(f"Error getting show API metadata: {e}")
+            print(f"Error getting show API metadata via proxy: {e}")
             return None
     
     def get_live_channels(self) -> List[Dict]:
@@ -195,11 +198,15 @@ class FranceTVProvider:
                 api_url = f"{self.api_mobile}/apps/channels/{channel_name}"
                 print(f"   Mobile API URL: {api_url}")
                 
-                response = self.session.get(api_url, params=params, timeout=10)
-                print(f"   Mobile API response: {response.status_code}")
+                response = self.proxy_client.get_json(
+                    url=api_url,
+                    params=params,
+                    context=f"France TV Mobile API - {channel_name}"
+                )
+                print(f"   Mobile API response: {response.status_code if response else 'N/A'}")
                 
-                if response.status_code == 200:
-                    json_data = response.json()
+                if response:
+                    json_data = response
                     
                     # Look for live collection
                     for collection in json_data.get('collections', []):
@@ -218,11 +225,14 @@ class FranceTVProvider:
                     live_json_url = f"{self.api_front}/standard/edito/directs"
                     print(f"   Front API URL: {live_json_url}")
                     
-                    response = self.session.get(live_json_url, timeout=10)
-                    print(f"   Front API response: {response.status_code}")
+                    response = self.proxy_client.get_json(
+                        url=live_json_url,
+                        context=f"France TV Front API - directs"
+                    )
+                    print(f"   Front API response: {response.status_code if response else 'N/A'}")
                     
-                    if response.status_code == 200:
-                        json_data = response.json()
+                    if response:
+                        json_data = response
                         
                         for live in json_data.get('result', []):
                             if live.get('channel') == channel_name:
@@ -256,11 +266,15 @@ class FranceTVProvider:
             }
             
             print(f"   Video API URL: {video_url}")
-            video_response = self.session.get(video_url, params=params, timeout=10)
-            print(f"   Video API response: {video_response.status_code}")
+            video_response = self.proxy_client.get_json(
+                url=video_url,
+                params=params,
+                context=f"France TV Video API - {broadcast_id}"
+            )
+            print(f"   Video API response: {video_response.status_code if video_response else 'N/A'}")
             
-            if video_response.status_code == 200:
-                video_data = video_response.json()
+            if video_response:
+                video_data = video_response
                 print(f"   Video data keys: {list(video_data.keys())}")
                 
                 if 'video' in video_data:
@@ -287,11 +301,15 @@ class FranceTVProvider:
                     }
                     
                     print(f"   Token API params: {token_params}")
-                    token_response = self.session.get(url_token, params=token_params, timeout=10)
-                    print(f"   Token API response: {token_response.status_code}")
+                    token_response = self.proxy_client.get_json(
+                        url=url_token,
+                        params=token_params,
+                        context=f"France TV Token API - {video_info.get('url', '')}"
+                    )
+                    print(f"   Token API response: {token_response.status_code if token_response else 'N/A'}")
                     
-                    if token_response.status_code == 200:
-                        token_data = token_response.json()
+                    if token_response:
+                        token_data = token_response
                         final_url = token_data.get('url')
                         
                         if final_url:
@@ -306,11 +324,11 @@ class FranceTVProvider:
                         else:
                             print(f"   No final URL in token response")
                     else:
-                        print(f"   Token API error: {token_response.text}")
+                        print(f"   Token API error: {token_response.text if token_response else 'N/A'}")
                 else:
                     print(f"   No 'video' key in response")
             else:
-                print(f"   Video API error: {video_response.text}")
+                print(f"   Video API error: {video_response.text if video_response else 'N/A'}")
             
             print(f"   Returning None")
             return None
@@ -351,10 +369,14 @@ class FranceTVProvider:
                 'sort': "begin_date:desc"
             }
             
-            response = self.session.get(api_url, params=params, timeout=10)
+            response = self.proxy_client.get_json(
+                url=api_url,
+                params=params,
+                context=f"France TV Show Episodes - {self.shows[actual_show_id]['id']}"
+            )
             
-            if response.status_code == 200:
-                data = response.json()
+            if response:
+                data = response
                 episodes = []
                 
                 # Parse the response to get episodes (same logic as source addon)
@@ -368,7 +390,7 @@ class FranceTVProvider:
                 
                 return episodes
             else:
-                print(f"Failed to get show episodes: {response.status_code}")
+                print(f"Failed to get show episodes: {response.status_code if response else 'N/A'}")
                 return []
                 
         except Exception as e:
@@ -488,10 +510,14 @@ class FranceTVProvider:
                 'offline': 'false',
             }
             
-            response = self.session.get(video_url, params=params, timeout=10)
+            response = self.proxy_client.get_json(
+                url=video_url,
+                params=params,
+                context=f"France TV Episode Stream - {broadcast_id}"
+            )
             
-            if response.status_code == 200:
-                video_data = response.json()
+            if response:
+                video_data = response
                 
                 if 'video' not in video_data:
                     print("No video data found")
@@ -511,10 +537,14 @@ class FranceTVProvider:
                     'url': video_url
                 }
                 
-                token_response = self.session.get(token_url, params=token_params, timeout=10)
+                token_response = self.proxy_client.get_json(
+                    url=token_url,
+                    params=token_params,
+                    context=f"France TV Episode Token - {video_url}"
+                )
                 
-                if token_response.status_code == 200:
-                    token_data = token_response.json()
+                if token_response:
+                    token_data = token_response
                     final_url = token_data.get('url')
                     
                     if final_url:
@@ -526,7 +556,7 @@ class FranceTVProvider:
                 print("Failed to get stream URL")
                 return None
             else:
-                print(f"Failed to get video info: {response.status_code}")
+                print(f"Failed to get video info: {response.status_code if response else 'N/A'}")
                 return None
                 
         except Exception as e:

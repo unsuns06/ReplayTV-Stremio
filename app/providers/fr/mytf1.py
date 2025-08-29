@@ -7,6 +7,7 @@ import urllib.parse
 import random
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
+from app.utils.json_proxy import proxy_client
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -38,12 +39,12 @@ class MyTF1Provider:
         self.accounts_bootstrap = "https://compte.tf1.fr/accounts.webSdkBootstrap"
         self.token_gigya_web = "https://www.tf1.fr/token/gigya/web"
         self.license_base_url = 'https://drm-wide.tf1.fr/proxy?id=%s' # Renamed to avoid conflict
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': get_random_windows_ua()
-        })
+        
+        # Use proxy client instead of direct requests
+        self.proxy_client = proxy_client
+        
         # Set timeouts for all requests
-        self.session.timeout = 10
+        self.timeout = 10
         self.auth_token = None
         self._authenticated = False
     
@@ -70,15 +71,15 @@ class MyTF1Provider:
         }
     
     def _authenticate(self) -> bool:
-        """Authenticate with TF1+ using provided credentials"""
+        """Authenticate with TF1+ using provided credentials via proxy"""
         if not self.credentials.get('login') or not self.credentials.get('password'):
             print("[MyTF1Provider] MyTF1 credentials not provided")
             return False
             
         try:
-            print("[MyTF1Provider] Attempting MyTF1 authentication...")
+            print("[MyTF1Provider] Attempting MyTF1 authentication via proxy...")
             
-            # Bootstrap
+            # Bootstrap via proxy
             bootstrap_headers = {
                 "User-Agent": get_random_windows_ua(),
                 "referrer": self.base_url
@@ -90,63 +91,49 @@ class MyTF1Provider:
                 'sdkBuild': '13987',
                 'format': 'json'
             }
-            self.session.get(self.accounts_bootstrap, headers=bootstrap_headers, params=bootstrap_params, timeout=10)
             
-            # Login
+            bootstrap_response = self.proxy_client.get_json(
+                url=self.accounts_bootstrap,
+                params=bootstrap_params,
+                headers=bootstrap_headers,
+                context="MyTF1 Bootstrap"
+            )
+            
+            if not bootstrap_response:
+                print("[MyTF1Provider] Bootstrap failed via proxy")
+                return False
+            
+            # Login via proxy
             headers_login = {
                 "User-Agent": get_random_windows_ua(),
                 "Content-Type": "application/x-www-form-urlencoded",
                 "referrer": self.base_url
             }
             
-            post_body_login = {
+            login_data = {
                 "loginID": self.credentials['login'],
                 "password": self.credentials['password'],
-                "sessionExpiration": 31536000,
-                "targetEnv": "jssdk",
-                "include": "identities-all,data,profile,preferences,",
-                "includeUserInfo": "true",
-                "loginMode": "standard",
-                "lang": "fr",
-                "APIKey": self.api_key,
-                "sdk": "js_latest",
-                "authMode": "cookie",
-                "pageURL": self.base_url,
-                "sdkBuild": 13987,
+                "apiKey": self.api_key,
                 "format": "json"
             }
             
-            response = self.session.post(self.accounts_login, headers=headers_login, data=post_body_login, timeout=10)
-            if response.status_code == 200:
-                login_json = response.json()
-                if login_json.get('errorCode') == 0:
-                    # Get Gigya token
-                    headers_gigya = {
-                        "User-Agent": get_random_windows_ua(),
-                        "content-type": "application/json"
-                    }
-                    body_gigya = "{\"uid\":\"%s\",\"signature\":\"%s\",\"timestamp\":%s,\"consent_ids\":[\"1\",\"2\",\"3\",\"4\",\"10001\",\"10003\",\"10005\",\"10007\",\"10013\",\"10015\",\"10017\",\"10019\",\"10009\",\"10011\",\"13002\",\"13001\",\"10004\",\"10014\",\"10016\",\"10018\",\"10020\",\"10010\",\"10012\",\"10006\",\"10008\"]}" % (
-                        login_json['userInfo']['UID'],
-                        login_json['userInfo']['UIDSignature'],
-                        int(login_json['userInfo']['signatureTimestamp'])
-                    )
-                    response = self.session.post(self.token_gigya_web, headers=headers_gigya, data=body_gigya, timeout=10)
-                    if response.status_code == 200:
-                        json_token = response.json()
-                        self.auth_token = json_token['token']
-                        self._authenticated = True
-                        print("[MyTF1Provider] MyTF1 authentication successful!")
-                        print(f"[MyTF1Provider] Session token generated: {self.auth_token[:20]}...")
-                        return True
-                    else:
-                        print(f"[MyTF1Provider] Failed to get Gigya token: {response.status_code}")
-                else:
-                    print(f"[MyTF1Provider] MyTF1 login failed: {login_json.get('errorMessage', 'Unknown error')}")
+            login_response = self.proxy_client.post_json(
+                url=self.accounts_login,
+                data=login_data,
+                headers=headers_login,
+                context="MyTF1 Login"
+            )
+            
+            if login_response and "UID" in login_response:
+                self.auth_token = login_response["UID"]
+                self._authenticated = True
+                print("✅ MyTF1 authentication successful via proxy")
+                return True
             else:
-                print(f"[MyTF1Provider] MyTF1 login failed with status {response.status_code}")
+                print(f"MyTF1 login failed via proxy: {login_response.get('errorMessage', 'Unknown error') if login_response else 'No response'}")
                 
         except Exception as e:
-            print(f"[MyTF1Provider] Error during MyTF1 authentication: {e}")
+            print(f"Error during MyTF1 authentication via proxy: {e}")
         
         return False
     
@@ -244,10 +231,15 @@ class MyTF1Provider:
                 'variables': f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{channel_filter}"}},"offset":0,"limit":500}}'
             }
             
-            response = self.session.get(self.api_url, params=program_params, headers=headers, timeout=10)
+            response = self.proxy_client.get_json(
+                url=self.api_url,
+                params=program_params,
+                headers=headers,
+                context="MyTF1 Get Programs"
+            )
             
-            if response.status_code == 200:
-                data = response.json()
+            if response:
+                data = response
                 program_id = None
                 program_slug = None
                 
@@ -267,7 +259,7 @@ class MyTF1Provider:
                     print(f"Program not found for show: {actual_show_id} on channel: {channel_filter}")
                     return []
             else:
-                print(f"Failed to get TF1+ programs: {response.status_code}")
+                print(f"Failed to get TF1+ programs via proxy: {response.get('errorMessage', 'Unknown error') if response else 'No response'}")
                 return []
                 
         except Exception as e:
@@ -284,10 +276,15 @@ class MyTF1Provider:
                 'variables': f'{{"programSlug":"{program_slug}","offset":0,"limit":50,"sort":{{"type":"DATE","order":"DESC"}},"types":["REPLAY"]}}'
             }
             
-            response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
+            response = self.proxy_client.get_json(
+                url=self.api_url,
+                params=params,
+                headers=headers,
+                context="MyTF1 Get Show Episodes"
+            )
             
-            if response.status_code == 200:
-                data = response.json()
+            if response:
+                data = response
                 episodes = []
                 
                 if 'data' in data and 'programBySlug' in data['data']:
@@ -311,7 +308,7 @@ class MyTF1Provider:
                 
                 return episodes
             else:
-                print(f"Failed to get TF1+ episodes: {response.status_code}")
+                print(f"Failed to get TF1+ episodes via proxy: {response.get('errorMessage', 'Unknown error') if response else 'No response'}")
                 return []
                 
         except Exception as e:
@@ -407,10 +404,15 @@ class MyTF1Provider:
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
-            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
+            response = self.proxy_client.get_json(
+                url=url_json,
+                headers=headers_video_stream,
+                params=params,
+                context="MyTF1 Get Channel Stream"
+            )
             
-            if response.status_code == 200:
-                json_parser = response.json()
+            if response:
+                json_parser = response
                 print(f"[MyTF1Provider] Stream API response received for {video_id}")
                 
                 if json_parser['delivery']['code'] <= 400:
@@ -485,7 +487,7 @@ class MyTF1Provider:
                 else:
                     print(f"[MyTF1Provider] MyTF1 delivery error: {json_parser['delivery']['code']}")
             else:
-                print(f"[MyTF1Provider] MyTF1 API error: {response.status_code}")
+                print(f"[MyTF1Provider] MyTF1 API error: {response.get('errorMessage', 'Unknown error') if response else 'No response'}")
                 
         except Exception as e:
             print(f"[MyTF1Provider] Error getting stream for {channel_name}: {e}")
@@ -531,10 +533,15 @@ class MyTF1Provider:
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
             print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
-            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
+            response = self.proxy_client.get_json(
+                url=url_json,
+                headers=headers_video_stream,
+                params=params,
+                context="MyTF1 Get Episode Stream"
+            )
             
-            if response.status_code == 200:
-                json_parser = response.json()
+            if response:
+                json_parser = response
                 print(f"[MyTF1Provider] Stream API response received for {actual_episode_id}")
                 
                 if json_parser['delivery']['code'] <= 400:
@@ -628,7 +635,7 @@ class MyTF1Provider:
                 else:
                     print(f"[MyTF1Provider] MyTF1 delivery error: {json_parser['delivery']['code']}")
             else:
-                print(f"[MyTF1Provider] MyTF1 API error: {response.status_code}")
+                print(f"[MyTF1Provider] MyTF1 API error: {response.get('errorMessage', 'Unknown error') if response else 'No response'}")
             
         except Exception as e:
             print(f"[MyTF1Provider] Error getting stream for episode {episode_id}: {e}")
@@ -649,10 +656,15 @@ class MyTF1Provider:
                 'User-Agent': get_random_windows_ua()
             }
             
-            response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
+            response = self.proxy_client.get_json(
+                url=self.api_url,
+                params=params,
+                headers=headers,
+                context="MyTF1 Get Show Metadata"
+            )
             
-            if response.status_code == 200:
-                data = response.json()
+            if response:
+                data = response
                 
                 if 'data' in data and 'programs' in data['data'] and 'items' in data['data']['programs']:
                     programs = data['data']['programs']['items']
