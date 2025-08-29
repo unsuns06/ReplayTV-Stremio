@@ -1,9 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from app.routers import catalog, meta, stream, configure
 from app.manifest import get_manifest
 import os
+import traceback
+import json
+import logging
+from datetime import datetime
+
+# Configure comprehensive logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('server_debug.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Catch-up TV & More for Stremio",
@@ -20,6 +36,82 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Custom middleware for comprehensive error logging
+@app.middleware("http")
+async def log_requests_and_responses(request: Request, call_next):
+    """Log all requests and responses with detailed error information"""
+    start_time = datetime.now()
+    
+    # Log the incoming request
+    logger.info(f"🔍 REQUEST: {request.method} {request.url}")
+    logger.info(f"   Headers: {dict(request.headers)}")
+    logger.info(f"   Query Params: {dict(request.query_params)}")
+    
+    try:
+        # Process the request
+        response = await call_next(request)
+        
+        # Log the response
+        process_time = (datetime.now() - start_time).total_seconds()
+        logger.info(f"✅ RESPONSE: {response.status_code} in {process_time:.3f}s")
+        
+        return response
+        
+    except Exception as e:
+        # Log detailed error information
+        process_time = (datetime.now() - start_time).total_seconds()
+        logger.error(f"❌ ERROR in {request.method} {request.url} after {process_time:.3f}s")
+        logger.error(f"   Error Type: {type(e).__name__}")
+        logger.error(f"   Error Message: {str(e)}")
+        logger.error(f"   Full Traceback:")
+        logger.error(traceback.format_exc())
+        
+        # Return error response
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "message": str(e),
+                "type": type(e).__name__,
+                "timestamp": datetime.now().isoformat(),
+                "path": str(request.url)
+            }
+        )
+
+# Global exception handler for unhandled exceptions
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler that logs everything"""
+    logger.error(f"🚨 GLOBAL EXCEPTION HANDLER TRIGGERED")
+    logger.error(f"   Request: {request.method} {request.url}")
+    logger.error(f"   Exception Type: {type(exc).__name__}")
+    logger.error(f"   Exception Message: {str(exc)}")
+    logger.error(f"   Full Traceback:")
+    logger.error(traceback.format_exc())
+    
+    # Log request details
+    try:
+        body = await request.body()
+        if body:
+            logger.error(f"   Request Body: {body.decode('utf-8', errors='ignore')[:1000]}...")
+    except:
+        logger.error(f"   Request Body: Could not read")
+    
+    # Log headers
+    logger.error(f"   Request Headers: {dict(request.headers)}")
+    
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Unhandled Exception",
+            "message": str(exc),
+            "type": type(exc).__name__,
+            "timestamp": datetime.now().isoformat(),
+            "path": str(request.url),
+            "note": "Check server_debug.log for full details"
+        }
+    )
+
 # Mount static files for logos
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -31,8 +123,50 @@ app.include_router(configure.router, prefix="", tags=["configure"])
 
 @app.get("/manifest.json")
 async def manifest():
-    return get_manifest()
+    try:
+        manifest_data = get_manifest()
+        logger.info("✅ Manifest generated successfully")
+        return manifest_data
+    except Exception as e:
+        logger.error(f"❌ Error generating manifest: {e}")
+        logger.error(traceback.format_exc())
+        raise
 
 @app.get("/")
 async def root():
     return {"message": "Catch-up TV & More for Stremio API"}
+
+@app.get("/debug/logs")
+async def get_debug_logs():
+    """Endpoint to view recent debug logs"""
+    try:
+        with open('server_debug.log', 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            # Return last 100 lines
+            recent_logs = lines[-100:] if len(lines) > 100 else lines
+            return {
+                "log_file": "server_debug.log",
+                "total_lines": len(lines),
+                "recent_lines": recent_logs,
+                "timestamp": datetime.now().isoformat()
+            }
+    except FileNotFoundError:
+        return {"error": "Log file not found"}
+    except Exception as e:
+        return {"error": f"Could not read logs: {e}"}
+
+@app.get("/debug/status")
+async def get_debug_status():
+    """Endpoint to check server status and configuration"""
+    return {
+        "status": "running",
+        "timestamp": datetime.now().isoformat(),
+        "environment": {
+            "ADDON_BASE_URL": os.getenv('ADDON_BASE_URL', 'Not set'),
+            "HOST": os.getenv('HOST', '127.0.0.1'),
+            "PORT": os.getenv('PORT', '7860'),
+            "LOG_LEVEL": "INFO"
+        },
+        "log_file": "server_debug.log",
+        "note": "Check /debug/logs for detailed error information"
+    }
