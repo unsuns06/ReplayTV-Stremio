@@ -11,7 +11,7 @@ import os
 from typing import Dict, List, Optional
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
-from app.utils.env import is_offline
+from app.utils.json_utils import parse_lenient_json
 
 class FranceTVProvider:
     """France TV provider implementation based on source addon"""
@@ -74,16 +74,15 @@ class FranceTVProvider:
                 show_info
             )
             
-            # Skip external API in offline/test mode
-            if not is_offline():
-                try:
-                    api_metadata = self._get_show_api_metadata(show_info['id'])
-                    if api_metadata:
-                        show_metadata = metadata_processor.enhance_metadata_with_api(
-                            show_metadata, api_metadata
-                        )
-                except Exception as e:
-                    print(f"Warning: Could not fetch API metadata for {show_id}: {e}")
+            # Try to get additional metadata from France TV API
+            try:
+                api_metadata = self._get_show_api_metadata(show_info['id'])
+                if api_metadata:
+                    show_metadata = metadata_processor.enhance_metadata_with_api(
+                        show_metadata, api_metadata
+                    )
+            except Exception as e:
+                print(f"Warning: Could not fetch API metadata for {show_id}: {e}")
             
             shows.append(show_metadata)
         
@@ -99,7 +98,7 @@ class FranceTVProvider:
             response = self.session.get(api_url, params=params, timeout=10)
             
             if response.status_code == 200:
-                data = response.json()
+                data = parse_lenient_json(response.text)
                 
                 # The API response structure is different - it's directly the show data
                 # Extract show metadata
@@ -175,9 +174,6 @@ class FranceTVProvider:
     
     def get_live_stream_url(self, channel_id: str) -> Optional[Dict]:
         """Get live stream URL for a specific channel - based on reference implementation"""
-        # Avoid slow network calls during test runs; the API layer provides fallbacks
-        if os.getenv("PYTEST_CURRENT_TEST") is not None:
-            return None
         print(f"🔍 France TV: Getting live stream for {channel_id}")
         try:
             # Extract channel name from ID (e.g., "france-2" from "cutam:fr:francetv:france-2")
@@ -204,7 +200,7 @@ class FranceTVProvider:
                 print(f"   Mobile API response: {response.status_code}")
                 
                 if response.status_code == 200:
-                    json_data = response.json()
+                    json_data = parse_lenient_json(response.text)
                     
                     # Look for live collection
                     for collection in json_data.get('collections', []):
@@ -227,7 +223,7 @@ class FranceTVProvider:
                     print(f"   Front API response: {response.status_code}")
                     
                     if response.status_code == 200:
-                        json_data = response.json()
+                        json_data = parse_lenient_json(response.text)
                         
                         for live in json_data.get('result', []):
                             if live.get('channel') == channel_name:
@@ -265,7 +261,7 @@ class FranceTVProvider:
             print(f"   Video API response: {video_response.status_code}")
             
             if video_response.status_code == 200:
-                video_data = video_response.json()
+                video_data = parse_lenient_json(video_response.text)
                 print(f"   Video data keys: {list(video_data.keys())}")
                 
                 if 'video' in video_data:
@@ -296,7 +292,7 @@ class FranceTVProvider:
                     print(f"   Token API response: {token_response.status_code}")
                     
                     if token_response.status_code == 200:
-                        token_data = token_response.json()
+                        token_data = parse_lenient_json(token_response.text)
                         final_url = token_data.get('url')
                         
                         if final_url:
@@ -345,11 +341,9 @@ class FranceTVProvider:
         if actual_show_id not in self.shows:
             return []
         
-        # In offline mode, avoid network calls and return an empty list (routers handle gracefully)
-        if is_offline():
-            return []
-        
         try:
+            # Use the same API endpoint as the source addon
+            # URL example: http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_cash-investigation/contents/?size=20&page=0&sort=begin_date:desc&filter=with-no-vod,only-visible
             api_url = f"{self.api_front}/standard/publish/taxonomies/{self.shows[actual_show_id]['id']}/contents/"
             params = {
                 'size': 20,
@@ -357,20 +351,27 @@ class FranceTVProvider:
                 'filter': "with-no-vod,only-visible",
                 'sort': "begin_date:desc"
             }
+            
             response = self.session.get(api_url, params=params, timeout=10)
+            
             if response.status_code == 200:
-                data = response.json()
+                data = parse_lenient_json(response.text)
                 episodes = []
+                
+                # Parse the response to get episodes (same logic as source addon)
                 if 'result' in data:
                     for i, video in enumerate(data['result']):
                         if video['type'] in ['integrale', 'extrait']:
+                            # This is a video/episode
                             episode_info = self._parse_episode(video, i + 1)
                             if episode_info:
                                 episodes.append(episode_info)
+                
                 return episodes
             else:
                 print(f"Failed to get show episodes: {response.status_code}")
                 return []
+                
         except Exception as e:
             print(f"Error getting show episodes: {e}")
             return []
@@ -491,7 +492,7 @@ class FranceTVProvider:
             response = self.session.get(video_url, params=params, timeout=10)
             
             if response.status_code == 200:
-                video_data = response.json()
+                video_data = parse_lenient_json(response.text)
                 
                 if 'video' not in video_data:
                     print("No video data found")
@@ -514,7 +515,7 @@ class FranceTVProvider:
                 token_response = self.session.get(token_url, params=token_params, timeout=10)
                 
                 if token_response.status_code == 200:
-                    token_data = token_response.json()
+                    token_data = parse_lenient_json(token_response.text)
                     final_url = token_data.get('url')
                     
                     if final_url:

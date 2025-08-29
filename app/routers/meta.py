@@ -2,8 +2,6 @@ from fastapi import APIRouter
 import os
 from app.schemas.stremio import MetaResponse, Video
 from app.providers.fr.common import ProviderFactory
-from app.utils.ids import parse_channel_id, parse_program_id
-from app.utils.env import is_offline
 
 router = APIRouter()
 
@@ -14,33 +12,75 @@ async def get_meta(type: str, id: str):
     
     # Handle live TV channel metadata
     if type == "channel":
-        parsed = parse_channel_id(id)
-        provider_key = parsed.get("provider")
-        if not provider_key:
-            return {"meta": {}}
+        # Try to get channel from France TV provider
         try:
-            provider = ProviderFactory.create_provider(provider_key)
-            channels = provider.get_live_channels()
+            francetv = ProviderFactory.create_provider("francetv")
+            channels = francetv.get_live_channels()
+            
             for channel in channels:
                 if channel["id"] == id:
-                    return MetaResponse(meta={
-                        "id": channel["id"],
-                        "type": "channel",
-                        "name": channel["name"],
-                        "logo": channel.get("logo", ""),
-                        "poster": channel.get("poster", ""),
-                        "description": f"Live stream for {channel['name']}",
-                        "videos": []
-                    })
+                    return MetaResponse(
+                        meta={
+                            "id": channel["id"],
+                            "type": "channel",
+                            "name": channel["name"],
+                            "logo": channel.get("logo", ""),
+                            "poster": channel.get("poster", ""),
+                            "description": f"Live stream for {channel['name']}",
+                            "videos": []
+                        }
+                    )
         except Exception as e:
-            print(f"Error getting channel metadata: {e}")
+            print(f"Error getting France TV channel metadata: {e}")
+        
+        # Try to get channel from TF1 provider
+        try:
+            mytf1 = ProviderFactory.create_provider("mytf1")
+            channels = mytf1.get_live_channels()
+            
+            for channel in channels:
+                if channel["id"] == id:
+                    return MetaResponse(
+                        meta={
+                            "id": channel["id"],
+                            "type": "channel",
+                            "name": channel["name"],
+                            "logo": channel.get("logo", ""),
+                            "poster": channel.get("poster", ""),
+                            "description": f"Live stream for {channel['name']}",
+                            "videos": []
+                        }
+                    )
+        except Exception as e:
+            print(f"Error getting TF1 channel metadata: {e}")
+        
+        # Try to get channel from 6play provider
+        try:
+            sixplay = ProviderFactory.create_provider("sixplay")
+            channels = sixplay.get_live_channels()
+            
+            for channel in channels:
+                if channel["id"] == id:
+                    return MetaResponse(
+                        meta={
+                            "id": channel["id"],
+                            "type": "channel",
+                            "name": channel["name"],
+                            "logo": channel.get("logo", ""),
+                            "poster": channel.get("poster", ""),
+                            "description": f"Live stream for {channel['name']}",
+                            "videos": []
+                        }
+                    )
+        except Exception as e:
+            print(f"Error getting 6play channel metadata: {e}")
     
     # Handle France TV series metadata with enhanced episode handling
     elif type == "series" and "francetv" in id:
         try:
             provider = ProviderFactory.create_provider("francetv")
             
-            # Extract show ID from the series ID, include "soiree100" static handling for tests
+            # Extract show ID from the series ID
             if "envoye-special" in id:
                 show_id = "envoye-special"
                 show_name = "Envoyé spécial"
@@ -62,22 +102,6 @@ async def get_meta(type: str, id: str):
                 show_logo = f"{static_base}/static/logos/fr/france2.png"
                 show_channel = "France 2"
                 show_genres = ["News", "Documentary", "Investigation"]
-            elif "soiree100" in id:
-                # Provide a minimal static meta to satisfy tests without network
-                series_meta = {
-                    "id": "cutam:fr:francetv:prog:soiree100",
-                    "type": "series",
-                    "name": "Soirée 100%",
-                    "poster": f"{static_base}/static/logos/fr/france2.png",
-                    "logo": f"{static_base}/static/logos/fr/france2.png",
-                    "description": "Programme spécial France 2",
-                    "channel": "France 2",
-                    "genres": ["Special"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "videos": []
-                }
-                return MetaResponse(meta=series_meta)
             else:
                 return {"meta": {}}
             

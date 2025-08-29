@@ -7,7 +7,7 @@ import urllib.parse
 import random
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
-from app.utils.env import is_offline
+from app.utils.json_utils import parse_lenient_json
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -119,7 +119,7 @@ class MyTF1Provider:
             
             response = self.session.post(self.accounts_login, headers=headers_login, data=post_body_login, timeout=10)
             if response.status_code == 200:
-                login_json = response.json()
+                login_json = parse_lenient_json(response.text)
                 if login_json.get('errorCode') == 0:
                     # Get Gigya token
                     headers_gigya = {
@@ -133,7 +133,7 @@ class MyTF1Provider:
                     )
                     response = self.session.post(self.token_gigya_web, headers=headers_gigya, data=body_gigya, timeout=10)
                     if response.status_code == 200:
-                        json_token = response.json()
+                        json_token = parse_lenient_json(response.text)
                         self.auth_token = json_token['token']
                         self._authenticated = True
                         print("[MyTF1Provider] MyTF1 authentication successful!")
@@ -182,10 +182,10 @@ class MyTF1Provider:
         shows = []
         
         try:
+            # Fetch show metadata from TF1+ API (same as reference plugin)
             for show_id, show_info in self.shows.items():
-                show_metadata = {}
-                if not is_offline():
-                    show_metadata = self._get_show_api_metadata(show_id, show_info)
+                show_metadata = self._get_show_api_metadata(show_id, show_info)
+                
                 shows.append({
                     "id": f"cutam:fr:mytf1:{show_id}",
                     "type": "series",
@@ -201,6 +201,7 @@ class MyTF1Provider:
                 })
         except Exception as e:
             print(f"[MyTF1Provider] Error fetching show metadata: {e}")
+            # Fallback to basic channel logos
             for show_id, show_info in self.shows.items():
                 shows.append({
                     "id": f"cutam:fr:mytf1:{show_id}",
@@ -219,35 +220,48 @@ class MyTF1Provider:
 
     def get_episodes(self, show_id: str) -> List[Dict]:
         """Get episodes for a specific TF1+ show"""
+        # Extract the actual show ID from our format
         actual_show_id = show_id.split(":")[-1]
+        
         if actual_show_id not in self.shows:
             return []
-        if is_offline():
-            return []
+        
         try:
+            # Use the TF1+ GraphQL API to get episodes
+            # Based on the reference plugin implementation
             headers = {
                 'content-type': 'application/json',
                 'referer': 'https://www.tf1.fr/programmes-tv',
                 'User-Agent': get_random_windows_ua()
             }
+            
+            # Get the channel for this show
             show_channel = self.shows[actual_show_id]['channel']
             channel_filter = show_channel.lower()
+            
+            # First, get the program ID for the show
             program_params = {
                 'id': '483ce0f',
                 'variables': f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{channel_filter}"}},"offset":0,"limit":500}}'
             }
+            
             response = self.session.get(self.api_url, params=program_params, headers=headers, timeout=10)
+            
             if response.status_code == 200:
-                data = response.json()
+                data = parse_lenient_json(response.text)
                 program_id = None
                 program_slug = None
+                
+                # Find the specific show in the programs list
                 if 'data' in data and 'programs' in data['data']:
                     for program in data['data']['programs']['items']:
                         if program.get('name', '').lower() == self.shows[actual_show_id]['name'].lower():
                             program_id = program.get('id')
                             program_slug = program.get('slug')
                             break
+                
                 if program_id and program_slug:
+                    # Get episodes for the show
                     episodes = self._get_show_episodes(program_slug, program_id, headers)
                     return episodes
                 else:
@@ -256,6 +270,7 @@ class MyTF1Provider:
             else:
                 print(f"Failed to get TF1+ programs: {response.status_code}")
                 return []
+                
         except Exception as e:
             print(f"Error getting TF1+ episodes: {e}")
             return []
@@ -273,7 +288,7 @@ class MyTF1Provider:
             response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                data = response.json()
+                data = parse_lenient_json(response.text)
                 episodes = []
                 
                 if 'data' in data and 'programBySlug' in data['data']:
@@ -396,7 +411,7 @@ class MyTF1Provider:
             response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
             
             if response.status_code == 200:
-                json_parser = response.json()
+                json_parser = parse_lenient_json(response.text)
                 print(f"[MyTF1Provider] Stream API response received for {video_id}")
                 
                 if json_parser['delivery']['code'] <= 400:
@@ -520,7 +535,7 @@ class MyTF1Provider:
             response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
             
             if response.status_code == 200:
-                json_parser = response.json()
+                json_parser = parse_lenient_json(response.text)
                 print(f"[MyTF1Provider] Stream API response received for {actual_episode_id}")
                 
                 if json_parser['delivery']['code'] <= 400:
@@ -638,7 +653,7 @@ class MyTF1Provider:
             response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                data = response.json()
+                data = parse_lenient_json(response.text)
                 
                 if 'data' in data and 'programs' in data['data'] and 'items' in data['data']['programs']:
                     programs = data['data']['programs']['items']

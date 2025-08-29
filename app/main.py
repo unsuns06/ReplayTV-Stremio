@@ -4,13 +4,6 @@ from fastapi.staticfiles import StaticFiles
 from app.routers import catalog, meta, stream, configure
 from app.manifest import get_manifest
 import os
-import logging
-
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
-logger = logging.getLogger("stremio-addon")
 
 app = FastAPI(
     title="Catch-up TV & More for Stremio",
