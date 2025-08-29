@@ -155,7 +155,7 @@ class MyTF1Provider:
         channels = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
         
         # Known TF1 channels - updated to use local logos
         channel_data = [

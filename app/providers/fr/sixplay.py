@@ -117,7 +117,7 @@ class SixPlayProvider:
         channels = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
         
         # Known 6play channels - updated to use local logos
         channel_data = [
@@ -143,7 +143,7 @@ class SixPlayProvider:
         shows = []
         
         # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
+        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
         
         # 6play shows configuration with specific poster URLs and specific logo URLs
         self.shows = {

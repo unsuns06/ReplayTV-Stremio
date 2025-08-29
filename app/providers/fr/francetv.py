@@ -26,7 +26,7 @@ class FranceTVProvider:
         })
         
         # Get base URL for static assets
-        self.static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
+        self.static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
         
         # Enhanced show information with rich metadata
         self.shows = {
