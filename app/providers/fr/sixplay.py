@@ -59,6 +59,10 @@ class SixPlayProvider:
                 current_headers['User-Agent'] = get_random_windows_ua()
                 
                 print(f"[6play] API call attempt {attempt + 1}/{max_retries}: {url}")
+                if params:
+                    print(f"[6play] Request params: {params}")
+                if headers:
+                    print(f"[6play] Request headers: {headers}")
                 
                 if method.upper() == 'POST':
                     if data:
@@ -69,14 +73,29 @@ class SixPlayProvider:
                     response = self.session.get(url, params=params, headers=current_headers, timeout=15)
                 
                 if response.status_code == 200:
+                    # Log response details for debugging
+                    print(f"[6play] Response headers: {dict(response.headers)}")
+                    print(f"[6play] Content-Type: {response.headers.get('content-type', 'Not set')}")
+                    
                     # Try to parse JSON with multiple strategies
                     try:
                         return response.json()
                     except json.JSONDecodeError as e:
                         print(f"[6play] JSON parse error on attempt {attempt + 1}: {e}")
+                        print(f"[6play] Error position: line {e.lineno}, column {e.colno}, char {e.pos}")
+                        
+                        # Log the raw response for debugging
+                        text = response.text
+                        print(f"[6play] Raw response length: {len(text)} characters")
+                        print(f"[6play] Raw response (first 500 chars): {text[:500]}")
+                        
+                        # Log the problematic area around the error
+                        if e.pos > 0:
+                            start = max(0, e.pos - 50)
+                            end = min(len(text), e.pos + 50)
+                            print(f"[6play] Context around error (chars {start}-{end}): {text[start:end]}")
                         
                         # Strategy 1: Try to fix common JSON issues
-                        text = response.text
                         if "'" in text and '"' not in text:
                             # Replace single quotes with double quotes
                             text = text.replace("'", '"')
@@ -85,7 +104,18 @@ class SixPlayProvider:
                             except:
                                 pass
                         
-                        # Strategy 2: Try to extract JSON from larger response
+                        # Strategy 2: Try to fix unquoted property names
+                        try:
+                            # This regex looks for property names that aren't properly quoted
+                            import re
+                            fixed_text = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
+                            if fixed_text != text:
+                                print(f"[6play] Attempting to fix unquoted property names...")
+                                return json.loads(fixed_text)
+                        except:
+                            pass
+                        
+                        # Strategy 3: Try to extract JSON from larger response
                         if '<html' in text.lower():
                             print(f"[6play] Received HTML instead of JSON on attempt {attempt + 1}")
                         else:
@@ -98,11 +128,15 @@ class SixPlayProvider:
                         
                 elif response.status_code in [403, 429, 500]:
                     print(f"[6play] HTTP {response.status_code} on attempt {attempt + 1}")
+                    print(f"[6play] Response headers: {dict(response.headers)}")
+                    print(f"[6play] Response content: {response.text[:500]}...")
                     if attempt < max_retries - 1:
                         time.sleep(2 ** attempt)
                         continue
                 else:
                     print(f"[6play] HTTP {response.status_code} on attempt {attempt + 1}")
+                    print(f"[6play] Response headers: {dict(response.headers)}")
+                    print(f"[6play] Response content: {response.text[:500]}...")
                     
             except Exception as e:
                 print(f"[6play] Request error on attempt {attempt + 1}: {e}")

@@ -10,14 +10,22 @@ import json
 import logging
 from datetime import datetime
 
-# Configure comprehensive logging
+# Configure comprehensive logging with Unicode support
+import sys
+
+# Create handlers with proper encoding
+file_handler = logging.FileHandler('server_debug.log', encoding='utf-8')
+console_handler = logging.StreamHandler(sys.stdout)
+
+# Set formatters
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('server_debug.log'),
-        logging.StreamHandler()
-    ]
+    handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
 

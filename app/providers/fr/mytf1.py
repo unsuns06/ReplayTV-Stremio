@@ -13,6 +13,7 @@ import urllib.parse
 import random
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
+from app.utils.safe_print import safe_print
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -83,25 +84,48 @@ class MyTF1Provider:
                 current_headers = headers or {}
                 current_headers['User-Agent'] = get_random_windows_ua()
                 
-                print(f"[MyTF1] API call attempt {attempt + 1}/{max_retries}: {url}")
+                safe_print(f"[MyTF1] API call attempt {attempt + 1}/{max_retries}: {url}")
+                if params:
+                    safe_print(f"[MyTF1] Request params: {params}")
+                if headers:
+                    safe_print(f"[MyTF1] Request headers: {headers}")
                 
                 if method.upper() == 'POST':
                     if data:
-                        response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15)
+                        # Check if we need form data or JSON based on Content-Type
+                        if current_headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15)
+                        else:
+                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15)
                     else:
                         response = self.session.post(url, params=params, headers=current_headers, timeout=15)
                 else:
                     response = self.session.get(url, params=params, headers=current_headers, timeout=15)
                 
                 if response.status_code == 200:
+                    # Log response details for debugging
+                    safe_print(f"[MyTF1] Response headers: {dict(response.headers)}")
+                    safe_print(f"[MyTF1] Content-Type: {response.headers.get('content-type', 'Not set')}")
+                    
                     # Try to parse JSON with multiple strategies
                     try:
                         return response.json()
                     except json.JSONDecodeError as e:
-                        print(f"[MyTF1] JSON parse error on attempt {attempt + 1}: {e}")
+                        safe_print(f"[MyTF1] JSON parse error on attempt {attempt + 1}: {e}")
+                        safe_print(f"[MyTF1] Error position: line {e.lineno}, column {e.colno}, char {e.pos}")
+                        
+                        # Log the raw response for debugging
+                        text = response.text
+                        safe_print(f"[MyTF1] Raw response length: {len(text)} characters")
+                        safe_print(f"[MyTF1] Raw response (first 500 chars): {text[:500]}")
+                        
+                        # Log the problematic area around the error
+                        if e.pos > 0:
+                            start = max(0, e.pos - 50)
+                            end = min(len(text), e.pos + 1)
+                            safe_print(f"[MyTF1] Context around error (chars {start}-{end}): {text[start:end]}")
                         
                         # Strategy 1: Try to fix common JSON issues
-                        text = response.text
                         if "'" in text and '"' not in text:
                             # Replace single quotes with double quotes
                             text = text.replace("'", '"')
@@ -110,11 +134,22 @@ class MyTF1Provider:
                             except:
                                 pass
                         
-                        # Strategy 2: Try to extract JSON from larger response
+                        # Strategy 2: Try to fix unquoted property names
+                        try:
+                            # This regex looks for property names that aren't properly quoted
+                            import re
+                            fixed_text = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
+                            if fixed_text != text:
+                                safe_print(f"[MyTF1] Attempting to fix unquoted property names...")
+                                return json.loads(fixed_text)
+                        except:
+                            pass
+                        
+                        # Strategy 3: Try to extract JSON from larger response
                         if '<html' in text.lower():
-                            print(f"[MyTF1] Received HTML instead of JSON on attempt {attempt + 1}")
+                            safe_print(f"[MyTF1] Received HTML instead of JSON on attempt {attempt + 1}")
                         else:
-                            print(f"[MyTF1] Malformed response on attempt {attempt + 1}: {text[:200]}...")
+                            safe_print(f"[MyTF1] Malformed response on attempt {attempt + 1}: {text[:200]}...")
                         
                         # Wait before retry
                         if attempt < max_retries - 1:
@@ -122,30 +157,34 @@ class MyTF1Provider:
                             continue
                         
                 elif response.status_code in [403, 429, 500]:
-                    print(f"[MyTF1] HTTP {response.status_code} on attempt {attempt + 1}")
+                    safe_print(f"[MyTF1] HTTP {response.status_code} on attempt {attempt + 1}")
+                    safe_print(f"[MyTF1] Response headers: {dict(response.headers)}")
+                    safe_print(f"[MyTF1] Response content: {response.text[:500]}...")
                     if attempt < max_retries - 1:
                         time.sleep(2 ** attempt)
                         continue
                 else:
-                    print(f"[MyTF1] HTTP {response.status_code} on attempt {attempt + 1}")
+                    safe_print(f"[MyTF1] HTTP {response.status_code} on attempt {attempt + 1}")
+                    safe_print(f"[MyTF1] Response headers: {dict(response.headers)}")
+                    safe_print(f"[MyTF1] Response content: {response.text[:500]}...")
                     
             except Exception as e:
-                print(f"[MyTF1] Request error on attempt {attempt + 1}: {e}")
+                safe_print(f"[MyTF1] Request error on attempt {attempt + 1}: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)
                     continue
         
-        print(f"[MyTF1] All {max_retries} attempts failed for {url}")
+        safe_print(f"[MyTF1] All {max_retries} attempts failed for {url}")
         return None
     
     def _authenticate(self) -> bool:
         """Authenticate with TF1+ using provided credentials with robust error handling"""
         if not self.credentials.get('login') or not self.credentials.get('password'):
-            print("[MyTF1Provider] MyTF1 credentials not provided")
+            safe_print("[MyTF1Provider] MyTF1 credentials not provided")
             return False
             
         try:
-            print("[MyTF1Provider] Attempting MyTF1 authentication...")
+            safe_print("[MyTF1Provider] Attempting MyTF1 authentication...")
             
             # Bootstrap
             bootstrap_headers = {
@@ -161,7 +200,7 @@ class MyTF1Provider:
             
             bootstrap_data = self._safe_api_call(self.accounts_bootstrap, headers=bootstrap_headers, params=bootstrap_params)
             if not bootstrap_data:
-                print("[MyTF1Provider] Bootstrap failed")
+                safe_print("[MyTF1Provider] Bootstrap failed")
                 return False
             
             # Login
@@ -194,27 +233,28 @@ class MyTF1Provider:
                 headers_gigya = {
                     "content-type": "application/json"
                 }
-                body_gigya = "{\"uid\":\"%s\",\"signature\":\"%s\",\"timestamp\":%s,\"consent_ids\":[\"1\",\"2\",\"3\",\"4\",\"10001\",\"10003\",\"10005\",\"10007\",\"10013\",\"10015\",\"10017\",\"10019\",\"10009\",\"10011\",\"13002\",\"13001\",\"10004\",\"10014\",\"10016\",\"10018\",\"10020\",\"10010\",\"10012\",\"10006\",\"10008\"]}" % (
-                    login_data['userInfo']['UID'],
-                    login_data['userInfo']['UIDSignature'],
-                    int(login_data['userInfo']['signatureTimestamp'])
-                )
+                body_gigya = {
+                    "uid": login_data['userInfo']['UID'],
+                    "signature": login_data['userInfo']['UIDSignature'],
+                    "timestamp": int(login_data['userInfo']['signatureTimestamp']),
+                    "consent_ids": ["1", "2", "3", "4", "10001", "10003", "10005", "10007", "10013", "10015", "10017", "10019", "10009", "10011", "13002", "13001", "10004", "10014", "10016", "10018", "10020", "10010", "10012", "10006", "10008"]
+                }
                 
                 jwt_data = self._safe_api_call(self.token_gigya_web, headers=headers_gigya, data=body_gigya, method='POST')
                 
                 if jwt_data and 'token' in jwt_data:
                     self.auth_token = jwt_data['token']
                     self._authenticated = True
-                    print("[MyTF1Provider] MyTF1 authentication successful!")
-                    print(f"[MyTF1Provider] Session token generated: {self.auth_token[:20]}...")
+                    safe_print("[MyTF1Provider] MyTF1 authentication successful!")
+                    safe_print(f"[MyTF1Provider] Session token generated: {self.auth_token[:20]}...")
                     return True
                 else:
-                    print(f"[MyTF1Provider] Failed to get Gigya token")
+                    safe_print(f"[MyTF1Provider] Failed to get Gigya token")
             else:
-                print(f"[MyTF1Provider] MyTF1 login failed: {login_data.get('errorMessage', 'Unknown error') if login_data else 'No response'}")
+                safe_print(f"[MyTF1Provider] MyTF1 login failed: {login_data.get('errorMessage', 'Unknown error') if login_data else 'No response'}")
                 
         except Exception as e:
-            print(f"[MyTF1Provider] Error during MyTF1 authentication: {e}")
+            safe_print(f"[MyTF1Provider] Error during MyTF1 authentication: {e}")
         
         return False
     
@@ -236,6 +276,14 @@ class MyTF1Provider:
                 "description": "Première chaîne de télévision privée française"
             },
             {
+                "id": "cutam:fr:mytf1:tmc",
+                "type": "channel",
+                "name": "TMC",
+                "poster": f"{static_base}/static/logos/fr/tmc.png",
+                "logo": f"{static_base}/static/logos/fr/tmc.png",
+                "description": "Chaîne de télévision du groupe TF1"
+            },
+            {
                 "id": "cutam:fr:mytf1:tfx",
                 "type": "channel",
                 "name": "TFX",
@@ -247,8 +295,8 @@ class MyTF1Provider:
                 "id": "cutam:fr:mytf1:tf1-series-films",
                 "type": "channel",
                 "name": "TF1 Séries Films",
-                "poster": f"{static_base}/static/logos/fr/tf1-series-films.png",
-                "logo": f"{static_base}/static/logos/fr/tf1-series-films.png",
+                "poster": f"{static_base}/static/logos/fr/tf1seriesfilms.png",
+                "logo": f"{static_base}/static/logos/fr/tf1seriesfilms.png",
                 "description": "Chaîne dédiée aux séries et films du groupe TF1"
             }
         ]
@@ -282,7 +330,7 @@ class MyTF1Provider:
                     "rating": show_info["rating"]
                 })
         except Exception as e:
-            print(f"[MyTF1Provider] Error fetching show metadata: {e}")
+            safe_print(f"[MyTF1Provider] Error fetching show metadata: {e}")
             # Fallback to basic channel logos
             for show_id, show_info in self.shows.items():
                 shows.append({
@@ -345,18 +393,18 @@ class MyTF1Provider:
                     if episodes:
                         return episodes
                     else:
-                        print(f"[MyTF1Provider] No episodes found for program: {program_slug}")
+                        safe_print(f"[MyTF1Provider] No episodes found for program: {program_slug}")
                 else:
-                    print(f"[MyTF1Provider] Program not found for show: {actual_show_id} on channel: {channel_filter}")
+                    safe_print(f"[MyTF1Provider] Program not found for show: {actual_show_id} on channel: {channel_filter}")
             else:
-                print(f"[MyTF1Provider] Failed to get TF1+ programs or API failed")
+                safe_print(f"[MyTF1Provider] Failed to get TF1+ programs or API failed")
             
             # Fallback: return a placeholder episode
-            print(f"[MyTF1Provider] Using fallback episode for {actual_show_id}")
+            safe_print(f"[MyTF1Provider] Using fallback episode for {actual_show_id}")
             return [self._create_fallback_episode(actual_show_id)]
                 
         except Exception as e:
-            print(f"[MyTF1Provider] Error getting show episodes: {e}")
+            safe_print(f"[MyTF1Provider] Error getting show episodes: {e}")
             # Fallback: return a placeholder episode
             return [self._create_fallback_episode(actual_show_id)]
     
@@ -393,7 +441,7 @@ class MyTF1Provider:
                 # Check if videos are available
                 if 'videos' in program_data and 'items' in program_data['videos']:
                     video_items = program_data['videos']['items']
-                    print(f"[MyTF1Provider] Found {len(video_items)} video items")
+                    safe_print(f"[MyTF1Provider] Found {len(video_items)} video items")
                     
                     episodes = []
                     for video_data in video_items:
@@ -403,16 +451,16 @@ class MyTF1Provider:
                     
                     return episodes
                 else:
-                    print(f"[MyTF1Provider] No videos found in programBySlug")
-                    print(f"[MyTF1Provider] Available keys: {list(program_data.keys())}")
+                    safe_print(f"[MyTF1Provider] No videos found in programBySlug")
+                    safe_print(f"[MyTF1Provider] Available keys: {list(program_data.keys())}")
             else:
-                print(f"[MyTF1Provider] No programBySlug in response or API failed")
-                print(f"[MyTF1Provider] Response keys: {list(data.keys()) if data else 'No data'}")
+                safe_print(f"[MyTF1Provider] No programBySlug in response or API failed")
+                safe_print(f"[MyTF1Provider] Response keys: {list(data.keys()) if data else 'No data'}")
             
             return []
             
         except Exception as e:
-            print(f"[MyTF1Provider] Error getting TF1+ show episodes: {e}")
+            safe_print(f"[MyTF1Provider] Error getting TF1+ show episodes: {e}")
             return []
     
     def _parse_episode(self, video: Dict, video_data: Dict, episode_number: int) -> Optional[Dict]:
@@ -460,8 +508,12 @@ class MyTF1Provider:
             return episode_meta
             
         except Exception as e:
-            print(f"[MyTF1Provider] Error parsing episode: {e}")
+            safe_print(f"[MyTF1Provider] Error parsing episode: {e}")
             return None
+    
+    def get_live_stream_url(self, channel_id: str) -> Optional[Dict]:
+        """Get live stream URL for a specific channel - wrapper for get_channel_stream_url"""
+        return self.get_channel_stream_url(channel_id)
     
     def get_channel_stream_url(self, channel_id: str) -> Optional[Dict]:
         """Get stream URL for a specific channel with robust error handling and fallbacks"""
@@ -469,20 +521,21 @@ class MyTF1Provider:
         channel_name = channel_id.split(":")[-1]  # e.g., "tf1"
         
         try:
-            print(f"[MyTF1Provider] Getting stream for channel: {channel_name}")
+            safe_print(f"[MyTF1Provider] Getting stream for channel: {channel_name}")
             
             # Lazy authentication - only authenticate when needed
-            print("[MyTF1Provider] Checking authentication...")
+            safe_print("[MyTF1Provider] Checking authentication...")
             if not self._authenticated and not self._authenticate():
-                print("[MyTF1Provider] MyTF1 authentication failed")
+                safe_print("[MyTF1Provider] MyTF1 authentication failed")
                 return None
                 
             # TF1 live streams use 'L_' prefix (e.g., 'L_TF1')
             video_id = f'L_{channel_name.upper()}'
-            print(f"[MyTF1Provider] Using video ID: {video_id}")
+            safe_print(f"[MyTF1Provider] Using video ID: {video_id}")
             
             # Get the actual stream URL using the mediainfo API
             headers_video_stream = {
+                "User-Agent": get_random_windows_ua(),
                 "authorization": f"Bearer {self.auth_token}",
             }
             # Params follow reference; LCI could be treated specially but we align to reference pver block
@@ -501,84 +554,91 @@ class MyTF1Provider:
             }
             
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
-            print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
+            safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
-            json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
+            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
             
-            if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
-                video_url = json_parser['delivery']['url']
-                print(f"[MyTF1Provider] Stream URL obtained: {video_url[:50]}...")
+            if response.status_code == 200:
+                json_parser = response.json()
+                safe_print(f"[MyTF1Provider] Stream API response received for {video_id}")
+                safe_print(f"[MyTF1Provider] Response JSON: {json_parser}")
+                
+                if json_parser['delivery']['code'] <= 400:
+                    video_url = json_parser['delivery']['url']
+                    safe_print(f"[MyTF1Provider] Stream URL obtained: {video_url[:50]}...")
 
-                license_url = None
-                license_headers = {}
+                    license_url = None
+                    license_headers = {}
 
-                if 'drms' in json_parser['delivery'] and json_parser['delivery']['drms']:
-                    drm_info = json_parser['delivery']['drms'][0]
-                    license_url = drm_info['url']
-                    # Extract Authorization header if present in DRM info
-                    for header_item in drm_info.get('h', []):
-                        if header_item.get('k') == 'Authorization':
-                            license_headers['Authorization'] = header_item['v']
-                            break
-                    if not license_url: # Fallback if URL is missing from DRM info
-                        license_url = self.license_base_url % video_id
-                else:
-                    # Fallback to generic license URL if no DRM info is present
-                    license_url = self.license_base_url % video_id
-
-                # Prefer HLS if present, else MPD
-                lower_url = (video_url or '').lower()
-                is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
-
-                # Build MediaFlow URL
-                if self.mediaflow_url and self.mediaflow_password:
-                    base = self.mediaflow_url.rstrip('/')
-                    if is_hls:
-                        endpoint = '/proxy/hls/manifest.m3u8'
+                    if 'drms' in json_parser['delivery'] and json_parser['delivery']['drms']:
+                        drm_info = json_parser['delivery']['drms'][0]
+                        license_url = drm_info['url']
+                        # Extract Authorization header if present in DRM info
+                        for header_item in drm_info.get('h', []):
+                            if header_item.get('k') == 'Authorization':
+                                license_headers['Authorization'] = header_item['v']
+                                break
+                        if not license_url: # Fallback if URL is missing from DRM info
+                            license_url = self.license_base_url % video_id
                     else:
-                        endpoint = '/proxy/mpd/manifest.m3u8'
-                    dest = urllib.parse.quote(video_url, safe='')
-                    # build query with api_password + request headers
-                    q = [
-                        ('d', video_url),
-                        ('api_password', self.mediaflow_password),
-                        ('h_user-agent', headers_video_stream.get('User-Agent', get_random_windows_ua())),
-                        ('h_referer', self.base_url),
-                        ('h_origin', self.base_url),
-                        ('h_authorization', f"Bearer {self.auth_token}")  # Add authorization header
-                    ]
-                    # Add license URL and headers to MediaFlow proxy request if present
+                        # Fallback to generic license URL if no DRM info is present
+                        license_url = self.license_base_url % video_id
+
+                    # Prefer HLS if present, else MPD
+                    lower_url = (video_url or '').lower()
+                    is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
+
+                    # Build MediaFlow URL
+                    if self.mediaflow_url and self.mediaflow_password:
+                        base = self.mediaflow_url.rstrip('/')
+                        if is_hls:
+                            endpoint = '/proxy/hls/manifest.m3u8'
+                        else:
+                            endpoint = '/proxy/mpd/manifest.m3u8'
+                        dest = urllib.parse.quote(video_url, safe='')
+                        # build query with api_password + request headers
+                        q = [
+                            ('d', video_url),
+                            ('api_password', self.mediaflow_password),
+                            ('h_user-agent', headers_video_stream['User-Agent']),
+                            ('h_referer', self.base_url),
+                            ('h_origin', self.base_url),
+                            ('h_authorization', f"Bearer {self.auth_token}")  # Add authorization header
+                        ]
+                        # Add license URL and headers to MediaFlow proxy request if present
+                        if license_url:
+                            q.append(('h_x-license-url', license_url))
+                        if license_headers:
+                            q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
+
+                        mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
+                        final_url = mediaflow_url
+                        manifest_type = 'hls' if is_hls else 'hls'  # MPD proxied as HLS
+                    else:
+                        final_url = video_url
+                        manifest_type = 'hls' if is_hls else 'mpd'
+
+                    stream_info = {
+                        "url": final_url,
+                        "manifest_type": manifest_type,
+                        "headers": headers_video_stream
+                    }
+                    
+                    # Add license info to stream_info if available
                     if license_url:
-                        q.append(('h_x-license-url', license_url))
-                    if license_headers:
-                        q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
-
-                    mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
-                    final_url = mediaflow_url
-                    manifest_type = 'hls' if is_hls else 'hls'  # MPD proxied as HLS
+                        stream_info["licenseUrl"] = license_url
+                        if license_headers:
+                            stream_info["licenseHeaders"] = license_headers
+                    
+                    safe_print(f"[MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
+                    return stream_info
                 else:
-                    final_url = video_url
-                    manifest_type = 'hls' if is_hls else 'mpd'
-
-                stream_info = {
-                    "url": final_url,
-                    "manifest_type": manifest_type,
-                    "headers": headers_video_stream
-                }
-                
-                # Add license info to stream_info if available
-                if license_url:
-                    stream_info["licenseUrl"] = license_url
-                    if license_headers:
-                        stream_info["licenseHeaders"] = license_headers
-                
-                print(f"[MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
-                return stream_info
+                    safe_print(f"[MyTF1Provider] MyTF1 delivery error: {json_parser['delivery']['code']}")
             else:
-                print(f"[MyTF1Provider] MyTF1 delivery error: {json_parser.get('delivery', {}).get('code', 'Unknown') if json_parser else 'No response'}")
+                safe_print(f"[MyTF1Provider] MyTF1 API error: {response.status_code}")
                 
         except Exception as e:
-            print(f"[MyTF1Provider] Error getting stream for {channel_name}: {e}")
+            safe_print(f"[MyTF1Provider] Error getting stream for {channel_name}: {e}")
         
         return None
     
@@ -591,12 +651,12 @@ class MyTF1Provider:
             actual_episode_id = episode_id
         
         try:
-            print(f"[MyTF1Provider] Getting replay stream for MyTF1 episode: {actual_episode_id}")
+            safe_print(f"[MyTF1Provider] Getting replay stream for MyTF1 episode: {actual_episode_id}")
             
             # Lazy authentication - only authenticate when needed
-            print("[MyTF1Provider] Checking authentication...")
+            safe_print("[MyTF1Provider] Checking authentication...")
             if not self._authenticated and not self._authenticate():
-                print("[MyTF1Provider] MyTF1 authentication failed")
+                safe_print("[MyTF1Provider] MyTF1 authentication failed")
                 return None
             
             # Use the same approach as the reference plugin for replay content
@@ -618,13 +678,13 @@ class MyTF1Provider:
             }
             
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
-            print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
+            safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
             json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
             
             if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
                 video_url = json_parser['delivery']['url']
-                print(f"[MyTF1Provider] Stream URL obtained: {video_url[:50]}...")
+                safe_print(f"[MyTF1Provider] Stream URL obtained: {video_url[:50]}...")
 
                 license_url = None
                 license_headers = {}
@@ -655,14 +715,14 @@ class MyTF1Provider:
                         # Prefer HLS proxy to avoid MPD parsing issues
                         if is_hls:
                             endpoint = '/proxy/hls/manifest.m3u8'
-                            print(f"[MyTF1Provider] Using HLS proxy for HLS stream")
+                            safe_print(f"[MyTF1Provider] Using HLS proxy for HLS stream")
                         elif is_mpd:
                             endpoint = '/proxy/mpd/manifest.m3u8'
-                            print(f"[MyTF1Provider] Using MPD proxy for MPD stream")
+                            safe_print(f"[MyTF1Provider] Using MPD proxy for MPD stream")
                         else:
                             # Default to HLS proxy for unknown formats
                             endpoint = '/proxy/hls/manifest.m3u8'
-                            print(f"[MyTF1Provider] Using HLS proxy for unknown format")
+                            safe_print(f"[MyTF1Provider] Using HLS proxy for unknown format")
                         
                         # build query with api_password + request headers
                         q = [
@@ -684,10 +744,10 @@ class MyTF1Provider:
                         final_url = mediaflow_url
                         manifest_type = 'hls'  # Always return HLS from MediaFlow
                         
-                        print(f"[MyTF1Provider] MediaFlow URL generated: {final_url[:50]}...")
+                        safe_print(f"[MyTF1Provider] MediaFlow URL generated: {final_url[:50]}...")
                         
                     except Exception as e:
-                        print(f"[MyTF1Provider] MediaFlow URL generation failed: {e}")
+                        safe_print(f"[MyTF1Provider] MediaFlow URL generation failed: {e}")
                         # Fallback to direct URL
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
@@ -708,13 +768,13 @@ class MyTF1Provider:
                     if license_headers:
                         stream_info["licenseHeaders"] = license_headers
                 
-                print(f"[MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
+                safe_print(f"[MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
                 return stream_info
             else:
-                print(f"[MyTF1Provider] MyTF1 delivery error: {json_parser.get('delivery', {}).get('code', 'Unknown') if json_parser else 'No response'}")
+                safe_print(f"[MyTF1Provider] MyTF1 delivery error: {json_parser.get('delivery', {}).get('code', 'Unknown') if json_parser else 'No response'}")
                 
         except Exception as e:
-            print(f"[MyTF1Provider] Error getting episode stream: {e}")
+            safe_print(f"[MyTF1Provider] Error getting episode stream: {e}")
             import traceback
             traceback.print_exc()
         
@@ -759,7 +819,7 @@ class MyTF1Provider:
                             # Get logo (use poster as logo if available)
                             logo = poster if poster else f"{os.getenv('ADDON_BASE_URL', 'http://localhost:7860')}/static/logos/fr/tf1.png"
                             
-                            print(f"[MyTF1Provider] Found show metadata for {show_id}: poster={poster[:50] if poster else 'N/A'}..., fanart={fanart[:50] if fanart else 'N/A'}...")
+                            safe_print(f"[MyTF1Provider] Found show metadata for {show_id}: poster={poster[:50] if poster else 'N/A'}..., fanart={fanart[:50] if fanart else 'N/A'}...")
                             
                             return {
                                 "poster": poster,
@@ -767,17 +827,17 @@ class MyTF1Provider:
                                 "logo": logo
                             }
             
-            print(f"[MyTF1Provider] No show metadata found for {show_id}")
+            safe_print(f"[MyTF1Provider] No show metadata found for {show_id}")
             return {}
             
         except Exception as e:
-            print(f"[MyTF1Provider] Error fetching show metadata for {show_id}: {e}")
+            safe_print(f"[MyTF1Provider] Error fetching show metadata for {show_id}: {e}")
             return {}
     
     def resolve_stream(self, stream_id: str) -> Optional[Dict]:
         """Resolve stream URL for a given stream ID"""
         # This method needs to be implemented based on the specific stream ID format
         # For now, return None as a placeholder
-        print(f"MyTF1Provider: resolve_stream not implemented for {stream_id}")
+        safe_print(f"MyTF1Provider: resolve_stream not implemented for {stream_id}")
         return None
 

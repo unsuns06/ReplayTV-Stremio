@@ -31,6 +31,7 @@ async def get_catalog(type: str, id: str):
             all_channels.extend(francetv_channels)
         except Exception as e:
             logger.error(f"❌ Error getting France.tv channels: {e}")
+            logger.error(f"   Error type: {type(e).__name__}")
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             # Continue with other providers
@@ -44,6 +45,7 @@ async def get_catalog(type: str, id: str):
             all_channels.extend(mytf1_channels)
         except Exception as e:
             logger.error(f"❌ Error getting TF1 channels: {e}")
+            logger.error(f"   Error type: {type(e).__name__}")
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             # Continue with other providers
@@ -57,6 +59,7 @@ async def get_catalog(type: str, id: str):
             all_channels.extend(sixplay_channels)
         except Exception as e:
             logger.error(f"❌ Error getting 6play channels: {e}")
+            logger.error(f"   Error type: {type(e).__name__}")
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             # Continue with other providers
