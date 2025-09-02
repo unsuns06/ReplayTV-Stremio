@@ -62,6 +62,27 @@ async def log_requests_and_responses(request: Request, call_next):
         # Log the response
         process_time = (datetime.now() - start_time).total_seconds()
         logger.info(f"✅ RESPONSE: {response.status_code} in {process_time:.3f}s")
+        # Attempt to log the response content for debugging
+        try:
+            # Read the response body (works for StreamingResponse, JSONResponse, etc.)
+            if hasattr(response, "body_iterator"):
+                # For StreamingResponse, we can't access the body directly
+                logger.info("   Response Content: <streaming or generator response, not directly loggable>")
+            elif hasattr(response, "body"):
+                # For JSONResponse and similar
+                content = response.body
+                if isinstance(content, bytes):
+                    try:
+                        content_str = content.decode("utf-8")
+                    except Exception:
+                        content_str = str(content)
+                else:
+                    content_str = str(content)
+                logger.info(f"   Response Content: {content_str[:2000]}{'...' if len(content_str) > 2000 else ''}")
+            else:
+                logger.info("   Response Content: <unknown response type>")
+        except Exception as e:
+            logger.error(f"   Could not log response content: {e}")
         
         return response
         
@@ -128,6 +149,28 @@ app.include_router(catalog.router, prefix="", tags=["catalog"])
 app.include_router(meta.router, prefix="", tags=["meta"])
 app.include_router(stream.router, prefix="", tags=["stream"])
 app.include_router(configure.router, prefix="", tags=["configure"])
+
+# --- Startup diagnostics: validate credentials JSON early ---
+from app.utils.credentials import load_credentials
+
+@app.on_event("startup")
+async def startup_diagnostics():
+    try:
+        logger.info("🔧 Startup diagnostics: loading credentials...")
+        creds = load_credentials()
+        providers = list(creds.keys()) if isinstance(creds, dict) else []
+        # Sanitize output: do not log secrets, only presence and shapes
+        summary = {}
+        for name, val in (creds.items() if isinstance(creds, dict) else []):
+            if isinstance(val, dict):
+                summary[name] = sorted([k for k in val.keys()])
+            else:
+                summary[name] = f"<{type(val).__name__}>"
+        logger.info(f"✅ Credentials loaded. Providers present: {providers}")
+        logger.info(f"✅ Credentials keys by provider (sanitized): {summary}")
+    except Exception as e:
+        logger.error(f"❌ Startup diagnostics failed while loading credentials: {e}")
+
 
 @app.get("/manifest.json")
 async def manifest():
