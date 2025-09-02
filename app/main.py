@@ -9,7 +9,7 @@ import traceback
 import json
 import logging
 from datetime import datetime
-from app.utils.client_ip import set_client_ip
+from app.utils.client_ip import set_client_ip, normalize_ip
 
 # Configure comprehensive logging with Unicode support
 import sys
@@ -111,6 +111,8 @@ async def log_requests_and_responses(request: Request, call_next):
             viewer_ip = xreal.strip()
         elif not viewer_ip and client_conn_ip:
             viewer_ip = client_conn_ip
+
+        viewer_ip = normalize_ip(viewer_ip)
 
         set_client_ip(viewer_ip)
         logger.info(f"   Viewer-IP: {viewer_ip}")

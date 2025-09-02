@@ -149,13 +149,26 @@ async def get_stream(type: str, id: str):
             
             if stream_info:
                 logger.info(f"✅ TF1+ returned stream info: {stream_info.get('manifest_type', 'unknown')}")
+
+                # Merge any provider-specified headers with viewer IP headers
+                merged_headers = {}
+                if stream_info.get('headers'):
+                    merged_headers.update(stream_info.get('headers'))
+                merged_headers.update(make_ip_headers())
+
+                # Merge license headers too, if provided
+                merged_license_headers = None
+                if stream_info.get('licenseHeaders'):
+                    merged_license_headers = dict(stream_info.get('licenseHeaders'))
+                    merged_license_headers.update(make_ip_headers())
+
                 stream = Stream(
                     url=stream_info["url"],
                     title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                    headers=stream_info.get('headers'),
+                    headers= merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=stream_info.get('licenseHeaders')
+                    licenseHeaders=merged_license_headers
                 )
                 return StreamResponse(streams=[stream])
             else:

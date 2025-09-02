@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
 from app.utils.safe_print import safe_print
 from app.utils.client_ip import merge_ip_headers, get_client_ip
+from app.utils.mediaflow import build_mediaflow_url
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -549,6 +550,8 @@ class MyTF1Provider:
                 # Help upstream validate request context like a browser
                 "referer": self.base_url,
                 "origin": self.base_url,
+                # Hint FR locale to upstream
+                "accept-language": "fr-FR,fr;q=0.9"
             }
             # Ensure viewer IP is forwarded in any downstream fetches (e.g., CDN checks)
             headers_video_stream = merge_ip_headers(headers_video_stream)
@@ -589,14 +592,29 @@ class MyTF1Provider:
                 proxies['https'] = https_proxy
             if proxies:
                 safe_print(f"[MyTF1Provider] Using proxies for mediainfo: {proxies}")
-            response = self.session.get(
-                url_json,
-                headers=headers_video_stream,
-                params=params,
-                timeout=10,
-                **({ 'proxies': proxies } if proxies else {})
-            )
-            
+
+            # Retry a couple of times with slight backoff to mitigate transient 403/5xx
+            attempts = 3
+            last_exc = None
+            response = None
+            for i in range(attempts):
+                try:
+                    response = self.session.get(
+                        url_json,
+                        headers=headers_video_stream,
+                        params=params,
+                        timeout=10,
+                        **({ 'proxies': proxies } if proxies else {})
+                    )
+                    if response.status_code in (200, 401, 403):
+                        break
+                except Exception as _e:
+                    last_exc = _e
+                time.sleep(1.5 * (i + 1))
+
+            if not response:
+                raise last_exc if last_exc else RuntimeError("TF1 mediainfo request failed without response")
+
             if response.status_code == 200:
                 json_parser = response.json()
                 safe_print(f"[MyTF1Provider] Stream API response received for {video_id}")
@@ -627,30 +645,31 @@ class MyTF1Provider:
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-                    # Always involve MediaFlow for live feeds when configured
-                    if self.mediaflow_url and self.mediaflow_password:
-                        base = self.mediaflow_url.rstrip('/')
-                        endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
-                        q = [
-                            ('d', video_url),
-                            ('api_password', self.mediaflow_password),
-                            ('h_user-agent', headers_video_stream['User-Agent']),
-                            ('h_referer', self.base_url),
-                            ('h_origin', self.base_url),
-                            ('h_authorization', f"Bearer {self.auth_token}")
-                        ]
-                        # Forward viewer IP details through MediaFlow when available
-                        ip_hdrs = merge_ip_headers({})
-                        for hk, hv in ip_hdrs.items():
-                            q.append((f"h_{hk.lower()}", hv))
-                        # Add license URL and headers to MediaFlow proxy request if present
-                        if license_url:
-                            q.append(('h_x-license-url', license_url))
-                        if license_headers:
-                            q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
-                        mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
-                        final_url = mediaflow_url
-                        manifest_type = 'hls' if is_hls else 'hls'
+            # Always involve MediaFlow for live feeds when configured
+            if self.mediaflow_url and self.mediaflow_password:
+                endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
+                mf_headers = {
+                    'User-Agent': headers_video_stream.get('User-Agent'),
+                    'Referer': self.base_url,
+                    'Origin': self.base_url,
+                    'Authorization': f"Bearer {self.auth_token}",
+                }
+                # Merge viewer IP forwarding headers exactly like other refs
+                mf_headers = merge_ip_headers(mf_headers)
+                # License hints (some players/proxies forward these)
+                if license_url:
+                    mf_headers['X-License-URL'] = license_url
+                if license_headers and license_headers.get('Authorization'):
+                    mf_headers['X-License-Authorization'] = license_headers.get('Authorization')
+                mediaflow_url = build_mediaflow_url(
+                    base_url=self.mediaflow_url,
+                    password=self.mediaflow_password,
+                    destination_url=video_url,
+                    endpoint=endpoint,
+                    request_headers=mf_headers,
+                )
+                final_url = mediaflow_url
+                manifest_type = 'hls' if is_hls else 'hls'
                     else:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else 'mpd'
@@ -771,8 +790,31 @@ class MyTF1Provider:
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
                 
-                # Do not involve MediaFlow at URL build time; use direct URL
-                final_url = video_url
+                # Optionally involve MediaFlow for replays too if configured and desired via env
+                use_mediaflow_for_replay = os.getenv('MYTF1_REPLAY_VIA_MEDIAFLOW', 'false').lower() in ('1','true','yes','on')
+                if use_mediaflow_for_replay and self.mediaflow_url and self.mediaflow_password:
+                    endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
+                    mf_headers = {
+                        'User-Agent': headers_video_stream.get('User-Agent'),
+                        'Referer': self.base_url,
+                        'Origin': self.base_url,
+                        'Authorization': f"Bearer {self.auth_token}",
+                    }
+                    mf_headers = merge_ip_headers(mf_headers)
+                    if license_url:
+                        mf_headers['X-License-URL'] = license_url
+                    if license_headers and license_headers.get('Authorization'):
+                        mf_headers['X-License-Authorization'] = license_headers.get('Authorization')
+                    final_url = build_mediaflow_url(
+                        base_url=self.mediaflow_url,
+                        password=self.mediaflow_password,
+                        destination_url=video_url,
+                        endpoint=endpoint,
+                        request_headers=mf_headers,
+                    )
+                else:
+                    final_url = video_url
+
                 manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
                 stream_info = {
