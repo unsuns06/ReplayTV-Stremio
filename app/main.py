@@ -12,27 +12,45 @@ from datetime import datetime
 
 # Configure comprehensive logging with Unicode support
 import sys
+import tempfile
 
-# Create handlers with proper encoding
-file_handler = logging.FileHandler('server_debug.log', encoding='utf-8')
+# Robust logging configuration with fallback when file writing is not permitted
+LOG_FILE_PATH = os.getenv('LOG_FILE', os.path.join(tempfile.gettempdir(), 'server_debug.log'))
+LOG_TO_FILE = os.getenv('LOG_TO_FILE', 'false').lower() in ('1', 'true', 'yes', 'on')
+FILE_LOG_ENABLED = False
+
+handlers = []
+
+# Always log to console
 console_handler = logging.StreamHandler(sys.stdout)
-
-# Set formatters
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
 console_handler.setFormatter(formatter)
+handlers.append(console_handler)
+
+# Try to add file handler if enabled
+if LOG_TO_FILE:
+    try:
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(LOG_FILE_PATH), exist_ok=True)
+        file_handler = logging.FileHandler(LOG_FILE_PATH, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        handlers.append(file_handler)
+        FILE_LOG_ENABLED = True
+    except Exception as e:
+        # Fall back to console-only if file cannot be opened (e.g., permission denied)
+        FILE_LOG_ENABLED = False
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[file_handler, console_handler]
+    handlers=handlers
 )
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Catch-up TV & More for Stremio",
     description="A Python-based Stremio add-on for French live TV and replays",
-    version="1.0.0"
+    version="1.1.0"
 )
 
 # Add CORS middleware to allow requests from Stremio
@@ -129,6 +147,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     # Log headers
     logger.error(f"   Request Headers: {dict(request.headers)}")
     
+    note = "Check logs for full details"
+    if FILE_LOG_ENABLED:
+        note = f"Check {LOG_FILE_PATH} for full details"
+    
     return JSONResponse(
         status_code=500,
         content={
@@ -137,7 +159,7 @@ async def global_exception_handler(request: Request, exc: Exception):
             "type": type(exc).__name__,
             "timestamp": datetime.now().isoformat(),
             "path": str(request.url),
-            "note": "Check server_debug.log for full details"
+            "note": note
         }
     )
 
@@ -190,21 +212,23 @@ async def root():
 @app.get("/debug/logs")
 async def get_debug_logs():
     """Endpoint to view recent debug logs"""
+    if not FILE_LOG_ENABLED:
+        return {"error": "File logging is disabled in this environment"}
     try:
-        with open('server_debug.log', 'r', encoding='utf-8') as f:
+        with open(LOG_FILE_PATH, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             # Return last 100 lines
             recent_logs = lines[-100:] if len(lines) > 100 else lines
             return {
-                "log_file": "server_debug.log",
+                "log_file": LOG_FILE_PATH,
                 "total_lines": len(lines),
                 "recent_lines": recent_logs,
                 "timestamp": datetime.now().isoformat()
             }
     except FileNotFoundError:
-        return {"error": "Log file not found"}
+        return {"error": "Log file not found", "path": LOG_FILE_PATH}
     except Exception as e:
-        return {"error": f"Could not read logs: {e}"}
+        return {"error": f"Could not read logs: {e}", "path": LOG_FILE_PATH}
 
 @app.get("/debug/status")
 async def get_debug_status():
@@ -218,8 +242,11 @@ async def get_debug_status():
             "PORT": os.getenv('PORT', '7860'),
             "LOG_LEVEL": "INFO"
         },
-        "log_file": "server_debug.log",
-        "note": "Check /debug/logs for detailed error information"
+        "logging": {
+            "file_enabled": FILE_LOG_ENABLED,
+            "log_file_path": LOG_FILE_PATH,
+        },
+        "note": "Check /debug/logs for details when file logging is enabled"
     }
 
 @app.get("/debug/credentials")
