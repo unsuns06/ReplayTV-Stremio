@@ -8,7 +8,7 @@ router = APIRouter()
 @router.get("/meta/{type}/{id}.json")
 async def get_meta(type: str, id: str):
     # Get base URL for static assets
-    static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
+    static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:8000')
     
     # Handle live TV channel metadata
     if type == "channel":
@@ -318,28 +318,28 @@ async def get_meta(type: str, id: str):
                 show_id = "capital"
                 show_name = "Capital"
                 show_description = "Magazine économique et financier de M6"
-                show_logo = "https://images.6play.fr/v1/images/4242438/raw"
+                show_logo = f"{static_base}/static/logos/fr/m6.png"
                 show_channel = "M6"
                 show_genres = ["Économie", "Finance", "Magazine"]
             elif "66-minutes" in id:
                 show_id = "66-minutes"
                 show_name = "66 minutes"
                 show_description = "Magazine d'information de M6"
-                show_logo = "https://images.6play.fr/v1/images/4654324/raw"
+                show_logo = f"{static_base}/static/logos/fr/m6.png"
                 show_channel = "M6"
                 show_genres = ["Information", "Magazine", "Actualité"]
             elif "zone-interdite" in id:
                 show_id = "zone-interdite"
                 show_name = "Zone Interdite"
                 show_description = "Magazine d'investigation de M6"
-                show_logo = "https://images.6play.fr/v1/images/4639961/raw"
+                show_logo = f"{static_base}/static/logos/fr/m6.png"
                 show_channel = "M6"
                 show_genres = ["Investigation", "Magazine", "Documentaire"]
             elif "enquete-exclusive" in id:
                 show_id = "enquete-exclusive"
                 show_name = "Enquête Exclusive"
                 show_description = "Magazine d'investigation de M6"
-                show_logo = "https://images.6play.fr/v1/images/4242429/raw"
+                show_logo = f"{static_base}/static/logos/fr/m6.png"
                 show_channel = "M6"
                 show_genres = ["Investigation", "Magazine", "Documentaire"]
             else:
@@ -396,7 +396,7 @@ async def get_meta(type: str, id: str):
                         "type": "series",
                         "name": "Capital",
                         "poster": f"{static_base}/static/logos/fr/m6.png",
-                        "logo": "https://images.6play.fr/v1/images/4242438/raw",
+                        "logo": f"{static_base}/static/logos/fr/m6.png",
                         "description": "Magazine économique et financier de M6",
                         "channel": "M6",
                         "genres": ["Économie", "Finance", "Magazine"],
@@ -412,7 +412,7 @@ async def get_meta(type: str, id: str):
                         "type": "series",
                         "name": "66 minutes",
                         "poster": f"{static_base}/static/logos/fr/m6.png",
-                        "logo": "https://images.6play.fr/v1/images/4654324/raw",
+                        "logo": f"{static_base}/static/logos/fr/m6.png",
                         "description": "Magazine d'information de M6",
                         "channel": "M6",
                         "genres": ["Information", "Magazine", "Actualité"],
@@ -428,7 +428,7 @@ async def get_meta(type: str, id: str):
                         "type": "series",
                         "name": "Zone Interdite",
                         "poster": f"{static_base}/static/logos/fr/m6.png",
-                        "logo": "https://images.6play.fr/v1/images/4639961/raw",
+                        "logo": f"{static_base}/static/logos/fr/m6.png",
                         "description": "Magazine d'investigation de M6",
                         "channel": "M6",
                         "genres": ["Investigation", "Magazine", "Documentaire"],
@@ -444,7 +444,7 @@ async def get_meta(type: str, id: str):
                         "type": "series",
                         "name": "Enquête Exclusive",
                         "poster": f"{static_base}/static/logos/fr/m6.png",
-                        "logo": "https://images.6play.fr/v1/images/4242429/raw",
+                        "logo": f"{static_base}/static/logos/fr/m6.png",
                         "description": "Magazine d'investigation de M6",
                         "channel": "M6",
                         "genres": ["Investigation", "Magazine", "Documentaire"],

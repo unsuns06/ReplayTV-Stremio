@@ -51,17 +51,18 @@ async def get_catalog(type: str, id: str):
             # Continue with other providers
         
         # 6play channels
-        try:
-            logger.info("🎬 Getting 6play channels...")
-            sixplay = ProviderFactory.create_provider("6play")
-            sixplay_channels = sixplay.get_live_channels()
-            logger.info(f"✅ 6play returned {len(sixplay_channels)} channels")
-            all_channels.extend(sixplay_channels)
-        except Exception as e:
-            logger.error(f"❌ Error getting 6play channels: {e}")
-            logger.error(f"   Error type: {type(e).__name__}")
-            logger.error(f"   Full traceback:")
-            logger.error(traceback.format_exc())
+        # try:
+        #     logger.info("🎬 Getting 6play channels...")
+        #     sixplay = ProviderFactory.create_provider("6play")
+        #     sixplay_channels = sixplay.get_live_channels()
+        #     logger.info(f"✅ 6play returned {len(sixplay_channels)} channels")
+        #     all_channels.extend(sixplay_channels)
+        # except Exception as e:
+        #     logger.error(f"❌ Error getting 6play channels: {e}")
+        #     logger.error(f"   Error type: {type(e).__name__}")
+        #     logger.error(f"   Full traceback:")
+        #     logger.error(traceback.format_exc())
+            
             # Continue with other providers
         
         logger.info(f"📊 Total channels returned: {len(all_channels)}")
