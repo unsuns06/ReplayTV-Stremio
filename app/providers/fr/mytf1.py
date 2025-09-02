@@ -579,7 +579,23 @@ class MyTF1Provider:
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
-            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
+            # Optional per-request proxy for mediainfo to enforce FR egress
+            proxies = {}
+            http_proxy = os.getenv('MYTF1_HTTP_PROXY')
+            https_proxy = os.getenv('MYTF1_HTTPS_PROXY')
+            if http_proxy:
+                proxies['http'] = http_proxy
+            if https_proxy:
+                proxies['https'] = https_proxy
+            if proxies:
+                safe_print(f"[MyTF1Provider] Using proxies for mediainfo: {proxies}")
+            response = self.session.get(
+                url_json,
+                headers=headers_video_stream,
+                params=params,
+                timeout=10,
+                **({ 'proxies': proxies } if proxies else {})
+            )
             
             if response.status_code == 200:
                 json_parser = response.json()
@@ -611,9 +627,33 @@ class MyTF1Provider:
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-                    # Do not involve MediaFlow at URL build time; return direct URL
-                    final_url = video_url
-                    manifest_type = 'hls' if is_hls else 'mpd'
+                    # Always involve MediaFlow for live feeds when configured
+                    if self.mediaflow_url and self.mediaflow_password:
+                        base = self.mediaflow_url.rstrip('/')
+                        endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
+                        q = [
+                            ('d', video_url),
+                            ('api_password', self.mediaflow_password),
+                            ('h_user-agent', headers_video_stream['User-Agent']),
+                            ('h_referer', self.base_url),
+                            ('h_origin', self.base_url),
+                            ('h_authorization', f"Bearer {self.auth_token}")
+                        ]
+                        # Forward viewer IP details through MediaFlow when available
+                        ip_hdrs = merge_ip_headers({})
+                        for hk, hv in ip_hdrs.items():
+                            q.append((f"h_{hk.lower()}", hv))
+                        # Add license URL and headers to MediaFlow proxy request if present
+                        if license_url:
+                            q.append(('h_x-license-url', license_url))
+                        if license_headers:
+                            q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
+                        mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
+                        final_url = mediaflow_url
+                        manifest_type = 'hls' if is_hls else 'hls'
+                    else:
+                        final_url = video_url
+                        manifest_type = 'hls' if is_hls else 'mpd'
 
                     stream_info = {
                         "url": final_url,
@@ -689,7 +729,22 @@ class MyTF1Provider:
             safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
             safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
-            json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
+            # Optional per-request proxy for mediainfo to enforce FR egress
+            proxies = {}
+            http_proxy = os.getenv('MYTF1_HTTP_PROXY')
+            https_proxy = os.getenv('MYTF1_HTTPS_PROXY')
+            if http_proxy:
+                proxies['http'] = http_proxy
+            if https_proxy:
+                proxies['https'] = https_proxy
+            if proxies:
+                safe_print(f"[MyTF1Provider] Using proxies for mediainfo: {proxies}")
+
+            if proxies:
+                resp = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10, proxies=proxies)
+                json_parser = resp.json() if resp.status_code == 200 else None
+            else:
+                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
             
             if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
                 video_url = json_parser['delivery']['url']

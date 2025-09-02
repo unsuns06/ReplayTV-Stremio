@@ -137,8 +137,14 @@ def test_get_channel_stream_url_success(mytf1_provider, mock_authentication, req
 
     assert stream_info is not None
     
-    # Mediaflow proxy is not used at URL build time; expect direct URL
-    assert stream_info["url"] == mock_url
+    # If mediaflow is configured, live feeds should be proxied
+    if mytf1_provider.mediaflow_url and mytf1_provider.mediaflow_password:
+        assert mytf1_provider.mediaflow_url.strip('/') in stream_info["url"]
+        assert "proxy" in stream_info["url"]
+        assert "d=" in stream_info["url"]
+        assert "api_password" in stream_info["url"]
+    else:
+        assert stream_info["url"] == mock_url
     
     assert stream_info["manifest_type"] == "hls"
     assert "authorization" in stream_info["headers"]
@@ -203,7 +209,7 @@ def test_get_channel_stream_url_no_authentication(mytf1_provider):
         assert stream_info is None
 
 def test_get_channel_stream_url_mediaflow_proxy(mytf1_provider, mock_authentication, requests_mock, monkeypatch):
-    """MediaFlow settings present should not alter built stream URL."""
+    """Live feeds use MediaFlow proxy when configured."""
     mytf1_provider._authenticate()
 
     # Mock environment variables for MediaFlow
@@ -229,9 +235,32 @@ def test_get_channel_stream_url_mediaflow_proxy(mytf1_provider, mock_authenticat
         stream_info = mytf1_provider.get_channel_stream_url(channel_id)
 
         assert stream_info is not None
-        # Still expect direct URL, even if MediaFlow is configured
-        assert stream_info["url"] == mock_url
+        assert "localhost:8888" in stream_info["url"]
+        assert "proxy_pass" in stream_info["url"]
+        assert "d=" in stream_info["url"]
+        assert "h_user-agent" in stream_info["url"]
         assert stream_info["manifest_type"] == "hls"
         assert "authorization" in stream_info["headers"]
         assert stream_info["headers"]["authorization"] == f"Bearer {mytf1_provider.auth_token}"
 
+def test_mytf1_mediainfo_uses_proxy_for_live(mytf1_provider, mock_authentication, requests_mock, monkeypatch):
+    """Ensure mediainfo requests use per-request proxy when env is set (live)."""
+    mytf1_provider._authenticate()
+    mock_url = "https://live-tf1-hls-ssai.cdn-0.diff.tf1.fr/mock_stream_tf1.m3u8"
+    requests_mock.get(
+        "https://mediainfo.tf1.fr/mediainfocombo/L_TF1",
+        status_code=200,
+        json={"delivery": {"code": 200, "url": mock_url}}
+    )
+    monkeypatch.setenv("MYTF1_HTTP_PROXY", "http://fr-proxy.local:8080")
+    # Capture kwargs passed to session.get
+    original_get = mytf1_provider.session.get
+    captured = {}
+    def wrapped_get(*args, **kwargs):
+        captured['kwargs'] = kwargs
+        return original_get(*args, **kwargs)
+    with mock.patch.object(mytf1_provider.session, 'get', side_effect=wrapped_get) as _:
+        stream_info = mytf1_provider.get_channel_stream_url("cutam:fr:mytf1:tf1")
+    assert stream_info is not None
+    assert 'proxies' in captured.get('kwargs', {})
+    assert captured['kwargs']['proxies'].get('http') == "http://fr-proxy.local:8080"
