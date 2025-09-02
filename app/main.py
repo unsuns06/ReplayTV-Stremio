@@ -9,6 +9,7 @@ import traceback
 import json
 import logging
 from datetime import datetime
+from app.utils.client_ip import set_client_ip
 
 # Configure comprehensive logging with Unicode support
 import sys
@@ -72,7 +73,30 @@ async def log_requests_and_responses(request: Request, call_next):
     logger.info(f"🔍 REQUEST: {request.method} {request.url}")
     logger.info(f"   Headers: {dict(request.headers)}")
     logger.info(f"   Query Params: {dict(request.query_params)}")
-    
+
+    # Extract and store viewer IP for downstream requests
+    try:
+        headers = request.headers
+        xff = headers.get('x-forwarded-for') or headers.get('X-Forwarded-For')
+        cfip = headers.get('cf-connecting-ip') or headers.get('CF-Connecting-IP')
+        xreal = headers.get('x-real-ip') or headers.get('X-Real-IP')
+        client_conn_ip = request.client.host if request.client else None
+
+        viewer_ip = None
+        if xff:
+            viewer_ip = xff.split(',')[0].strip()
+        elif cfip:
+            viewer_ip = cfip.strip()
+        elif xreal:
+            viewer_ip = xreal.strip()
+        elif client_conn_ip:
+            viewer_ip = client_conn_ip
+
+        set_client_ip(viewer_ip)
+        logger.info(f"   Viewer-IP: {viewer_ip}")
+    except Exception as e:
+        logger.warning(f"   Failed to extract viewer IP: {e}")
+
     try:
         # Process the request
         response = await call_next(request)

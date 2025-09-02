@@ -9,6 +9,7 @@ import logging
 from typing import Dict, List, Optional, Any, Union
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from app.utils.client_ip import merge_ip_headers
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +218,8 @@ class RobustHTTPClient:
             
             if headers:
                 default_headers.update(headers)
+            # Ensure viewer IP is forwarded to upstreams
+            default_headers = merge_ip_headers(default_headers)
             
             # Set timeout
             timeout = kwargs.pop('timeout', self.timeout)

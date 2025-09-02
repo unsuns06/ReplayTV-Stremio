@@ -6,6 +6,7 @@ import os
 import urllib.parse
 import random
 from typing import Dict, List, Optional, Tuple
+from app.utils.client_ip import merge_ip_headers
 from app.utils.credentials import get_provider_credentials
 
 def get_random_windows_ua():
@@ -68,6 +69,10 @@ class MyTF1Provider:
                 "rating": "Tous publics"
             }
         }
+
+    def _with_ip_headers(self, headers: Dict[str, str]) -> Dict[str, str]:
+        """Return headers merged with viewer IP forwarding headers."""
+        return merge_ip_headers(headers)
     
     def _authenticate(self) -> bool:
         """Authenticate with TF1+ using provided credentials"""
@@ -90,7 +95,7 @@ class MyTF1Provider:
                 'sdkBuild': '13987',
                 'format': 'json'
             }
-            self.session.get(self.accounts_bootstrap, headers=bootstrap_headers, params=bootstrap_params, timeout=10)
+            self.session.get(self.accounts_bootstrap, headers=self._with_ip_headers(bootstrap_headers), params=bootstrap_params, timeout=10)
             
             # Login
             headers_login = {
@@ -116,7 +121,7 @@ class MyTF1Provider:
                 "format": "json"
             }
             
-            response = self.session.post(self.accounts_login, headers=headers_login, data=post_body_login, timeout=10)
+            response = self.session.post(self.accounts_login, headers=self._with_ip_headers(headers_login), data=post_body_login, timeout=10)
             if response.status_code == 200:
                 login_json = response.json()
                 if login_json.get('errorCode') == 0:
@@ -130,7 +135,7 @@ class MyTF1Provider:
                         login_json['userInfo']['UIDSignature'],
                         int(login_json['userInfo']['signatureTimestamp'])
                     )
-                    response = self.session.post(self.token_gigya_web, headers=headers_gigya, data=body_gigya, timeout=10)
+                    response = self.session.post(self.token_gigya_web, headers=self._with_ip_headers(headers_gigya), data=body_gigya, timeout=10)
                     if response.status_code == 200:
                         json_token = response.json()
                         self.auth_token = json_token['token']
@@ -244,7 +249,7 @@ class MyTF1Provider:
                 'variables': f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{channel_filter}"}},"offset":0,"limit":500}}'
             }
             
-            response = self.session.get(self.api_url, params=program_params, headers=headers, timeout=10)
+            response = self.session.get(self.api_url, params=program_params, headers=self._with_ip_headers(headers), timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
@@ -284,7 +289,7 @@ class MyTF1Provider:
                 'variables': f'{{"programSlug":"{program_slug}","offset":0,"limit":50,"sort":{{"type":"DATE","order":"DESC"}},"types":["REPLAY"]}}'
             }
             
-            response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
+            response = self.session.get(self.api_url, params=params, headers=self._with_ip_headers(headers), timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
@@ -407,7 +412,7 @@ class MyTF1Provider:
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
-            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
+            response = self.session.get(url_json, headers=self._with_ip_headers(headers_video_stream), params=params, timeout=10)
             
             if response.status_code == 200:
                 json_parser = response.json()
@@ -531,7 +536,7 @@ class MyTF1Provider:
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
             print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
-            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
+            response = self.session.get(url_json, headers=self._with_ip_headers(headers_video_stream), params=params, timeout=10)
             
             if response.status_code == 200:
                 json_parser = response.json()
@@ -649,7 +654,7 @@ class MyTF1Provider:
                 'User-Agent': get_random_windows_ua()
             }
             
-            response = self.session.get(self.api_url, params=params, headers=headers, timeout=10)
+            response = self.session.get(self.api_url, params=params, headers=self._with_ip_headers(headers), timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
@@ -699,4 +704,3 @@ class MyTF1Provider:
         # For now, return None as a placeholder
         print(f"MyTF1Provider: resolve_stream not implemented for {stream_id}")
         return None
-

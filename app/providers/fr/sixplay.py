@@ -14,6 +14,7 @@ import os
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
+from app.utils.client_ip import merge_ip_headers
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -57,6 +58,8 @@ class SixPlayProvider:
                 # Rotate User-Agent for each attempt
                 current_headers = headers or {}
                 current_headers['User-Agent'] = get_random_windows_ua()
+                # Forward viewer IP to upstream
+                current_headers = merge_ip_headers(current_headers)
                 
                 print(f"[6play] API call attempt {attempt + 1}/{max_retries}: {url}")
                 if params:
