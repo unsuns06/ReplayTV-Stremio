@@ -546,7 +546,12 @@ class MyTF1Provider:
             headers_video_stream = {
                 "User-Agent": get_random_windows_ua(),
                 "authorization": f"Bearer {self.auth_token}",
+                # Help upstream validate request context like a browser
+                "referer": self.base_url,
+                "origin": self.base_url,
             }
+            # Ensure viewer IP is forwarded in any downstream fetches (e.g., CDN checks)
+            headers_video_stream = merge_ip_headers(headers_video_stream)
             # Params follow reference; LCI could be treated specially but we align to reference pver block
             params = {
                 'context': 'MYTF1',
@@ -565,7 +570,7 @@ class MyTF1Provider:
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
-            response = self.session.get(url_json, headers=merge_ip_headers(headers_video_stream), params=params, timeout=10)
+            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
             
             if response.status_code == 200:
                 json_parser = response.json()
@@ -597,36 +602,9 @@ class MyTF1Provider:
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-                    # Build MediaFlow URL if configured or forced by env var
-                    force_mediaflow = os.getenv('FORCE_MEDIAFLOW', '').lower() in ('1','true','yes','on')
-                    if (self.mediaflow_url and self.mediaflow_password) and force_mediaflow:
-                        base = self.mediaflow_url.rstrip('/')
-                        if is_hls:
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                        else:
-                            endpoint = '/proxy/mpd/manifest.m3u8'
-                        dest = urllib.parse.quote(video_url, safe='')
-                        # build query with api_password + request headers
-                        q = [
-                            ('d', video_url),
-                            ('api_password', self.mediaflow_password),
-                            ('h_user-agent', headers_video_stream['User-Agent']),
-                            ('h_referer', self.base_url),
-                            ('h_origin', self.base_url),
-                            ('h_authorization', f"Bearer {self.auth_token}")  # Add authorization header
-                        ]
-                        # Add license URL and headers to MediaFlow proxy request if present
-                        if license_url:
-                            q.append(('h_x-license-url', license_url))
-                        if license_headers:
-                            q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
-
-                        mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
-                        final_url = mediaflow_url
-                        manifest_type = 'hls' if is_hls else 'hls'  # MPD proxied as HLS
-                    else:
-                        final_url = video_url
-                        manifest_type = 'hls' if is_hls else 'mpd'
+                    # Do not involve MediaFlow at URL build time; return direct URL
+                    final_url = video_url
+                    manifest_type = 'hls' if is_hls else 'mpd'
 
                     stream_info = {
                         "url": final_url,
@@ -672,7 +650,11 @@ class MyTF1Provider:
             # Use the same approach as the reference plugin for replay content
             headers_video_stream = {
                 "authorization": f"Bearer {self.auth_token}",
+                "User-Agent": get_random_windows_ua(),
+                "referer": self.base_url,
+                "origin": self.base_url,
             }
+            headers_video_stream = merge_ip_headers(headers_video_stream)
             params = {
                 'context': 'MYTF1',
                 'pver': '5010000',
@@ -717,54 +699,9 @@ class MyTF1Provider:
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
                 
-                # Build MediaFlow URL only if we have MediaFlow configured
-                if self.mediaflow_url and self.mediaflow_password:
-                    try:
-                        base = self.mediaflow_url.rstrip('/')
-                        
-                        # Prefer HLS proxy to avoid MPD parsing issues
-                        if is_hls:
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                            safe_print(f"[MyTF1Provider] Using HLS proxy for HLS stream")
-                        elif is_mpd:
-                            endpoint = '/proxy/mpd/manifest.m3u8'
-                            safe_print(f"[MyTF1Provider] Using MPD proxy for MPD stream")
-                        else:
-                            # Default to HLS proxy for unknown formats
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                            safe_print(f"[MyTF1Provider] Using HLS proxy for unknown format")
-                        
-                        # build query with api_password + request headers
-                        q = [
-                            ('d', video_url),
-                            ('api_password', self.mediaflow_password),
-                            ('h_user-agent', headers_video_stream.get('User-Agent', get_random_windows_ua())),
-                            ('h_referer', self.base_url),
-                            ('h_origin', self.base_url),
-                            ('h_authorization', f"Bearer {self.auth_token}")
-                        ]
-                        
-                        # Add license URL and headers to MediaFlow proxy request if present
-                        if license_url:
-                            q.append(('h_x-license-url', license_url))
-                        if license_headers:
-                            q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
-
-                        mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
-                        final_url = mediaflow_url
-                        manifest_type = 'hls'  # Always return HLS from MediaFlow
-                        
-                        safe_print(f"[MyTF1Provider] MediaFlow URL generated: {final_url[:50]}...")
-                        
-                    except Exception as e:
-                        safe_print(f"[MyTF1Provider] MediaFlow URL generation failed: {e}")
-                        # Fallback to direct URL
-                        final_url = video_url
-                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
-                else:
-                    # No MediaFlow, use direct URL
-                    final_url = video_url
-                    manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+                # Do not involve MediaFlow at URL build time; use direct URL
+                final_url = video_url
+                manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
                 stream_info = {
                     "url": final_url,

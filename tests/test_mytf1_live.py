@@ -137,14 +137,8 @@ def test_get_channel_stream_url_success(mytf1_provider, mock_authentication, req
 
     assert stream_info is not None
     
-    # Since mediaflow is configured in the test environment, expect mediaflow proxy URL
-    if mytf1_provider.mediaflow_url and mytf1_provider.mediaflow_password:
-        assert "localhost:8888" in stream_info["url"]
-        assert "proxy" in stream_info["url"]
-        assert "d=" in stream_info["url"]
-        assert "api_password" in stream_info["url"]
-    else:
-        assert stream_info["url"] == mock_url
+    # Mediaflow proxy is not used at URL build time; expect direct URL
+    assert stream_info["url"] == mock_url
     
     assert stream_info["manifest_type"] == "hls"
     assert "authorization" in stream_info["headers"]
@@ -209,7 +203,7 @@ def test_get_channel_stream_url_no_authentication(mytf1_provider):
         assert stream_info is None
 
 def test_get_channel_stream_url_mediaflow_proxy(mytf1_provider, mock_authentication, requests_mock, monkeypatch):
-    """Test stream URL retrieval with MediaFlow proxy enabled."""
+    """MediaFlow settings present should not alter built stream URL."""
     mytf1_provider._authenticate()
 
     # Mock environment variables for MediaFlow
@@ -235,12 +229,9 @@ def test_get_channel_stream_url_mediaflow_proxy(mytf1_provider, mock_authenticat
         stream_info = mytf1_provider.get_channel_stream_url(channel_id)
 
         assert stream_info is not None
-        assert "localhost:8888" in stream_info["url"]
-        assert "proxy_pass" in stream_info["url"]
-        assert "d=" in stream_info["url"]
-        assert "h_user-agent" in stream_info["url"]
+        # Still expect direct URL, even if MediaFlow is configured
+        assert stream_info["url"] == mock_url
         assert stream_info["manifest_type"] == "hls"
         assert "authorization" in stream_info["headers"]
         assert stream_info["headers"]["authorization"] == f"Bearer {mytf1_provider.auth_token}"
-
 
