@@ -13,6 +13,7 @@ import uuid
 import os
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
+from app.auth.sixplay_auth import SixPlayAuth
 from app.utils.metadata import metadata_processor
 from app.utils.client_ip import merge_ip_headers
 
@@ -50,6 +51,55 @@ class SixPlayProvider:
         self.account_id = None
         self.login_token = None
         self._authenticated = False
+
+    def _authenticate(self) -> bool:
+        """Authenticate the session for 6play when credentials are available.
+
+        This implementation is intentionally lightweight:
+        - Uses `credentials.json` (section `6play`) if present.
+        - Falls back gracefully to unauthenticated mode so free/HLS content still works.
+        - Caches state on success to avoid repeated logins.
+        """
+        try:
+            if self._authenticated:
+                return True
+
+            username = (self.credentials or {}).get("username") or (self.credentials or {}).get("login")
+            password = (self.credentials or {}).get("password")
+
+            # If tokens are pre-provisioned, use them directly
+            preset_account_id = (self.credentials or {}).get("account_id")
+            preset_login_token = (self.credentials or {}).get("login_token")
+            if preset_account_id and preset_login_token:
+                self.account_id = preset_account_id
+                self.login_token = preset_login_token
+                self._authenticated = True
+                print("[SixPlayProvider] Using preset 6play account_id/login_token from credentials")
+                return True
+
+            # If no credentials provided, allow unauthenticated access (HLS-only paths may still work)
+            if not username or not password:
+                print("[SixPlayProvider] No 6play credentials found; continuing without authentication")
+                self._authenticated = True  # Mark as 'handled' so callers can proceed to non-DRM paths
+                return True
+
+            # Perform a lightweight login using the auth helper (placeholder implementation)
+            auth = SixPlayAuth(username=username, password=password)
+            if auth.login():
+                # Store the session token as our bearer token for subsequent requests that expect it
+                self.login_token = auth.session_token
+                # If we don't have a real account id, generate a stable UUID for request building
+                # Downstream code only needs this for DRM token calls; HLS paths won't use it.
+                self.account_id = self.account_id or str(uuid.uuid4())
+                self._authenticated = True
+                print("[SixPlayProvider] 6play authentication succeeded (session established)")
+                return True
+
+            print("[SixPlayProvider] 6play authentication failed via auth helper")
+            return False
+        except Exception as e:
+            print(f"[SixPlayProvider] Authentication error: {e}")
+            return False
     
     def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3) -> Optional[Dict]:
         """Make a safe API call with retry logic and error handling"""
@@ -777,8 +827,30 @@ class SixPlayProvider:
             return None
 
     def resolve_stream(self, stream_id: str) -> Optional[Dict]:
-        """Resolve stream URL for a given stream ID"""
-        # This method needs to be implemented based on the specific stream ID format
-        # For now, return None as a placeholder
-        print(f"SixPlayProvider: resolve_stream not implemented for {stream_id}")
-        return None
+        """Resolve stream URL for a given stream ID.
+
+        Supported IDs:
+        - `cutam:fr:6play:episode:<video_id>` → replay episode
+        - `cutam:fr:6play:<channel>` → live channel (e.g., m6, w9, 6ter)
+        - Raw `<video_id>` (treated as 6play episode id)
+        """
+        try:
+            if not stream_id:
+                return None
+
+            if ":episode:" in stream_id or stream_id.startswith("episode:"):
+                return self.get_episode_stream_url(stream_id)
+
+            # Live channel pattern
+            if stream_id.startswith("cutam:fr:6play:") and ":episode:" not in stream_id:
+                return self.get_channel_stream_url(stream_id)
+
+            # If it's a bare 6play video id, treat as episode
+            if re.fullmatch(r"[A-Za-z0-9_]+", stream_id):
+                return self.get_episode_stream_url(stream_id)
+
+            print(f"[SixPlayProvider] Unrecognized stream id format: {stream_id}")
+            return None
+        except Exception as e:
+            print(f"[SixPlayProvider] resolve_stream error for {stream_id}: {e}")
+            return None
