@@ -670,9 +670,9 @@ class MyTF1Provider:
                 )
                 final_url = mediaflow_url
                 manifest_type = 'hls' if is_hls else 'hls'
-                    else:
-                        final_url = video_url
-                        manifest_type = 'hls' if is_hls else 'mpd'
+            else:
+                final_url = video_url
+                manifest_type = 'hls' if is_hls else 'mpd'
 
                     stream_info = {
                         "url": final_url,
