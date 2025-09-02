@@ -14,7 +14,7 @@ import random
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
 from app.utils.safe_print import safe_print
-from app.utils.client_ip import merge_ip_headers
+from app.utils.client_ip import merge_ip_headers, get_client_ip
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -552,6 +552,14 @@ class MyTF1Provider:
             }
             # Ensure viewer IP is forwarded in any downstream fetches (e.g., CDN checks)
             headers_video_stream = merge_ip_headers(headers_video_stream)
+            # Add standard proxy headers often honored by CDNs if viewer IP known
+            _vip = get_client_ip()
+            if _vip:
+                headers_video_stream.setdefault('X-Forwarded-Proto', 'https')
+                headers_video_stream.setdefault('X-Forwarded-Host', 'www.tf1.fr')
+                headers_video_stream.setdefault('X-Forwarded-Server', 'www.tf1.fr')
+                headers_video_stream.setdefault('X-Client-IP', _vip)
+                headers_video_stream.setdefault('Forwarded', f'for={_vip};proto=https;host=www.tf1.fr')
             # Params follow reference; LCI could be treated specially but we align to reference pver block
             params = {
                 'context': 'MYTF1',
@@ -560,7 +568,8 @@ class MyTF1Provider:
                 'device': 'desktop',
                 'os': 'windows',
                 'osVersion': '10.0',
-                'topDomain': self.base_url,  # Use actual TF1 domain instead of 'unknown'
+                # Use bare host as expected by TF1 backend
+                'topDomain': 'www.tf1.fr',
                 'playerVersion': '5.29.0',
                 'productName': 'mytf1',
                 'productVersion': '3.37.0',
@@ -569,7 +578,7 @@ class MyTF1Provider:
             
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
-            
+            safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
             response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
             
             if response.status_code == 200:
@@ -655,6 +664,13 @@ class MyTF1Provider:
                 "origin": self.base_url,
             }
             headers_video_stream = merge_ip_headers(headers_video_stream)
+            _vip = get_client_ip()
+            if _vip:
+                headers_video_stream.setdefault('X-Forwarded-Proto', 'https')
+                headers_video_stream.setdefault('X-Forwarded-Host', 'www.tf1.fr')
+                headers_video_stream.setdefault('X-Forwarded-Server', 'www.tf1.fr')
+                headers_video_stream.setdefault('X-Client-IP', _vip)
+                headers_video_stream.setdefault('Forwarded', f'for={_vip};proto=https;host=www.tf1.fr')
             params = {
                 'context': 'MYTF1',
                 'pver': '5010000',
@@ -662,7 +678,7 @@ class MyTF1Provider:
                 'device': 'desktop',
                 'os': 'linux',
                 'osVersion': 'unknown',
-                'topDomain': self.base_url,
+                'topDomain': 'www.tf1.fr',
                 'playerVersion': '5.19.0',
                 'productName': 'mytf1',
                 'productVersion': '3.22.0',
@@ -672,6 +688,7 @@ class MyTF1Provider:
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
             safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
+            safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
             json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
             
             if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
