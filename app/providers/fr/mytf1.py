@@ -645,34 +645,34 @@ class MyTF1Provider:
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-            # Always involve MediaFlow for live feeds when configured
-            if self.mediaflow_url and self.mediaflow_password:
-                endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
-                mf_headers = {
-                    'User-Agent': headers_video_stream.get('User-Agent'),
-                    'Referer': self.base_url,
-                    'Origin': self.base_url,
-                    'Authorization': f"Bearer {self.auth_token}",
-                }
-                # Merge viewer IP forwarding headers exactly like other refs
-                mf_headers = merge_ip_headers(mf_headers)
-                # License hints (some players/proxies forward these)
-                if license_url:
-                    mf_headers['X-License-URL'] = license_url
-                if license_headers and license_headers.get('Authorization'):
-                    mf_headers['X-License-Authorization'] = license_headers.get('Authorization')
-                mediaflow_url = build_mediaflow_url(
-                    base_url=self.mediaflow_url,
-                    password=self.mediaflow_password,
-                    destination_url=video_url,
-                    endpoint=endpoint,
-                    request_headers=mf_headers,
-                )
-                final_url = mediaflow_url
-                manifest_type = 'hls' if is_hls else 'hls'
-            else:
-                final_url = video_url
-                manifest_type = 'hls' if is_hls else 'mpd'
+                    # Always involve MediaFlow for live feeds when configured
+                    if self.mediaflow_url and self.mediaflow_password:
+                        endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
+                        mf_headers = {
+                            'User-Agent': headers_video_stream.get('User-Agent'),
+                            'Referer': self.base_url,
+                            'Origin': self.base_url,
+                            'Authorization': f"Bearer {self.auth_token}",
+                        }
+                        # Merge viewer IP forwarding headers exactly like other refs
+                        mf_headers = merge_ip_headers(mf_headers)
+                        # License hints (some players/proxies forward these)
+                        if license_url:
+                            mf_headers['X-License-URL'] = license_url
+                        if license_headers and license_headers.get('Authorization'):
+                            mf_headers['X-License-Authorization'] = license_headers.get('Authorization')
+                        mediaflow_url = build_mediaflow_url(
+                            base_url=self.mediaflow_url,
+                            password=self.mediaflow_password,
+                            destination_url=video_url,
+                            endpoint=endpoint,
+                            request_headers=mf_headers,
+                        )
+                        final_url = mediaflow_url
+                        manifest_type = 'hls' if is_hls else 'hls'
+                    else:
+                        final_url = video_url
+                        manifest_type = 'hls' if is_hls else 'mpd'
 
                     stream_info = {
                         "url": final_url,
