@@ -2,11 +2,29 @@ from fastapi import APIRouter
 import os
 import logging
 import traceback
+import json
 from app.schemas.stremio import CatalogResponse
 from app.providers.fr.common import ProviderFactory
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _log_json_decode_details(prefix: str, exc: Exception):
+    if isinstance(exc, json.JSONDecodeError):
+        logger.error(
+            f"{prefix} JSONDecodeError at line {exc.lineno}, column {exc.colno} (char {exc.pos}): {exc.msg}"
+        )
+        # Credentials context hints
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        cred_primary = os.path.join(repo_root, 'credentials.json')
+        cred_fallback = os.path.join(repo_root, 'credentials-test.json')
+        logger.error(
+            f"Credentials files: credentials.json exists={os.path.exists(cred_primary)}, credentials-test.json exists={os.path.exists(cred_fallback)}"
+        )
+        env_present = 'set' if os.getenv('CREDENTIALS_JSON') else 'not set'
+        logger.error(f"Env CREDENTIALS_JSON is {env_present}")
+
 
 @router.get("/catalog/{type}/{id}.json")
 async def get_catalog(type: str, id: str):
@@ -31,6 +49,7 @@ async def get_catalog(type: str, id: str):
             all_channels.extend(francetv_channels)
         except Exception as e:
             logger.error(f"❌ Error getting France.tv channels: {e}")
+            _log_json_decode_details("France.tv channels:", e)
             logger.error(f"   Error type: {type(e).__name__}")
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
@@ -45,12 +64,13 @@ async def get_catalog(type: str, id: str):
             all_channels.extend(mytf1_channels)
         except Exception as e:
             logger.error(f"❌ Error getting TF1 channels: {e}")
+            _log_json_decode_details("TF1 channels:", e)
             logger.error(f"   Error type: {type(e).__name__}")
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             # Continue with other providers
         
-        # 6play channels
+        # 6play channels (currently disabled in code)
         # try:
         #     logger.info("🎬 Getting 6play channels...")
         #     sixplay = ProviderFactory.create_provider("6play")
@@ -59,6 +79,7 @@ async def get_catalog(type: str, id: str):
         #     all_channels.extend(sixplay_channels)
         # except Exception as e:
         #     logger.error(f"❌ Error getting 6play channels: {e}")
+        #     _log_json_decode_details("6play channels:", e)
         #     logger.error(f"   Error type: {type(e).__name__}")
         #     logger.error(f"   Full traceback:")
         #     logger.error(traceback.format_exc())
@@ -81,6 +102,7 @@ async def get_catalog(type: str, id: str):
             
         except Exception as e:
             logger.error(f"❌ Error getting France TV replay shows: {e}")
+            _log_json_decode_details("France TV replay:", e)
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             
@@ -139,6 +161,7 @@ async def get_catalog(type: str, id: str):
             
         except Exception as e:
             logger.error(f"❌ Error getting TF1+ replay shows: {e}")
+            _log_json_decode_details("TF1+ replay:", e)
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             
@@ -185,6 +208,7 @@ async def get_catalog(type: str, id: str):
             
         except Exception as e:
             logger.error(f"❌ Error getting 6play replay shows: {e}")
+            _log_json_decode_details("6play replay:", e)
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             

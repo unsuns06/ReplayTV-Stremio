@@ -221,3 +221,40 @@ async def get_debug_status():
         "log_file": "server_debug.log",
         "note": "Check /debug/logs for detailed error information"
     }
+
+@app.get("/debug/credentials")
+async def debug_credentials():
+    """Return sanitized credentials and file/env presence for debugging deployments."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    cred_primary = os.path.join(repo_root, 'credentials.json')
+    cred_fallback = os.path.join(repo_root, 'credentials-test.json')
+    env_present = bool(os.getenv('CREDENTIALS_JSON'))
+
+    info = {
+        "files": {
+            "credentials.json_exists": os.path.exists(cred_primary),
+            "credentials-test.json_exists": os.path.exists(cred_fallback),
+            "credentials.json_path": cred_primary,
+            "credentials-test.json_path": cred_fallback,
+        },
+        "env": {
+            "CREDENTIALS_JSON_present": env_present,
+            "CREDENTIALS_JSON_length": len(os.getenv('CREDENTIALS_JSON', '')) if env_present else 0,
+        },
+        "providers": {},
+        "timestamp": datetime.now().isoformat()
+    }
+
+    try:
+        creds = load_credentials()
+        if isinstance(creds, dict):
+            for name, val in creds.items():
+                if isinstance(val, dict):
+                    info["providers"][name] = sorted(list(val.keys()))
+                else:
+                    info["providers"][name] = f"<{type(val).__name__}>"
+        else:
+            info["providers"] = "<non-dict>"
+    except Exception as e:
+        info["error"] = f"Failed to load credentials: {e}"
+    return info
