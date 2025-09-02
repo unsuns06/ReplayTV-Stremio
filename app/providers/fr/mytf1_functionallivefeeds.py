@@ -443,8 +443,9 @@ class MyTF1Provider:
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-                    # Build MediaFlow URL
-                    if self.mediaflow_url and self.mediaflow_password:
+                    # Build MediaFlow URL if configured or forced by env var
+                    force_mediaflow = os.getenv('FORCE_MEDIAFLOW', '').lower() in ('1','true','yes','on')
+                    if (self.mediaflow_url and self.mediaflow_password) and force_mediaflow:
                         base = self.mediaflow_url.rstrip('/')
                         if is_hls:
                             endpoint = '/proxy/hls/manifest.m3u8'
@@ -567,8 +568,9 @@ class MyTF1Provider:
                     is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                     is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
                     
-                    # Build MediaFlow URL only if we have MediaFlow configured
-                    if self.mediaflow_url and self.mediaflow_password:
+                    # Build MediaFlow URL if configured or forced by env var
+                    force_mediaflow = os.getenv('FORCE_MEDIAFLOW', '').lower() in ('1','true','yes','on')
+                    if (self.mediaflow_url and self.mediaflow_password) and force_mediaflow:
                         try:
                             base = self.mediaflow_url.rstrip('/')
                             

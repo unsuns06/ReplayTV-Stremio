@@ -65,7 +65,11 @@ class SixPlayProvider:
                 if params:
                     print(f"[6play] Request params: {params}")
                 if headers:
-                    print(f"[6play] Request headers: {headers}")
+                    print(f"[6play] Request headers (pre-merge): {headers}")
+                try:
+                    print(f"[6play] Request headers (effective): {current_headers}")
+                except Exception:
+                    pass
                 
                 if method.upper() == 'POST':
                     if data:
@@ -333,6 +337,7 @@ class SixPlayProvider:
             headers_video_stream = {
                 "User-Agent": get_random_windows_ua(),
             }
+            headers_video_stream = merge_ip_headers(headers_video_stream)
             
             # Get video info using the same API call as the reference plugin
             url_json = f"https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/videos/{actual_episode_id}?csa=6&with=clips,freemiumpacks"
@@ -377,7 +382,7 @@ class SixPlayProvider:
                                 
                                 # Use the exact URL from Kodi addon
                                 token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
-                                token_response = self.session.get(token_url, headers=payload_headers, timeout=10)
+                                token_response = self.session.get(token_url, headers=merge_ip_headers(payload_headers), timeout=10)
                                 
                                 if token_response.status_code == 200:
                                     token_data = token_response.json()
@@ -446,7 +451,7 @@ class SixPlayProvider:
             
             # Get token for live stream using correct URL pattern
             token_url = f"https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users/{self.account_id}/live/dashcenc_{live_item_id}/upfront-token"
-            token_response = self.session.get(token_url, headers=payload_headers, timeout=10)
+            token_response = self.session.get(token_url, headers=merge_ip_headers(payload_headers), timeout=10)
             
             if token_response.status_code == 200:
                 token_jsonparser = token_response.json()
@@ -461,7 +466,7 @@ class SixPlayProvider:
                 video_response = self.session.get(
                     "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live", 
                     params=params, 
-                    headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+                    headers=merge_ip_headers({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}),
                     timeout=10
                 )
                 
@@ -573,7 +578,7 @@ class SixPlayProvider:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
             
-            response = self.session.get(url, headers=headers, timeout=10)
+            response = self.session.get(url, headers=merge_ip_headers(headers), timeout=10)
             
             if response.status_code == 200:
                 program_data = response.json()
@@ -666,7 +671,7 @@ class SixPlayProvider:
                 ]
             }
             
-            response = requests.post(search_url, headers=search_headers, json=search_data, timeout=10)
+            response = requests.post(search_url, headers=merge_ip_headers(search_headers), json=search_data, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
@@ -707,7 +712,7 @@ class SixPlayProvider:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
             
-            response = self.session.get(url, headers=headers, timeout=10)
+            response = self.session.get(url, headers=merge_ip_headers(headers), timeout=10)
             
             if response.status_code == 200:
                 data = response.json()

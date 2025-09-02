@@ -122,7 +122,11 @@ class FranceTVProvider:
                 if params:
                     safe_print(f"[FranceTV] Request params: {params}")
                 if headers:
-                    safe_print(f"[FranceTV] Request headers: {headers}")
+                    safe_print(f"[FranceTV] Request headers (pre-merge): {headers}")
+                try:
+                    safe_print(f"[FranceTV] Request headers (effective): {current_headers}")
+                except Exception:
+                    pass
                 
                 response = self.session.get(url, params=params, headers=current_headers, timeout=15)
                 

@@ -91,7 +91,11 @@ class MyTF1Provider:
                 if params:
                     safe_print(f"[MyTF1] Request params: {params}")
                 if headers:
-                    safe_print(f"[MyTF1] Request headers: {headers}")
+                    safe_print(f"[MyTF1] Request headers (pre-merge): {headers}")
+                try:
+                    safe_print(f"[MyTF1] Request headers (effective): {current_headers}")
+                except Exception:
+                    pass
                 
                 if method.upper() == 'POST':
                     if data:
@@ -366,6 +370,8 @@ class MyTF1Provider:
                 'content-type': 'application/json',
                 'referer': 'https://www.tf1.fr/programmes-tv'
             }
+            # Ensure viewer IP forwarding headers are visible at this level too
+            headers = merge_ip_headers(headers)
             
             # Get the channel for this show
             show_channel = self.shows[actual_show_id]['channel']
@@ -559,7 +565,7 @@ class MyTF1Provider:
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
             
-            response = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10)
+            response = self.session.get(url_json, headers=merge_ip_headers(headers_video_stream), params=params, timeout=10)
             
             if response.status_code == 200:
                 json_parser = response.json()
@@ -591,8 +597,9 @@ class MyTF1Provider:
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-                    # Build MediaFlow URL
-                    if self.mediaflow_url and self.mediaflow_password:
+                    # Build MediaFlow URL if configured or forced by env var
+                    force_mediaflow = os.getenv('FORCE_MEDIAFLOW', '').lower() in ('1','true','yes','on')
+                    if (self.mediaflow_url and self.mediaflow_password) and force_mediaflow:
                         base = self.mediaflow_url.rstrip('/')
                         if is_hls:
                             endpoint = '/proxy/hls/manifest.m3u8'
@@ -795,6 +802,7 @@ class MyTF1Provider:
                 'content-type': 'application/json',
                 'referer': 'https://www.tf1.fr/programmes-tv'
             }
+            headers = merge_ip_headers(headers)
             
             data = self._safe_api_call(self.api_url, params=params, headers=headers)
             
