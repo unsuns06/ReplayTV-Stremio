@@ -551,7 +551,9 @@ class MyTF1Provider:
                 "referer": self.base_url,
                 "origin": self.base_url,
                 # Hint FR locale to upstream
-                "accept-language": "fr-FR,fr;q=0.9"
+                "accept-language": "fr-FR,fr;q=0.9",
+                # Some stacks require explicit Accept for JSON
+                "accept": "application/json, text/plain, */*",
             }
             # Ensure viewer IP is forwarded in any downstream fetches (e.g., CDN checks)
             headers_video_stream = merge_ip_headers(headers_video_stream)
@@ -580,43 +582,31 @@ class MyTF1Provider:
             }
             
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
-            safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
+            # Build destination URL with params and route via French-IP proxy for URL resolution only
+            from urllib.parse import urlencode, quote
+            dest_with_params = url_json + ("?" + urlencode(params) if params else "")
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            # Some deployments expect a leading slash before the encoded URL, others don't.
+            proxied_url_no_slash = proxy_base + quote(dest_with_params, safe="")
+            proxied_url_with_slash = proxy_base + "/" + quote(dest_with_params, safe="")
+            safe_print(f"[MyTF1Provider] Original dest: {dest_with_params}")
+            safe_print(f"[MyTF1Provider] Proxy (no slash): {proxied_url_no_slash}")
+            safe_print(f"[MyTF1Provider] Proxy (with slash): {proxied_url_with_slash}")
             safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
-            # Optional per-request proxy for mediainfo to enforce FR egress
-            proxies = {}
-            http_proxy = os.getenv('MYTF1_HTTP_PROXY')
-            https_proxy = os.getenv('MYTF1_HTTPS_PROXY')
-            if http_proxy:
-                proxies['http'] = http_proxy
-            if https_proxy:
-                proxies['https'] = https_proxy
-            if proxies:
-                safe_print(f"[MyTF1Provider] Using proxies for mediainfo: {proxies}")
 
-            # Retry a couple of times with slight backoff to mitigate transient 403/5xx
-            attempts = 3
-            last_exc = None
-            response = None
-            for i in range(attempts):
-                try:
-                    response = self.session.get(
-                        url_json,
-                        headers=headers_video_stream,
-                        params=params,
-                        timeout=10,
-                        **({ 'proxies': proxies } if proxies else {})
-                    )
-                    if response.status_code in (200, 401, 403):
-                        break
-                except Exception as _e:
-                    last_exc = _e
-                time.sleep(1.5 * (i + 1))
+            # Use the proxied URL first (no slash), then with slash, then direct
+            safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (LIVE) - Sending to French IP proxy: {proxied_url_no_slash}")
+            json_parser = self._safe_api_call(proxied_url_no_slash, headers=headers_video_stream)
+            if not json_parser:
+                safe_print("[MyTF1Provider] FR-IP proxy (no slash) failed for live; retrying with slash variant")
+                safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (LIVE) - Sending to French IP proxy: {proxied_url_with_slash}")
+                json_parser = self._safe_api_call(proxied_url_with_slash, headers=headers_video_stream)
+            if not json_parser:
+                safe_print("[MyTF1Provider] FR-IP proxy failed for live; falling back to direct mediainfo call for diagnostics")
+                safe_print(f"[MyTF1Provider] *** FINAL DIRECT URL (LIVE) - Direct call: {url_json}")
+                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
 
-            if not response:
-                raise last_exc if last_exc else RuntimeError("TF1 mediainfo request failed without response")
-
-            if response.status_code == 200:
-                json_parser = response.json()
+            if json_parser:
                 safe_print(f"[MyTF1Provider] Stream API response received for {video_id}")
                 safe_print(f"[MyTF1Provider] Response JSON: {json_parser}")
                 
@@ -668,6 +658,7 @@ class MyTF1Provider:
                             endpoint=endpoint,
                             request_headers=mf_headers,
                         )
+                        safe_print(f"[MyTF1Provider] *** FINAL MEDIAFLOW URL (LIVE) - Sending to MediaFlow proxy: {mediaflow_url}")
                         final_url = mediaflow_url
                         manifest_type = 'hls' if is_hls else 'hls'
                     else:
@@ -691,7 +682,7 @@ class MyTF1Provider:
                 else:
                     safe_print(f"[MyTF1Provider] MyTF1 delivery error: {json_parser['delivery']['code']}")
             else:
-                safe_print(f"[MyTF1Provider] MyTF1 API error: {response.status_code}")
+                safe_print(f"[MyTF1Provider] MyTF1 API error: No valid JSON from mediainfo (proxy and direct attempts failed)")
                 
         except Exception as e:
             safe_print(f"[MyTF1Provider] Error getting stream for {channel_name}: {e}")
@@ -721,6 +712,10 @@ class MyTF1Provider:
                 "User-Agent": get_random_windows_ua(),
                 "referer": self.base_url,
                 "origin": self.base_url,
+                # Hint FR locale to upstream
+                "accept-language": "fr-FR,fr;q=0.9",
+                # Some stacks require explicit Accept for JSON
+                "accept": "application/json, text/plain, */*",
             }
             headers_video_stream = merge_ip_headers(headers_video_stream)
             _vip = get_client_ip()
@@ -745,7 +740,16 @@ class MyTF1Provider:
             }
             
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
-            safe_print(f"[MyTF1Provider] Requesting stream info from: {url_json}")
+            # Build destination URL with params and route via French-IP proxy for URL resolution only
+            from urllib.parse import urlencode, quote
+            dest_with_params = url_json + ("?" + urlencode(params) if params else "")
+            # The router expects the destination URL as the value of `url` (percent-encoded)
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url"
+            proxied_url_no_slash = proxy_base + "=" + quote(dest_with_params, safe="")
+            proxied_url_with_slash = proxy_base + "/" + quote(dest_with_params, safe="")
+            safe_print(f"[MyTF1Provider] Original dest: {dest_with_params}")
+            safe_print(f"[MyTF1Provider] Proxy (no slash): {proxied_url_no_slash}")
+            safe_print(f"[MyTF1Provider] Proxy (with slash): {proxied_url_with_slash}")
             
             safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
             # Optional per-request proxy for mediainfo to enforce FR egress
@@ -759,10 +763,18 @@ class MyTF1Provider:
             if proxies:
                 safe_print(f"[MyTF1Provider] Using proxies for mediainfo: {proxies}")
 
-            if proxies:
-                resp = self.session.get(url_json, headers=headers_video_stream, params=params, timeout=10, proxies=proxies)
-                json_parser = resp.json() if resp.status_code == 200 else None
-            else:
+            # Try proxy without leading slash first
+            safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (REPLAY) - Sending to French IP proxy: {proxied_url_no_slash}")
+            json_parser = self._safe_api_call(proxied_url_no_slash, headers=headers_video_stream)
+            # If proxy returns nothing or error, try variant with the additional slash
+            if not json_parser:
+                safe_print("[MyTF1Provider] FR-IP proxy (no slash) failed, retrying with slash variant")
+                safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (REPLAY) - Sending to French IP proxy: {proxied_url_with_slash}")
+                json_parser = self._safe_api_call(proxied_url_with_slash, headers=headers_video_stream)
+            # Final fallback: attempt direct call without proxy (may fail by geo, but useful for diagnostics)
+            if not json_parser:
+                safe_print("[MyTF1Provider] FR-IP proxy failed; falling back to direct mediainfo call for diagnostics")
+                safe_print(f"[MyTF1Provider] *** FINAL DIRECT URL (REPLAY) - Direct call: {url_json}")
                 json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
             
             if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
@@ -805,13 +817,15 @@ class MyTF1Provider:
                         mf_headers['X-License-URL'] = license_url
                     if license_headers and license_headers.get('Authorization'):
                         mf_headers['X-License-Authorization'] = license_headers.get('Authorization')
-                    final_url = build_mediaflow_url(
+                    mediaflow_url = build_mediaflow_url(
                         base_url=self.mediaflow_url,
                         password=self.mediaflow_password,
                         destination_url=video_url,
                         endpoint=endpoint,
                         request_headers=mf_headers,
                     )
+                    safe_print(f"[MyTF1Provider] *** FINAL MEDIAFLOW URL (REPLAY) - Sending to MediaFlow proxy: {mediaflow_url}")
+                    final_url = mediaflow_url
                 else:
                     final_url = video_url
 
