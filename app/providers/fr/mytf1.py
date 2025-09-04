@@ -10,7 +10,7 @@ import time
 import logging
 import os
 import urllib.parse
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode, quote, unquote
 import random
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
@@ -415,7 +415,9 @@ class MyTF1Provider:
             # FORCE GraphQL API calls through French proxy
             dest_with_params = self.api_url + ("?" + urlencode(program_params) if program_params else "")
             proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            proxied_url = proxy_base + quote(dest_with_params, safe="")
+            # Decode URL before passing through proxy to avoid double-encoding
+            decoded_url = unquote(dest_with_params)
+            proxied_url = proxy_base + quote(decoded_url, safe="")
             
             safe_print(f"[MyTF1Provider] FORCING GraphQL programs request through French proxy: {proxied_url}")
             data = self._safe_api_call(proxied_url, headers=headers)
@@ -507,7 +509,9 @@ class MyTF1Provider:
             # FORCE GraphQL API calls through French proxy
             dest_with_params = self.api_url + ("?" + urlencode(params) if params else "")
             proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            proxied_url = proxy_base + quote(dest_with_params, safe="")
+            # Decode URL before passing through proxy to avoid double-encoding
+            decoded_url = unquote(dest_with_params)
+            proxied_url = proxy_base + quote(decoded_url, safe="")
             
             safe_print(f"[MyTF1Provider] FORCING GraphQL episodes request through French proxy: {proxied_url}")
             data = self._safe_api_call(proxied_url, headers=headers)
@@ -644,8 +648,10 @@ class MyTF1Provider:
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
             proxy_base_no_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
             proxy_base_with_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router/?url="
-            proxied_url_no_slash = proxy_base_no_slash + quote(dest_with_params, safe="")
-            proxied_url_with_slash = proxy_base_with_slash + quote(dest_with_params, safe="")
+            # Decode URL before passing through proxy to avoid double-encoding
+            decoded_url = unquote(dest_with_params)
+            proxied_url_no_slash = proxy_base_no_slash + quote(decoded_url, safe="")
+            proxied_url_with_slash = proxy_base_with_slash + quote(decoded_url, safe="")
 
             json_parser = None
             safe_print(f"[MyTF1Provider] Trying FR-IP proxy (no slash): {proxied_url_no_slash}")
@@ -800,7 +806,9 @@ class MyTF1Provider:
             # Prefer French IP proxy first, then fall back to direct
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
             proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            proxied_url = proxy_base + quote(dest_with_params, safe="")
+            # Decode URL before passing through proxy to avoid double-encoding
+            decoded_url = unquote(dest_with_params)
+            proxied_url = proxy_base + quote(decoded_url, safe="")
 
             json_parser = None
             safe_print(f"[MyTF1Provider] Trying FR-IP proxy for replay: {proxied_url}")
@@ -930,7 +938,9 @@ class MyTF1Provider:
             # FORCE GraphQL API calls through French proxy
             dest_with_params = self.api_url + ("?" + urlencode(params) if params else "")
             proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            proxied_url = proxy_base + quote(dest_with_params, safe="")
+            # Decode URL before passing through proxy to avoid double-encoding
+            decoded_url = unquote(dest_with_params)
+            proxied_url = proxy_base + quote(decoded_url, safe="")
             
             safe_print(f"[MyTF1Provider] FORCING GraphQL metadata request through French proxy: {proxied_url}")
             data = self._safe_api_call(proxied_url, headers=headers)
