@@ -24,7 +24,7 @@ services:
       - HOST=127.0.0.1
       - ADDON_BASE_URL=${ADDON_BASE_URL:-http://localhost:7860}
       # IMPORTANT: Use a client-reachable URL here (host IP or domain). Avoid Docker-internal hostnames.
-      - MEDIAFLOW_PROXY_URL=${MEDIAFLOW_PROXY_URL:-http://host.docker.internal:8888}
+      - MEDIAFLOW_PROXY_URL=${MEDIAFLOW_PROXY_URL:-https://amfadwoe-cutv2.hf.space/}
       - MEDIAFLOW_API_PASSWORD=${MEDIAFLOW_API_PASSWORD:-your_password}
     # On Linux, enable host.docker.internal via host-gateway resolution
     extra_hosts:

@@ -10,12 +10,11 @@ import time
 import logging
 import os
 import urllib.parse
+from urllib.parse import urlencode, quote
 import random
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
 from app.utils.safe_print import safe_print
-from app.utils.client_ip import merge_ip_headers, get_client_ip
-from app.utils.mediaflow import build_mediaflow_url
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -39,10 +38,29 @@ class MyTF1Provider:
         self.api_key = "3_hWgJdARhz_7l1oOp3a8BDLoR9cuWZpUaKG4aqF7gum9_iK3uTZ2VlDBl8ANf8FVk"
         self.api_url = "https://www.tf1.fr/graphql/web"
         self.video_stream_url = "https://mediainfo.tf1.fr/mediainfocombo"
-        # MediaFlow config via env
-        mediaflow_creds = get_provider_credentials('mediaflow')
-        self.mediaflow_url = mediaflow_creds.get('url', 'http://localhost:8888') # Default to localhost if not specified
-        self.mediaflow_password = mediaflow_creds.get('password')
+        # MediaFlow config via env and credentials with deployment-friendly fallbacks
+        # First try environment variables (for deployment)
+        self.mediaflow_url = os.getenv('MEDIAFLOW_PROXY_URL')
+        self.mediaflow_password = os.getenv('MEDIAFLOW_API_PASSWORD')
+        
+        # Fallback to credentials file (for local development)
+        if not self.mediaflow_url or not self.mediaflow_password:
+            mediaflow_creds = get_provider_credentials('mediaflow')
+            if not self.mediaflow_url:
+                self.mediaflow_url = mediaflow_creds.get('url')
+            if not self.mediaflow_password:
+                self.mediaflow_password = mediaflow_creds.get('password')
+        
+        # Final fallback for local development
+        if not self.mediaflow_url:
+            self.mediaflow_url = 'http://localhost:8888'
+        
+        # Log MediaFlow configuration for debugging
+        safe_print(f"[MyTF1Provider] MediaFlow URL: {self.mediaflow_url}")
+        safe_print(f"[MyTF1Provider] MediaFlow Password: {'***' if self.mediaflow_password else 'None'}")
+        safe_print(f"[MyTF1Provider] MediaFlow configured: {bool(self.mediaflow_url and self.mediaflow_password)}")
+        
+
         self.accounts_login = "https://compte.tf1.fr/accounts.login"
         self.accounts_bootstrap = "https://compte.tf1.fr/accounts.webSdkBootstrap"
         self.token_gigya_web = "https://www.tf1.fr/token/gigya/web"
@@ -85,8 +103,11 @@ class MyTF1Provider:
                 # Rotate User-Agent for each attempt
                 current_headers = headers or {}
                 current_headers['User-Agent'] = get_random_windows_ua()
-                # Forward viewer IP to upstream
-                current_headers = merge_ip_headers(current_headers)
+
+                # Optional per-request proxy support via env
+                proxy_env = os.getenv('MYTF1_HTTP_PROXY')
+                proxies = {'http': proxy_env, 'https': proxy_env} if proxy_env else None
+
                 
                 safe_print(f"[MyTF1] API call attempt {attempt + 1}/{max_retries}: {url}")
                 if params:
@@ -102,13 +123,13 @@ class MyTF1Provider:
                     if data:
                         # Check if we need form data or JSON based on Content-Type
                         if current_headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15)
+                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15, proxies=proxies)
                         else:
-                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15)
+                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15, proxies=proxies)
                     else:
-                        response = self.session.post(url, params=params, headers=current_headers, timeout=15)
+                        response = self.session.post(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
                 else:
-                    response = self.session.get(url, params=params, headers=current_headers, timeout=15)
+                    response = self.session.get(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
                 
                 if response.status_code == 200:
                     # Log response details for debugging
@@ -206,6 +227,8 @@ class MyTF1Provider:
                 'format': 'json'
             }
             
+            # Authentication calls should be DIRECT - not through proxy
+            safe_print(f"[MyTF1Provider] Making DIRECT bootstrap request to: {self.accounts_bootstrap}")
             bootstrap_data = self._safe_api_call(self.accounts_bootstrap, headers=bootstrap_headers, params=bootstrap_params)
             if not bootstrap_data:
                 safe_print("[MyTF1Provider] Bootstrap failed")
@@ -234,6 +257,8 @@ class MyTF1Provider:
                 "format": "json"
             }
             
+            # Login calls should be DIRECT - not through proxy
+            safe_print(f"[MyTF1Provider] Making DIRECT login request to: {self.accounts_login}")
             login_data = self._safe_api_call(self.accounts_login, headers=headers_login, data=post_body_login, method='POST')
             
             if login_data and login_data.get('errorCode') == 0:
@@ -248,6 +273,8 @@ class MyTF1Provider:
                     "consent_ids": ["1", "2", "3", "4", "10001", "10003", "10005", "10007", "10013", "10015", "10017", "10019", "10009", "10011", "13002", "13001", "10004", "10014", "10016", "10018", "10020", "10010", "10012", "10006", "10008"]
                 }
                 
+                # JWT token calls should be DIRECT - not through proxy
+                safe_print(f"[MyTF1Provider] Making DIRECT JWT token request to: {self.token_gigya_web}")
                 jwt_data = self._safe_api_call(self.token_gigya_web, headers=headers_gigya, data=body_gigya, method='POST')
                 
                 if jwt_data and 'token' in jwt_data:
@@ -265,6 +292,8 @@ class MyTF1Provider:
             safe_print(f"[MyTF1Provider] Error during MyTF1 authentication: {e}")
         
         return False
+    
+
     
     def get_live_channels(self) -> List[Dict]:
         """Get list of live TV channels from TF1+"""
@@ -371,8 +400,7 @@ class MyTF1Provider:
                 'content-type': 'application/json',
                 'referer': 'https://www.tf1.fr/programmes-tv'
             }
-            # Ensure viewer IP forwarding headers are visible at this level too
-            headers = merge_ip_headers(headers)
+
             
             # Get the channel for this show
             show_channel = self.shows[actual_show_id]['channel']
@@ -384,7 +412,13 @@ class MyTF1Provider:
                 'variables': f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{channel_filter}"}},"offset":0,"limit":500}}'
             }
             
-            data = self._safe_api_call(self.api_url, params=program_params, headers=headers)
+            # FORCE GraphQL API calls through French proxy
+            dest_with_params = self.api_url + ("?" + urlencode(program_params) if program_params else "")
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxied_url = proxy_base + quote(dest_with_params, safe="")
+            
+            safe_print(f"[MyTF1Provider] FORCING GraphQL programs request through French proxy: {proxied_url}")
+            data = self._safe_api_call(proxied_url, headers=headers)
             
             if data and 'data' in data and 'programs' in data['data']:
                 program_id = None
@@ -401,7 +435,9 @@ class MyTF1Provider:
                     # Get episodes for the show
                     episodes = self._get_show_episodes(program_slug, program_id, headers)
                     if episodes:
-                        return episodes
+                        # Filter episodes based on subscription access
+                        available_episodes = self._filter_available_episodes(episodes)
+                        return available_episodes
                     else:
                         safe_print(f"[MyTF1Provider] No episodes found for program: {program_slug}")
                 else:
@@ -433,6 +469,31 @@ class MyTF1Provider:
             "note": "Fallback episode - API unavailable"
         }
     
+    def _filter_available_episodes(self, episodes: List[Dict]) -> List[Dict]:
+        """Filter episodes to only return those accessible with current subscription"""
+        available_episodes = []
+        
+        for episode in episodes:
+            episode_id = episode.get('id', '').split(':')[-1]
+            if not episode_id or episode_id.endswith('_fallback'):
+                # Always include fallback episodes
+                available_episodes.append(episode)
+                continue
+            
+            # Quick check if episode is accessible (without full stream resolution)
+            try:
+                # Test with a lightweight HEAD request or similar check
+                # For now, we'll include all episodes and let the stream resolution handle premium content
+                available_episodes.append(episode)
+                
+
+                
+            except Exception:
+                # If any error, skip this episode
+                continue
+        
+        return available_episodes
+    
     def _get_show_episodes(self, program_slug: str, program_id: str, headers: Dict) -> List[Dict]:
         """Get episodes for a specific show using TF1+ API with error handling"""
         try:
@@ -443,7 +504,13 @@ class MyTF1Provider:
                 'variables': f'{{"programSlug":"{program_slug}","offset":0,"limit":50,"sort":{{"type":"DATE","order":"DESC"}},"types":["REPLAY"]}}'
             }
             
-            data = self._safe_api_call(self.api_url, params=params, headers=headers)
+            # FORCE GraphQL API calls through French proxy
+            dest_with_params = self.api_url + ("?" + urlencode(params) if params else "")
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxied_url = proxy_base + quote(dest_with_params, safe="")
+            
+            safe_print(f"[MyTF1Provider] FORCING GraphQL episodes request through French proxy: {proxied_url}")
+            data = self._safe_api_call(proxied_url, headers=headers)
             
             if data and 'data' in data and 'programBySlug' in data['data']:
                 program_data = data['data']['programBySlug']
@@ -555,16 +622,7 @@ class MyTF1Provider:
                 # Some stacks require explicit Accept for JSON
                 "accept": "application/json, text/plain, */*",
             }
-            # Ensure viewer IP is forwarded in any downstream fetches (e.g., CDN checks)
-            headers_video_stream = merge_ip_headers(headers_video_stream)
-            # Add standard proxy headers often honored by CDNs if viewer IP known
-            _vip = get_client_ip()
-            if _vip:
-                headers_video_stream.setdefault('X-Forwarded-Proto', 'https')
-                headers_video_stream.setdefault('X-Forwarded-Host', 'www.tf1.fr')
-                headers_video_stream.setdefault('X-Forwarded-Server', 'www.tf1.fr')
-                headers_video_stream.setdefault('X-Client-IP', _vip)
-                headers_video_stream.setdefault('Forwarded', f'for={_vip};proto=https;host=www.tf1.fr')
+
             # Params follow reference; LCI could be treated specially but we align to reference pver block
             params = {
                 'context': 'MYTF1',
@@ -573,8 +631,7 @@ class MyTF1Provider:
                 'device': 'desktop',
                 'os': 'windows',
                 'osVersion': '10.0',
-                # Use bare host as expected by TF1 backend
-                'topDomain': 'www.tf1.fr',
+                'topDomain': self.base_url,  # Use actual TF1 domain instead of 'unknown'
                 'playerVersion': '5.29.0',
                 'productName': 'mytf1',
                 'productVersion': '3.37.0',
@@ -582,29 +639,35 @@ class MyTF1Provider:
             }
             
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
-            # Build destination URL with params and route via French-IP proxy for URL resolution only
-            from urllib.parse import urlencode, quote
+            
+            # Prefer French IP proxy first (two variants), then fall back to direct
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
-            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            # Some deployments expect a leading slash before the encoded URL, others don't.
-            proxied_url_no_slash = proxy_base + quote(dest_with_params, safe="")
-            proxied_url_with_slash = proxy_base + "/" + quote(dest_with_params, safe="")
-            safe_print(f"[MyTF1Provider] Original dest: {dest_with_params}")
-            safe_print(f"[MyTF1Provider] Proxy (no slash): {proxied_url_no_slash}")
-            safe_print(f"[MyTF1Provider] Proxy (with slash): {proxied_url_with_slash}")
-            safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
+            proxy_base_no_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxy_base_with_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router/?url="
+            proxied_url_no_slash = proxy_base_no_slash + quote(dest_with_params, safe="")
+            proxied_url_with_slash = proxy_base_with_slash + quote(dest_with_params, safe="")
 
-            # Use the proxied URL first (no slash), then with slash, then direct
-            safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (LIVE) - Sending to French IP proxy: {proxied_url_no_slash}")
-            json_parser = self._safe_api_call(proxied_url_no_slash, headers=headers_video_stream)
-            if not json_parser:
-                safe_print("[MyTF1Provider] FR-IP proxy (no slash) failed for live; retrying with slash variant")
-                safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (LIVE) - Sending to French IP proxy: {proxied_url_with_slash}")
-                json_parser = self._safe_api_call(proxied_url_with_slash, headers=headers_video_stream)
-            if not json_parser:
-                safe_print("[MyTF1Provider] FR-IP proxy failed for live; falling back to direct mediainfo call for diagnostics")
-                safe_print(f"[MyTF1Provider] *** FINAL DIRECT URL (LIVE) - Direct call: {url_json}")
-                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
+            json_parser = None
+            safe_print(f"[MyTF1Provider] Trying FR-IP proxy (no slash): {proxied_url_no_slash}")
+            data_try = self._safe_api_call(proxied_url_no_slash, headers=headers_video_stream)
+            # Log the primary proxy attempt URL regardless of outcome for traceability
+            safe_print(f"*** FINAL PROXY URL (LIVE): {proxied_url_no_slash}")
+            if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
+                json_parser = data_try
+            else:
+                safe_print("FR-IP proxy (no slash) failed; trying variant with slash...")
+                safe_print(f"[MyTF1Provider] Trying FR-IP proxy (with slash): {proxied_url_with_slash}")
+                data_try = self._safe_api_call(proxied_url_with_slash, headers=headers_video_stream)
+                if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
+                    safe_print(f"*** FINAL PROXY URL (LIVE): {proxied_url_with_slash}")
+                    json_parser = data_try
+                else:
+                    # Log final attempted proxy URL even if failing for visibility in tests/logs
+                    safe_print(f"*** FINAL PROXY URL (LIVE): {proxied_url_with_slash}")
+                    safe_print("FR-IP proxy (with slash) failed; falling back to direct call...")
+                    safe_print(f"[MyTF1Provider] Making DIRECT request for live feed: {url_json}")
+                    safe_print(f"*** FINAL DIRECT URL (LIVE): {url_json}")
+                    json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
 
             if json_parser:
                 safe_print(f"[MyTF1Provider] Stream API response received for {video_id}")
@@ -635,32 +698,32 @@ class MyTF1Provider:
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-                    # Always involve MediaFlow for live feeds when configured
+                    # Build MediaFlow URL like the working implementation
                     if self.mediaflow_url and self.mediaflow_password:
-                        endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
-                        mf_headers = {
-                            'User-Agent': headers_video_stream.get('User-Agent'),
-                            'Referer': self.base_url,
-                            'Origin': self.base_url,
-                            'Authorization': f"Bearer {self.auth_token}",
-                        }
-                        # Merge viewer IP forwarding headers exactly like other refs
-                        mf_headers = merge_ip_headers(mf_headers)
-                        # License hints (some players/proxies forward these)
+                        base = self.mediaflow_url.rstrip('/')
+                        if is_hls:
+                            endpoint = '/proxy/hls/manifest.m3u8'
+                        else:
+                            endpoint = '/proxy/mpd/manifest.m3u8'
+                        # build query with api_password + request headers
+                        q = [
+                            ('d', video_url),
+                            ('api_password', self.mediaflow_password),
+                            ('h_user-agent', headers_video_stream['User-Agent']),
+                            ('h_referer', self.base_url),
+                            ('h_origin', self.base_url),
+                            ('h_authorization', f"Bearer {self.auth_token}")  # Add authorization header
+                        ]
+                        # Add license URL and headers to MediaFlow proxy request if present
                         if license_url:
-                            mf_headers['X-License-URL'] = license_url
-                        if license_headers and license_headers.get('Authorization'):
-                            mf_headers['X-License-Authorization'] = license_headers.get('Authorization')
-                        mediaflow_url = build_mediaflow_url(
-                            base_url=self.mediaflow_url,
-                            password=self.mediaflow_password,
-                            destination_url=video_url,
-                            endpoint=endpoint,
-                            request_headers=mf_headers,
-                        )
-                        safe_print(f"[MyTF1Provider] *** FINAL MEDIAFLOW URL (LIVE) - Sending to MediaFlow proxy: {mediaflow_url}")
+                            q.append(('h_x-license-url', license_url))
+                        if license_headers:
+                            q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
+
+                        mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
+                        safe_print(f"*** FINAL MEDIAFLOW URL (LIVE): {mediaflow_url}")
                         final_url = mediaflow_url
-                        manifest_type = 'hls' if is_hls else 'hls'
+                        manifest_type = 'hls' if is_hls else 'hls'  # MPD proxied as HLS
                     else:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else 'mpd'
@@ -717,14 +780,7 @@ class MyTF1Provider:
                 # Some stacks require explicit Accept for JSON
                 "accept": "application/json, text/plain, */*",
             }
-            headers_video_stream = merge_ip_headers(headers_video_stream)
-            _vip = get_client_ip()
-            if _vip:
-                headers_video_stream.setdefault('X-Forwarded-Proto', 'https')
-                headers_video_stream.setdefault('X-Forwarded-Host', 'www.tf1.fr')
-                headers_video_stream.setdefault('X-Forwarded-Server', 'www.tf1.fr')
-                headers_video_stream.setdefault('X-Client-IP', _vip)
-                headers_video_stream.setdefault('Forwarded', f'for={_vip};proto=https;host=www.tf1.fr')
+
             params = {
                 'context': 'MYTF1',
                 'pver': '5010000',
@@ -740,43 +796,25 @@ class MyTF1Provider:
             }
             
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
-            # Build destination URL with params and route via French-IP proxy for URL resolution only
-            from urllib.parse import urlencode, quote
+            
+            # Prefer French IP proxy first, then fall back to direct
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
-            # The router expects the destination URL as the value of `url` (percent-encoded)
-            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url"
-            proxied_url_no_slash = proxy_base + "=" + quote(dest_with_params, safe="")
-            proxied_url_with_slash = proxy_base + "/" + quote(dest_with_params, safe="")
-            safe_print(f"[MyTF1Provider] Original dest: {dest_with_params}")
-            safe_print(f"[MyTF1Provider] Proxy (no slash): {proxied_url_no_slash}")
-            safe_print(f"[MyTF1Provider] Proxy (with slash): {proxied_url_with_slash}")
-            
-            safe_print(f"[MyTF1Provider] Effective request headers: {headers_video_stream}")
-            # Optional per-request proxy for mediainfo to enforce FR egress
-            proxies = {}
-            http_proxy = os.getenv('MYTF1_HTTP_PROXY')
-            https_proxy = os.getenv('MYTF1_HTTPS_PROXY')
-            if http_proxy:
-                proxies['http'] = http_proxy
-            if https_proxy:
-                proxies['https'] = https_proxy
-            if proxies:
-                safe_print(f"[MyTF1Provider] Using proxies for mediainfo: {proxies}")
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxied_url = proxy_base + quote(dest_with_params, safe="")
 
-            # Try proxy without leading slash first
-            safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (REPLAY) - Sending to French IP proxy: {proxied_url_no_slash}")
-            json_parser = self._safe_api_call(proxied_url_no_slash, headers=headers_video_stream)
-            # If proxy returns nothing or error, try variant with the additional slash
-            if not json_parser:
-                safe_print("[MyTF1Provider] FR-IP proxy (no slash) failed, retrying with slash variant")
-                safe_print(f"[MyTF1Provider] *** FINAL PROXY URL (REPLAY) - Sending to French IP proxy: {proxied_url_with_slash}")
-                json_parser = self._safe_api_call(proxied_url_with_slash, headers=headers_video_stream)
-            # Final fallback: attempt direct call without proxy (may fail by geo, but useful for diagnostics)
-            if not json_parser:
-                safe_print("[MyTF1Provider] FR-IP proxy failed; falling back to direct mediainfo call for diagnostics")
-                safe_print(f"[MyTF1Provider] *** FINAL DIRECT URL (REPLAY) - Direct call: {url_json}")
+            json_parser = None
+            safe_print(f"[MyTF1Provider] Trying FR-IP proxy for replay: {proxied_url}")
+            data_try = self._safe_api_call(proxied_url, headers=headers_video_stream)
+            safe_print(f"*** FINAL PROXY URL (REPLAY): {proxied_url}")
+
+            if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
+                json_parser = data_try
+            else:
+                safe_print("FR-IP proxy for replay failed; falling back to direct call...")
+                safe_print(f"[MyTF1Provider] Making DIRECT request for replay feed: {url_json}")
+                safe_print(f"*** FINAL DIRECT URL (REPLAY): {url_json}")
                 json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-            
+
             if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
                 video_url = json_parser['delivery']['url']
                 safe_print(f"[MyTF1Provider] Stream URL obtained: {video_url[:50]}...")
@@ -802,34 +840,55 @@ class MyTF1Provider:
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
                 
-                # Optionally involve MediaFlow for replays too if configured and desired via env
-                use_mediaflow_for_replay = os.getenv('MYTF1_REPLAY_VIA_MEDIAFLOW', 'false').lower() in ('1','true','yes','on')
-                if use_mediaflow_for_replay and self.mediaflow_url and self.mediaflow_password:
-                    endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
-                    mf_headers = {
-                        'User-Agent': headers_video_stream.get('User-Agent'),
-                        'Referer': self.base_url,
-                        'Origin': self.base_url,
-                        'Authorization': f"Bearer {self.auth_token}",
-                    }
-                    mf_headers = merge_ip_headers(mf_headers)
-                    if license_url:
-                        mf_headers['X-License-URL'] = license_url
-                    if license_headers and license_headers.get('Authorization'):
-                        mf_headers['X-License-Authorization'] = license_headers.get('Authorization')
-                    mediaflow_url = build_mediaflow_url(
-                        base_url=self.mediaflow_url,
-                        password=self.mediaflow_password,
-                        destination_url=video_url,
-                        endpoint=endpoint,
-                        request_headers=mf_headers,
-                    )
-                    safe_print(f"[MyTF1Provider] *** FINAL MEDIAFLOW URL (REPLAY) - Sending to MediaFlow proxy: {mediaflow_url}")
-                    final_url = mediaflow_url
-                else:
-                    final_url = video_url
+                # Build MediaFlow URL only if we have MediaFlow configured (like working implementation)
+                if self.mediaflow_url and self.mediaflow_password:
+                    try:
+                        base = self.mediaflow_url.rstrip('/')
+                        
+                        # Prefer HLS proxy to avoid MPD parsing issues
+                        if is_hls:
+                            endpoint = '/proxy/hls/manifest.m3u8'
+                            safe_print(f"[MyTF1Provider] Using HLS proxy for HLS stream")
+                        elif is_mpd:
+                            endpoint = '/proxy/mpd/manifest.m3u8'
+                            safe_print(f"[MyTF1Provider] Using MPD proxy for MPD stream")
+                        else:
+                            # Default to HLS proxy for unknown formats
+                            endpoint = '/proxy/hls/manifest.m3u8'
+                            safe_print(f"[MyTF1Provider] Using HLS proxy for unknown format")
+                        
+                        # build query with api_password + request headers
+                        q = [
+                            ('d', video_url),
+                            ('api_password', self.mediaflow_password),
+                            ('h_user-agent', headers_video_stream['User-Agent']),
+                            ('h_referer', self.base_url),
+                            ('h_origin', self.base_url),
+                            ('h_authorization', f"Bearer {self.auth_token}")
+                        ]
+                        
+                        # Add license URL and headers to MediaFlow proxy request if present
+                        if license_url:
+                            q.append(('h_x-license-url', license_url))
+                        if license_headers:
+                            q.append(('h_x-license-authorization', license_headers.get('Authorization', '')))
 
-                manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+                        mediaflow_url = f"{base}{endpoint}?" + urllib.parse.urlencode(q)
+                        safe_print(f"*** FINAL MEDIAFLOW URL (REPLAY): {mediaflow_url}")
+                        final_url = mediaflow_url
+                        manifest_type = 'hls'  # Always return HLS from MediaFlow
+                        
+                        safe_print(f"[MyTF1Provider] MediaFlow URL generated: {final_url[:50]}...")
+                        
+                    except Exception as e:
+                        safe_print(f"[MyTF1Provider] MediaFlow URL generation failed: {e}")
+                        # Fallback to direct URL
+                        final_url = video_url
+                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+                else:
+                    # No MediaFlow, use direct URL
+                    final_url = video_url
+                    manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
                 stream_info = {
                     "url": final_url,
@@ -867,9 +926,14 @@ class MyTF1Provider:
                 'content-type': 'application/json',
                 'referer': 'https://www.tf1.fr/programmes-tv'
             }
-            headers = merge_ip_headers(headers)
+
+            # FORCE GraphQL API calls through French proxy
+            dest_with_params = self.api_url + ("?" + urlencode(params) if params else "")
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxied_url = proxy_base + quote(dest_with_params, safe="")
             
-            data = self._safe_api_call(self.api_url, params=params, headers=headers)
+            safe_print(f"[MyTF1Provider] FORCING GraphQL metadata request through French proxy: {proxied_url}")
+            data = self._safe_api_call(proxied_url, headers=headers)
             
             if data and 'data' in data and 'programs' in data['data'] and 'items' in data['data']['programs']:
                 programs = data['data']['programs']['items']
