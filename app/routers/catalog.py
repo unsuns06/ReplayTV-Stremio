@@ -5,6 +5,7 @@ import traceback
 import json
 from app.schemas.stremio import CatalogResponse
 from app.providers.fr.common import ProviderFactory
+from app.utils.base_url import get_logo_url
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -31,8 +32,7 @@ async def get_catalog(type: str, id: str, request: Request):
     """Get catalog data with comprehensive error logging"""
     logger.info(f"🔍 CATALOG REQUEST: type={type}, id={id}")
     
-    # Get base URL for static assets
-    static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
+    # Base URL is now handled by the base_url utility
     
     # Get live TV channels
     if type == "channel" and id == "fr-live":
@@ -113,8 +113,8 @@ async def get_catalog(type: str, id: str, request: Request):
                     "id": "cutam:fr:francetv:envoye-special",
                     "type": "series",
                     "name": "Envoyé spécial",
-                    "poster": f"{static_base}/static/logos/fr/france2.png",
-                    "logo": f"{static_base}/static/logos/fr/france2.png",
+                    "poster": get_logo_url("fr", "france2", request),
+                    "logo": get_logo_url("fr", "france2", request),
                     "description": "Magazine d'information de France 2",
                     "genres": ["News", "Documentary", "Investigation"],
                     "year": 2024,
@@ -125,8 +125,8 @@ async def get_catalog(type: str, id: str, request: Request):
                     "id": "cutam:fr:francetv:cash-investigation",
                     "type": "series",
                     "name": "Cash Investigation",
-                    "poster": f"{static_base}/static/logos/fr/france2.png",
-                    "logo": f"{static_base}/static/logos/fr/france2.png",
+                    "poster": get_logo_url("fr", "france2", request),
+                    "logo": get_logo_url("fr", "france2", request),
                     "description": "Magazine d'investigation économique de France 2",
                     "genres": ["News", "Documentary", "Investigation", "Economics"],
                     "year": 2024,
@@ -137,8 +137,8 @@ async def get_catalog(type: str, id: str, request: Request):
                     "id": "cutam:fr:francetv:complement-enquete",
                     "type": "series",
                     "name": "Complément d'enquête",
-                    "poster": f"{static_base}/static/logos/fr/france2.png",
-                    "logo": f"{static_base}/static/logos/fr/france2.png",
+                    "poster": get_logo_url("fr", "france2", request),
+                    "logo": get_logo_url("fr", "france2", request),
                     "description": "Magazine d'investigation de France 2",
                     "genres": ["News", "Documentary", "Investigation"],
                     "year": 2024,
@@ -172,8 +172,8 @@ async def get_catalog(type: str, id: str, request: Request):
                     "id": "cutam:fr:mytf1:sept-a-huit",
                     "type": "series",
                     "name": "Sept à huit",
-                    "poster": f"{static_base}/static/logos/fr/tf1.png",
-                    "logo": f"{static_base}/static/logos/fr/tf1.png",
+                    "poster": get_logo_url("fr", "tf1", request),
+                    "logo": get_logo_url("fr", "tf1", request),
                     "description": "Magazine d'information de TF1",
                     "genres": ["News", "Documentary", "Magazine"],
                     "year": 2024,
@@ -184,8 +184,8 @@ async def get_catalog(type: str, id: str, request: Request):
                     "id": "cutam:fr:mytf1:quotidien",
                     "type": "series",
                     "name": "Quotidien",
-                    "poster": f"{static_base}/static/logos/fr/tmc.png",
-                    "logo": f"{static_base}/static/logos/fr/tmc.png",
+                    "poster": get_logo_url("fr", "tmc", request),
+                    "logo": get_logo_url("fr", "tmc", request),
                     "description": "Émission de divertissement et d'actualité de TMC",
                     "genres": ["Entertainment", "News", "Talk Show"],
                     "year": 2024,
