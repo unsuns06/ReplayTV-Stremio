@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 import logging
 import traceback
 from app.schemas.stremio import StreamResponse, Stream
@@ -9,7 +9,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.get("/stream/{type}/{id}.json")
-async def get_stream(type: str, id: str):
+async def get_stream(type: str, id: str, request: Request):
     """Get stream data with comprehensive error logging"""
     logger.info(f"🔍 STREAM REQUEST: type={type}, id={id}")
     
@@ -20,13 +20,13 @@ async def get_stream(type: str, id: str):
         # Determine which provider based on the ID
         if "francetv" in id:
             provider_name = "France TV"
-            provider = ProviderFactory.create_provider("francetv")
+            provider = ProviderFactory.create_provider("francetv", request)
         elif "mytf1" in id:
             provider_name = "MyTF1"
-            provider = ProviderFactory.create_provider("mytf1")
+            provider = ProviderFactory.create_provider("mytf1", request)
         elif "6play" in id:
             provider_name = "6play"
-            provider = ProviderFactory.create_provider("6play")
+            provider = ProviderFactory.create_provider("6play", request)
         else:
             logger.warning(f"⚠️ Unknown channel provider in ID: {id}")
             return StreamResponse(streams=[])
@@ -84,7 +84,7 @@ async def get_stream(type: str, id: str):
     elif type == "series" and "francetv" in id:
         logger.info(f"📺 Processing France TV replay stream request: {id}")
         try:
-            provider = ProviderFactory.create_provider("francetv")
+            provider = ProviderFactory.create_provider("francetv", request)
             
             # Extract episode ID from the series ID
             if "episode:" in id:
@@ -130,7 +130,7 @@ async def get_stream(type: str, id: str):
     elif type == "series" and "mytf1" in id:
         logger.info(f"📺 Processing TF1+ replay stream request: {id}")
         try:
-            provider = ProviderFactory.create_provider("mytf1")
+            provider = ProviderFactory.create_provider("mytf1", request)
             
             # Extract episode ID from the series ID
             if "episode:" in id:
@@ -192,7 +192,7 @@ async def get_stream(type: str, id: str):
     elif type == "series" and "6play" in id:
         logger.info(f"📺 Processing 6play replay stream request: {id}")
         try:
-            provider = ProviderFactory.create_provider("6play")
+            provider = ProviderFactory.create_provider("6play", request)
             
             # Extract episode ID from the series ID
             if "episode:" in id:

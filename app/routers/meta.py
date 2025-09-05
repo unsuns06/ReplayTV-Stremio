@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 import os
 from app.schemas.stremio import MetaResponse, Video
 from app.providers.fr.common import ProviderFactory
@@ -6,7 +6,7 @@ from app.providers.fr.common import ProviderFactory
 router = APIRouter()
 
 @router.get("/meta/{type}/{id}.json")
-async def get_meta(type: str, id: str):
+async def get_meta(type: str, id: str, request: Request):
     # Get base URL for static assets
     static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
     
@@ -14,7 +14,7 @@ async def get_meta(type: str, id: str):
     if type == "channel":
         # Try to get channel from France TV provider
         try:
-            francetv = ProviderFactory.create_provider("francetv")
+            francetv = ProviderFactory.create_provider("francetv", request)
             channels = francetv.get_live_channels()
             
             for channel in channels:
@@ -35,7 +35,7 @@ async def get_meta(type: str, id: str):
         
         # Try to get channel from TF1 provider
         try:
-            mytf1 = ProviderFactory.create_provider("mytf1")
+            mytf1 = ProviderFactory.create_provider("mytf1", request)
             channels = mytf1.get_live_channels()
             
             for channel in channels:
@@ -56,7 +56,7 @@ async def get_meta(type: str, id: str):
         
         # Try to get channel from 6play provider
         try:
-            sixplay = ProviderFactory.create_provider("sixplay")
+            sixplay = ProviderFactory.create_provider("sixplay", request)
             channels = sixplay.get_live_channels()
             
             for channel in channels:
@@ -78,7 +78,7 @@ async def get_meta(type: str, id: str):
     # Handle France TV series metadata with enhanced episode handling
     elif type == "series" and "francetv" in id:
         try:
-            provider = ProviderFactory.create_provider("francetv")
+            provider = ProviderFactory.create_provider("francetv", request)
             
             # Extract show ID from the series ID
             if "envoye-special" in id:
@@ -211,7 +211,7 @@ async def get_meta(type: str, id: str):
     # Handle TF1+ series metadata with enhanced episode handling
     elif type == "series" and "mytf1" in id:
         try:
-            provider = ProviderFactory.create_provider("mytf1")
+            provider = ProviderFactory.create_provider("mytf1", request)
             
             # Extract show ID from the series ID
             if "sept-a-huit" in id:
@@ -311,7 +311,7 @@ async def get_meta(type: str, id: str):
     # Handle 6play series metadata
     elif type == "series" and "6play" in id:
         try:
-            provider = ProviderFactory.create_provider("6play")
+            provider = ProviderFactory.create_provider("6play", request)
             
             # Extract show ID from the series ID
             if "capital" in id:

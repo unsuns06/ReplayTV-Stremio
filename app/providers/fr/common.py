@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional
+from fastapi import Request
 from app.providers.fr.francetv import FranceTVProvider
 from app.providers.fr.mytf1 import MyTF1Provider
 from app.providers.fr.sixplay import SixPlayProvider
@@ -21,10 +22,10 @@ class ProviderFactory:
     """Factory to create provider instances"""
     
     @staticmethod
-    def create_provider(provider_name: str) -> Provider:
+    def create_provider(provider_name: str, request: Optional[Request] = None) -> Provider:
         """Create a provider instance based on the provider name"""
         if provider_name == "francetv":
-            return FranceTVProvider()
+            return FranceTVProvider(request)
         elif provider_name == "mytf1":
             return MyTF1Provider()
         elif provider_name == "6play":

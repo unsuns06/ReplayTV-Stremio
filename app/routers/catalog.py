@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 import os
 import logging
 import traceback
@@ -27,7 +27,7 @@ def _log_json_decode_details(prefix: str, exc: Exception):
 
 
 @router.get("/catalog/{type}/{id}.json")
-async def get_catalog(type: str, id: str):
+async def get_catalog(type: str, id: str, request: Request):
     """Get catalog data with comprehensive error logging"""
     logger.info(f"🔍 CATALOG REQUEST: type={type}, id={id}")
     
@@ -43,7 +43,7 @@ async def get_catalog(type: str, id: str):
         # France.tv channels
         try:
             logger.info("🇫🇷 Getting France.tv channels...")
-            francetv = ProviderFactory.create_provider("francetv")
+            francetv = ProviderFactory.create_provider("francetv", request)
             francetv_channels = francetv.get_live_channels()
             logger.info(f"✅ France.tv returned {len(francetv_channels)} channels")
             all_channels.extend(francetv_channels)
@@ -58,7 +58,7 @@ async def get_catalog(type: str, id: str):
         # TF1 channels
         try:
             logger.info("📺 Getting TF1 channels...")
-            mytf1 = ProviderFactory.create_provider("mytf1")
+            mytf1 = ProviderFactory.create_provider("mytf1", request)
             mytf1_channels = mytf1.get_live_channels()
             logger.info(f"✅ TF1 returned {len(mytf1_channels)} channels")
             all_channels.extend(mytf1_channels)
@@ -93,7 +93,7 @@ async def get_catalog(type: str, id: str):
     elif type == "series" and id == "fr-francetv-replay":
         logger.info("📺 Processing France TV replay shows request")
         try:
-            francetv = ProviderFactory.create_provider("francetv")
+            francetv = ProviderFactory.create_provider("francetv", request)
             shows = francetv.get_programs()
             logger.info(f"✅ France TV returned {len(shows)} shows")
             
@@ -152,7 +152,7 @@ async def get_catalog(type: str, id: str):
     elif type == "series" and id == "fr-mytf1-replay":
         logger.info("📺 Processing TF1+ replay shows request")
         try:
-            mytf1 = ProviderFactory.create_provider("mytf1")
+            mytf1 = ProviderFactory.create_provider("mytf1", request)
             shows = mytf1.get_programs()
             logger.info(f"✅ TF1+ returned {len(shows)} shows")
             
@@ -199,7 +199,7 @@ async def get_catalog(type: str, id: str):
     elif type == "series" and id == "fr-6play-replay":
         logger.info("📺 Processing 6play replay shows request")
         try:
-            sixplay = ProviderFactory.create_provider("6play")
+            sixplay = ProviderFactory.create_provider("6play", request)
             shows = sixplay.get_programs()
             logger.info(f"✅ 6play returned {len(shows)} shows")
             

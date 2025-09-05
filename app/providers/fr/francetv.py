@@ -12,10 +12,12 @@ import time
 import random
 import sys
 from typing import Dict, List, Optional
+from fastapi import Request
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
 from app.utils.safe_print import safe_print
 from app.utils.client_ip import merge_ip_headers
+from app.utils.base_url import get_base_url, get_logo_url
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -32,7 +34,7 @@ def get_random_windows_ua():
 class FranceTVProvider:
     """France TV provider implementation with robust error handling and fallbacks"""
     
-    def __init__(self):
+    def __init__(self, request: Optional[Request] = None):
         self.credentials = get_provider_credentials('francetv')
         self.base_url = "https://www.france.tv"
         self.api_mobile = "https://api-mobile.yatta.francetv.fr"
@@ -42,8 +44,10 @@ class FranceTVProvider:
             'User-Agent': get_random_windows_ua()
         })
         
+        # Store request for base URL determination
+        self.request = request
         # Get base URL for static assets
-        self.static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
+        self.static_base = get_base_url(request)
         
         # Enhanced show information with rich metadata
         self.shows = {
@@ -52,7 +56,7 @@ class FranceTVProvider:
                 "name": "Envoyé spécial",
                 "description": "Magazine d'information de France 2",
                 "channel": "France 2",
-                "logo": f"{self.static_base}/static/logos/fr/france2.png",
+                "logo": get_logo_url("fr", "france2", self.request),
                 "genres": ["News", "Documentary", "Investigation"],
                 "year": 2024,
                 "rating": "Tous publics"
@@ -62,7 +66,7 @@ class FranceTVProvider:
                 "name": "Cash Investigation",
                 "description": "Magazine d'investigation économique de France 2",
                 "channel": "France 2",
-                "logo": f"{self.static_base}/static/logos/fr/france2.png",
+                "logo": get_logo_url("fr", "france2", self.request),
                 "genres": ["News", "Documentary", "Investigation", "Economics"],
                 "year": 2024,
                 "rating": "Tous publics"
@@ -72,7 +76,7 @@ class FranceTVProvider:
                 "name": "Complément d'enquête",
                 "description": "Magazine d'investigation de France 2",
                 "channel": "France 2",
-                "logo": f"{self.static_base}/static/logos/fr/france2.png",
+                "logo": get_logo_url("fr", "france2", self.request),
                 "genres": ["News", "Documentary", "Investigation"],
                 "year": 2024,
                 "rating": "Tous publics"
@@ -84,27 +88,27 @@ class FranceTVProvider:
             "france-2": {
                 "id": "006194ea-117d-4bcf-94a9-153d999c59ae",
                 "name": "France 2",
-                "logo": f"{self.static_base}/static/logos/fr/france2.png"
+                "logo": get_logo_url("fr", "france2", self.request)
             },
             "france-3": {
                 "id": "29bdf749-7082-4426-a4f3-595cc436aa0d",
                 "name": "France 3", 
-                "logo": f"{self.static_base}/static/logos/fr/france3.png"
+                "logo": get_logo_url("fr", "france3", self.request)
             },
             "france-4": {
                 "id": "9a6a7670-dde9-4264-adbc-55b89558594b",
                 "name": "France 4",
-                "logo": f"{self.static_base}/static/logos/fr/france4.png"
+                "logo": get_logo_url("fr", "france4", self.request)
             },
             "france-5": {
                 "id": "45007886-f3ff-4b3e-9706-1ef1014c5a60",
                 "name": "France 5",
-                "logo": f"{self.static_base}/static/logos/fr/france5.png"
+                "logo": get_logo_url("fr", "france5", self.request)
             },
             "franceinfo": {
                 "id": "35be22fb-1569-43ff-857c-99bf81defa2e",
                 "name": "franceinfo:",
-                "logo": f"{self.static_base}/static/logos/fr/franceinfo.png"
+                "logo": get_logo_url("fr", "franceinfo", self.request)
             }
         }
     
@@ -270,40 +274,40 @@ class FranceTVProvider:
                 "id": "cutam:fr:francetv:france-2",
                 "type": "channel",
                 "name": "France 2",
-                "poster": f"{self.static_base}/static/logos/fr/france2.png",
-                "logo": f"{self.static_base}/static/logos/fr/france2.png",
+                "poster": get_logo_url("fr", "france2", self.request),
+                "logo": get_logo_url("fr", "france2", self.request),
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:france-3",
                 "type": "channel",
                 "name": "France 3",
-                "poster": f"{self.static_base}/static/logos/fr/france3.png",
-                "logo": f"{self.static_base}/static/logos/fr/france3.png",
+                "poster": get_logo_url("fr", "france3", self.request),
+                "logo": get_logo_url("fr", "france3", self.request),
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:france-4",
                 "type": "channel",
                 "name": "France 4", 
-                "poster": f"{self.static_base}/static/logos/fr/france4.png",
-                "logo": f"{self.static_base}/static/logos/fr/france4.png",
+                "poster": get_logo_url("fr", "france4", self.request),
+                "logo": get_logo_url("fr", "france4", self.request),
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:france-5",
                 "type": "channel",
                 "name": "France 5", 
-                "poster": f"{self.static_base}/static/logos/fr/france5.png",
-                "logo": f"{self.static_base}/static/logos/fr/france5.png",
+                "poster": get_logo_url("fr", "france5", self.request),
+                "logo": get_logo_url("fr", "france5", self.request),
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:franceinfo",
                 "type": "channel",
                 "name": "franceinfo:",
-                "poster": f"{self.static_base}/static/logos/fr/franceinfo.png",
-                "logo": f"{self.static_base}/static/logos/fr/franceinfo.png",
+                "poster": get_logo_url("fr", "franceinfo", self.request),
+                "logo": get_logo_url("fr", "franceinfo", self.request),
                 "description": "Chaîne d'information continue française de service public"
             }
         ]
@@ -496,8 +500,8 @@ class FranceTVProvider:
             "type": "episode",
             "title": f"Latest {show_info.get('name', show_id.replace('-', ' ').title())}",
             "description": f"Latest episode of {show_info.get('name', show_id.replace('-', ' ').title())}",
-            "poster": show_info.get('logo', f"{self.static_base}/static/logos/fr/france2.png"),
-            "fanart": show_info.get('logo', f"{self.static_base}/static/logos/fr/france2.png"),
+            "poster": show_info.get('logo', get_logo_url("fr", "france2", self.request)),
+            "fanart": show_info.get('logo', get_logo_url("fr", "france2", self.request)),
             "episode": 1,
             "season": 1,
             "note": "Fallback episode - API unavailable"
