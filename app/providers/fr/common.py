@@ -27,7 +27,7 @@ class ProviderFactory:
         if provider_name == "francetv":
             return FranceTVProvider(request)
         elif provider_name == "mytf1":
-            return MyTF1Provider()
+            return MyTF1Provider(request)
         elif provider_name == "6play":
             return SixPlayProvider()
         else:

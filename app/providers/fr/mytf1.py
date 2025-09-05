@@ -13,9 +13,11 @@ import urllib.parse
 from urllib.parse import urlencode, quote, unquote
 import random
 from typing import Dict, List, Optional, Tuple
+from fastapi import Request
 from app.utils.credentials import get_provider_credentials
 from app.utils.safe_print import safe_print
 from app.utils.mediaflow import build_mediaflow_url
+from app.utils.base_url import get_base_url, get_logo_url
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -51,7 +53,7 @@ def force_decode_tf1_replay_url(original_url: str) -> str:
 class MyTF1Provider:
     """MyTF1 provider implementation with robust error handling and fallbacks"""
     
-    def __init__(self):
+    def __init__(self, request: Optional[Request] = None):
         self.credentials = get_provider_credentials('mytf1')
         self.base_url = "https://www.tf1.fr"
         self.api_key = "3_hWgJdARhz_7l1oOp3a8BDLoR9cuWZpUaKG4aqF7gum9_iK3uTZ2VlDBl8ANf8FVk"
@@ -79,6 +81,10 @@ class MyTF1Provider:
         safe_print(f"✅ [MyTF1Provider] MediaFlow Password: {'***' if self.mediaflow_password else 'None'}")
         safe_print(f"✅ [MyTF1Provider] MediaFlow configured: {bool(self.mediaflow_url and self.mediaflow_password)}")
         
+        # Store request for base URL determination
+        self.request = request
+        # Get base URL for static assets
+        self.static_base = get_base_url(request)
 
         self.accounts_login = "https://compte.tf1.fr/accounts.login"
         self.accounts_bootstrap = "https://compte.tf1.fr/accounts.webSdkBootstrap"
@@ -324,41 +330,38 @@ class MyTF1Provider:
         """Get list of live TV channels from TF1+"""
         channels = []
         
-        # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
-        
         # TF1+ live channels (based on source addon)
         tf1_channels = [
             {
                 "id": "cutam:fr:mytf1:tf1",
                 "type": "channel",
                 "name": "TF1",
-                "poster": f"{static_base}/static/logos/fr/tf1.png",
-                "logo": f"{static_base}/static/logos/fr/tf1.png",
+                "poster": get_logo_url("fr", "tf1", self.request),
+                "logo": get_logo_url("fr", "tf1", self.request),
                 "description": "Première chaîne de télévision privée française"
             },
             {
                 "id": "cutam:fr:mytf1:tmc",
                 "type": "channel",
                 "name": "TMC",
-                "poster": f"{static_base}/static/logos/fr/tmc.png",
-                "logo": f"{static_base}/static/logos/fr/tmc.png",
+                "poster": get_logo_url("fr", "tmc", self.request),
+                "logo": get_logo_url("fr", "tmc", self.request),
                 "description": "Chaîne de télévision du groupe TF1"
             },
             {
                 "id": "cutam:fr:mytf1:tfx",
                 "type": "channel",
                 "name": "TFX",
-                "poster": f"{static_base}/static/logos/fr/tfx.png",
-                "logo": f"{static_base}/static/logos/fr/tfx.png",
+                "poster": get_logo_url("fr", "tfx", self.request),
+                "logo": get_logo_url("fr", "tfx", self.request),
                 "description": "Chaîne de divertissement du groupe TF1"
             },
             {
                 "id": "cutam:fr:mytf1:tf1-series-films",
                 "type": "channel",
                 "name": "TF1 Séries Films",
-                "poster": f"{static_base}/static/logos/fr/tf1seriesfilms.png",
-                "logo": f"{static_base}/static/logos/fr/tf1seriesfilms.png",
+                "poster": get_logo_url("fr", "tf1seriesfilms", self.request),
+                "logo": get_logo_url("fr", "tf1seriesfilms", self.request),
                 "description": "Chaîne dédiée aux séries et films du groupe TF1"
             }
         ]
@@ -370,9 +373,6 @@ class MyTF1Provider:
         """Get list of TF1+ replay shows with enhanced metadata and fallbacks"""
         shows = []
         
-        # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
-        
         try:
             # Fetch show metadata from TF1+ API with fallback
             for show_id, show_info in self.shows.items():
@@ -383,8 +383,8 @@ class MyTF1Provider:
                     "type": "series",
                     "name": show_info["name"],
                     "description": show_info["description"],
-                    "logo": show_metadata.get("logo", f"{static_base}/static/logos/fr/tf1.png"),
-                    "poster": show_metadata.get("poster", f"{static_base}/static/logos/fr/tf1.png"),
+                    "logo": show_metadata.get("logo", get_logo_url("fr", "tf1", self.request)),
+                    "poster": show_metadata.get("poster", get_logo_url("fr", "tf1", self.request)),
                     "fanart": show_metadata.get("fanart"),
                     "genres": show_info["genres"],
                     "channel": show_info["channel"],
@@ -400,8 +400,8 @@ class MyTF1Provider:
                     "type": "series",
                     "name": show_info["name"],
                     "description": show_info["description"],
-                    "logo": f"{static_base}/static/logos/fr/tf1.png",
-                    "poster": f"{static_base}/static/logos/fr/tf1.png",
+                    "logo": get_logo_url("fr", "tf1", self.request),
+                    "poster": get_logo_url("fr", "tf1", self.request),
                     "genres": show_info["genres"],
                     "channel": show_info["channel"],
                     "year": show_info["year"],
@@ -483,8 +483,8 @@ class MyTF1Provider:
             "type": "episode",
             "title": f"Latest {show_info.get('name', show_id.replace('-', ' ').title())}",
             "description": f"Latest episode of {show_info.get('name', show_id.replace('-', ' ').title())}",
-            "poster": f"{os.getenv('ADDON_BASE_URL', 'http://localhost:7860')}/static/logos/fr/tf1.png",
-            "fanart": f"{os.getenv('ADDON_BASE_URL', 'http://localhost:7860')}/static/logos/fr/tf1.png",
+            "poster": get_logo_url("fr", "tf1", self.request),
+            "fanart": get_logo_url("fr", "tf1", self.request),
             "episode": 1,
             "season": 1,
             "note": "Fallback episode - API unavailable"
@@ -1010,7 +1010,7 @@ class MyTF1Provider:
                                 fanart = decoration['background']['sources'][0].get('url', '')
                             
                             # Get logo (use poster as logo if available)
-                            logo = poster if poster else f"{os.getenv('ADDON_BASE_URL', 'http://localhost:7860')}/static/logos/fr/tf1.png"
+                            logo = poster if poster else get_logo_url("fr", "tf1", self.request)
                             
                             safe_print(f"✅ [MyTF1Provider] Found show metadata for {show_id}: poster={poster[:50] if poster else 'N/A'}..., fanart={fanart[:50] if fanart else 'N/A'}...")
                             
