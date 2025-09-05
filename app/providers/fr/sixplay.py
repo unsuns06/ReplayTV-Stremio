@@ -16,6 +16,9 @@ from app.utils.credentials import get_provider_credentials
 from app.auth.sixplay_auth import SixPlayAuth
 from app.utils.metadata import metadata_processor
 from app.utils.client_ip import merge_ip_headers
+from app.utils.sixplay_mpd_processor import create_mediaflow_compatible_mpd
+from app.utils.mediaflow import build_mediaflow_url
+from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -42,7 +45,21 @@ class SixPlayProvider:
         self.live_url = "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live"
         self.api_key = "3_hH5KBv25qZTd_sURpixbQW6a4OsiIzIEF2Ei_2H7TXTGLJb_1Hr4THKZianCQhWK"
         
-        # No MediaFlow - we'll use the exact Kodi addon approach
+        # MediaFlow config for enhanced DRM compatibility (optional)
+        self.mediaflow_url = os.getenv('MEDIAFLOW_PROXY_URL')
+        self.mediaflow_password = os.getenv('MEDIAFLOW_API_PASSWORD')
+        
+        # Fallback to credentials file
+        if not self.mediaflow_url or not self.mediaflow_password:
+            mediaflow_creds = get_provider_credentials('mediaflow')
+            if not self.mediaflow_url:
+                self.mediaflow_url = mediaflow_creds.get('url')
+            if not self.mediaflow_password:
+                self.mediaflow_password = mediaflow_creds.get('password')
+        
+        # Final fallback for local development
+        if not self.mediaflow_url:
+            self.mediaflow_url = 'http://localhost:8888'
         
         self.session = requests.Session()
         self.session.headers.update({
@@ -53,12 +70,13 @@ class SixPlayProvider:
         self._authenticated = False
 
     def _authenticate(self) -> bool:
-        """Authenticate the session for 6play when credentials are available.
+        """Authenticate the session for 6play using real Gigya authentication.
 
-        This implementation is intentionally lightweight:
-        - Uses `credentials.json` (section `6play`) if present.
-        - Falls back gracefully to unauthenticated mode so free/HLS content still works.
-        - Caches state on success to avoid repeated logins.
+        This implementation follows the Kodi plugin approach:
+        - Uses Gigya API for real authentication
+        - Obtains JWT tokens for DRM content access
+        - Falls back gracefully for unauthenticated access to free content
+        - Caches authentication state to avoid repeated logins
         """
         try:
             if self._authenticated:
@@ -80,25 +98,31 @@ class SixPlayProvider:
             # If no credentials provided, allow unauthenticated access (HLS-only paths may still work)
             if not username or not password:
                 print("[SixPlayProvider] No 6play credentials found; continuing without authentication")
+                print("[SixPlayProvider] Note: DRM content will not be accessible without valid credentials")
                 self._authenticated = True  # Mark as 'handled' so callers can proceed to non-DRM paths
                 return True
 
-            # Perform a lightweight login using the auth helper (placeholder implementation)
+            # Perform real authentication using Gigya API
             auth = SixPlayAuth(username=username, password=password)
             if auth.login():
-                # Store the session token as our bearer token for subsequent requests that expect it
-                self.login_token = auth.session_token
-                # If we don't have a real account id, generate a stable UUID for request building
-                # Downstream code only needs this for DRM token calls; HLS paths won't use it.
-                self.account_id = self.account_id or str(uuid.uuid4())
-                self._authenticated = True
-                print("[SixPlayProvider] 6play authentication succeeded (session established)")
-                return True
+                # Get real authentication data
+                auth_data = auth.get_auth_data()
+                if auth_data:
+                    self.account_id, self.login_token = auth_data
+                    self._authenticated = True
+                    print(f"[SixPlayProvider] 6play authentication succeeded")
+                    print(f"[SixPlayProvider] Account ID: {self.account_id}")
+                    print(f"[SixPlayProvider] JWT Token: {self.login_token[:20]}...")
+                    return True
 
-            print("[SixPlayProvider] 6play authentication failed via auth helper")
+            print("[SixPlayProvider] 6play authentication failed")
+            # Still mark as handled to allow non-DRM content access
+            self._authenticated = True
             return False
         except Exception as e:
             print(f"[SixPlayProvider] Authentication error: {e}")
+            # Mark as handled but authentication failed
+            self._authenticated = True
             return False
     
     def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3) -> Optional[Dict]:
@@ -416,49 +440,94 @@ class SixPlayProvider:
                         else:
                             print("❌ No HLS streams found, trying MPD...")
                         
-                        # Fallback to MPD if no HLS available - use exact Kodi addon approach
+                        # Fallback to MPD if no HLS available - enhanced DRM handling with MediaFlow option
                         final_video_url = self._get_final_video_url(video_assets, 'usp_dashcenc_h264')
                         
                         if final_video_url:
                             print(f"✅ MPD stream found: {final_video_url[:100]}...")
                             
-                            # Get DRM token for this video (exact Kodi addon approach)
-                            try:
-                                payload_headers = {
-                                    'X-Customer-Name': 'm6web',
-                                    'X-Client-Release': '5.103.3',
-                                    'Authorization': f'Bearer {self.login_token}',
+                            # Get DRM token for this video (following Kodi addon approach)
+                            drm_token = None
+                            if self.account_id and self.login_token:
+                                try:
+                                    payload_headers = {
+                                        'X-Customer-Name': 'm6web',
+                                        'X-Client-Release': '5.103.3',
+                                        'Authorization': f'Bearer {self.login_token}',
+                                    }
+                                    
+                                    # Use the exact URL from Kodi addon
+                                    token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
+                                    token_response = self.session.get(token_url, headers=merge_ip_headers(payload_headers), timeout=10)
+                                    
+                                    if token_response.status_code == 200:
+                                        token_data = token_response.json()
+                                        drm_token = token_data["token"]
+                                        print(f"✅ DRM token obtained successfully")
+                                    else:
+                                        print(f"❌ DRM token request failed: {token_response.status_code}")
+                                        print(f"   Check your 6play credentials and authentication")
+                                        
+                                except Exception as e:
+                                    print(f"❌ DRM setup failed: {e}")
+                            
+                            # Try MediaFlow with proper DRM token integration
+                            if self.mediaflow_url and self.mediaflow_password and drm_token:
+                                try:
+                                    print(f"🔄 Using MediaFlow with DRM token integration...")
+                                    
+                                    # Build license URL following Kodi plugin pattern
+                                    license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={drm_token}|R{{SSM}}|JBlicense"
+                                    
+                                    # MediaFlow headers for accessing the MPD
+                                    mediaflow_headers = {
+                                        'User-Agent': get_random_windows_ua(),
+                                        'Origin': 'https://www.6play.fr',
+                                        'Referer': 'https://www.6play.fr/',
+                                        'Authorization': f'Bearer {self.login_token}',
+                                        'X-Customer-Name': 'm6web',
+                                        'X-Client-Release': '5.103.3'
+                                    }
+                                    
+                                    # Use MediaFlow's DASH to HLS conversion with license
+                                    mediaflow_url = build_mediaflow_url(
+                                        base_url=self.mediaflow_url,
+                                        password=self.mediaflow_password,
+                                        destination_url=final_video_url,
+                                        endpoint="/proxy/mpd/manifest.m3u8",
+                                        request_headers=mediaflow_headers,
+                                        license_url=license_url
+                                    )
+                                    
+                                    print(f"✅ MediaFlow URL with DRM integration: {mediaflow_url[:60]}...")
+                                    
+                                    return {
+                                        "url": mediaflow_url,
+                                        "manifest_type": "hls",  # MediaFlow converts DASH to HLS
+                                        "drm_protected": True
+                                    }
+                                        
+                                except Exception as e:
+                                    print(f"❌ MediaFlow DRM integration failed: {e}")
+                                    print(f"   Falling back to direct DRM approach")
+                            
+                            # Fallback to direct DRM approach
+                            if drm_token:
+                                # Build license URL exactly like Kodi addon
+                                license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={drm_token}|R{{SSM}}|JBlicense"
+                                
+                                print(f"✅ Using direct DRM approach with license")
+                                
+                                return {
+                                    "url": final_video_url,
+                                    "manifest_type": "mpd",
+                                    "licenseUrl": license_url,
+                                    "licenseHeaders": {
+                                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
+                                    }
                                 }
-                                
-                                # Use the exact URL from Kodi addon
-                                token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
-                                token_response = self.session.get(token_url, headers=merge_ip_headers(payload_headers), timeout=10)
-                                
-                                if token_response.status_code == 200:
-                                    token_data = token_response.json()
-                                    drm_token = token_data["token"]
-                                    
-                                    # Build license URL exactly like Kodi addon
-                                    license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&Origin=https://www.6play.fr&Referer=https://www.6play.fr&x-dt-auth-token={drm_token}|R{{SSM}}|JBlicense"
-                                    
-                                    print(f"✅ DRM token obtained, license URL built")
-                                    
-                                    return {
-                                        "url": final_video_url,
-                                        "manifest_type": "mpd",
-                                        "licenseUrl": license_url,
-                                        "licenseHeaders": {
-                                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
-                                        }
-                                    }
-                                else:
-                                    print(f"❌ DRM token request failed: {token_response.status_code}")
-                                    return {
-                                        "url": final_video_url,
-                                        "manifest_type": "mpd"
-                                    }
-                            except Exception as e:
-                                print(f"❌ DRM setup failed: {e}")
+                            else:
+                                print(f"❌ No DRM token available - returning basic MPD")
                                 return {
                                     "url": final_video_url,
                                     "manifest_type": "mpd"
@@ -539,11 +608,35 @@ class SixPlayProvider:
                             else:
                                 print("❌ No HLS streams found, trying MPD...")
                             
-                            # Fallback to MPD if no HLS available
+                            # Fallback to MPD if no HLS available - get DRM token for live content
                             final_video_url = self._get_final_video_url(video_assets, 'delta_dashcenc_h264')
                             
                             if final_video_url:
                                 print(f"✅ MPD stream found: {final_video_url[:100]}...")
+                                
+                                # Get DRM token for live content (following Kodi addon approach)
+                                if self.account_id and self.login_token:
+                                    try:
+                                        # Build license URL for live content using the live token
+                                        license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={token}|R{{SSM}}|JBlicense"
+                                        
+                                        print(f"✅ Live DRM stream configured")
+                                        
+                                        return {
+                                            "url": final_video_url,
+                                            "manifest_type": "mpd",
+                                            "licenseUrl": license_url,
+                                            "licenseHeaders": {
+                                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
+                                            }
+                                        }
+                                        
+                                    except Exception as e:
+                                        print(f"❌ [SixPlayProvider] Live DRM setup failed: {e}")
+                                        # Continue with fallback approach below
+                                
+                                # Fallback: return raw MPD stream (might not work without proper DRM)
+                                print(f"⚠️  No authentication for live DRM content")
                                 return {
                                     "url": final_video_url,
                                     "manifest_type": "mpd"
