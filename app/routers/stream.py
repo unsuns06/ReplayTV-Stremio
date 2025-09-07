@@ -93,7 +93,6 @@ async def get_stream(type: str, id: str, request: Request):
             else:
                 logger.warning(f"⚠️ No episode specified in series ID: {id}")
                 # If it's a series ID, we need to get the first episode
-                # This is a simplified approach - in a real scenario, you'd get the specific episode
                 return StreamResponse(streams=[{
                     "url": "https://example.com/episode-not-specified.mp4",
                     "title": "Please select a specific episode"
@@ -253,6 +252,14 @@ async def get_stream(type: str, id: str, request: Request):
                     "url": "https://example.com/episode-not-specified.mp4",
                     "title": "Please select a specific episode"
                 }])
+            
+            # Run debug trace for better logging
+            try:
+                debug_info = provider.debug_episode_stream(episode_id)
+                for step in debug_info.get("steps", []):
+                    logger.info(f"DEBUG: {step}")
+            except Exception:
+                pass
             
             # Get stream URL for the episode
             stream_info = provider.get_episode_stream_url(episode_id)

@@ -928,7 +928,12 @@ class CBCProvider:
             # Get the CBC media ID from the item - THIS IS CRITICAL FOR STREAM RESOLUTION
             cbc_media_id = item.get('idMedia')
             
-            # Create episode data
+            # Ensure we have a media ID; otherwise skip item
+            if not cbc_media_id:
+                logger.warning(f"\u26a0\ufe0f No media ID for S{season_num}E{episode_num}")
+                return None
+            
+            # Create episode data with GUARANTEED media ID
             episode_data = {
                 "id": f"cutam:ca:cbc:dragons-den:episode-{season_num}-{episode_num}",
                 "title": title,
@@ -946,13 +951,14 @@ class CBCProvider:
                 "gem_url": gem_url,
                 "cast": cast,
                 "genres": ["Reality", "Business", "Entrepreneurship"],
-                "cbc_media_id": cbc_media_id  # Add the CBC media ID for stream resolution
+                "cbc_media_id": str(cbc_media_id)
             }
             
+            logger.info(f"\u2705 Created episode S{season_num}E{episode_num} with media ID: {cbc_media_id}")
             return episode_data
             
         except Exception as e:
-            logger.error(f"❌ Error parsing episode data from season item: {e}")
+            logger.error(f"\u274c Error parsing episode data from season item: {e}")
             return None
     
     def _get_episode_from_api(self, season_num: int, episode_num: int) -> Optional[Dict[str, Any]]:
@@ -1487,17 +1493,36 @@ class CBCProvider:
     def _extract_media_id_from_episode_id(self, episode_id: str) -> Optional[str]:
         """Extract CBC media ID from episode ID"""
         try:
-            # For CBC Gem URLs like 'schitts-creek/s06e01', extract the path
-            if '/' in episode_id:
-                return episode_id
+            # Parse episode info from ID like: cutam:ca:cbc:dragons-den:episode-19-1
+            if "dragons-den:episode-" in episode_id:
+                parts = episode_id.split("-")
+                if len(parts) >= 3:
+                    try:
+                        season_num = int(parts[-2])
+                        episode_num = int(parts[-1])
+                        # Look up episodes to find matching media id
+                        episodes = self.get_episodes("cutam:ca:cbc:dragons-den")
+                        for ep in episodes:
+                            if (
+                                ep.get('season') == season_num and
+                                ep.get('episode') == episode_num and
+                                'cbc_media_id' in ep and ep.get('cbc_media_id')
+                            ):
+                                media_id = str(ep['cbc_media_id'])
+                                logger.info(f"✅ Found CBC media ID for S{season_num}E{episode_num}: {media_id}")
+                                return media_id
+                    except ValueError:
+                        pass
             
-            # For other formats, try to find the media ID in our episodes
+            # Fallback: direct match by full id
             episodes = self.get_episodes("cutam:ca:cbc:dragons-den")
-            for episode in episodes:
-                if episode['id'] == episode_id and 'cbc_media_id' in episode:
-                    return episode['cbc_media_id']
+            for ep in episodes:
+                if ep.get('id') == episode_id and ep.get('cbc_media_id'):
+                    media_id = str(ep['cbc_media_id'])
+                    logger.info(f"✅ Found CBC media ID by direct match: {media_id}")
+                    return media_id
             
-            logger.warning(f"⚠️ No media ID found for episode: {episode_id}")
+            logger.error(f"❌ No media ID found for episode: {episode_id}")
             return None
             
         except Exception as e:
@@ -1505,14 +1530,22 @@ class CBCProvider:
             return None
     
     def _get_stream_from_cbc_api(self, media_id: str) -> Optional[Dict[str, Any]]:
-        """Get stream URL from CBC Gem API with authentication"""
+        """Get stream URL from CBC Gem API with authentication and robust error handling"""
         try:
             logger.info(f"🔍 Getting stream from CBC API for media: {media_id}")
             
-            # Get authenticated headers
-            headers = self.authenticator.get_authenticated_headers()
+            # Ensure we are authenticated
+            if not self.authenticator.is_authenticated():
+                logger.error("❌ Not authenticated with CBC Gem")
+                return None
             
-            # Call CBC media validation API
+            # Get authenticated headers (ensures claims token)
+            headers = self.authenticator.get_authenticated_headers()
+            claims_token = headers.get('x-claims-token')
+            if not claims_token:
+                logger.error("❌ Missing claims token for CBC content")
+                return None
+            
             params = {
                 'appCode': 'gem',
                 'connectionType': 'hd',
@@ -1522,7 +1555,7 @@ class CBCProvider:
                 'tech': 'hls',
                 'manifestVersion': '2',
                 'manifestType': 'desktop',
-                'idMedia': media_id,
+                'idMedia': str(media_id),
             }
             
             response = self.session.get(
@@ -1531,30 +1564,38 @@ class CBCProvider:
                 headers=headers,
                 timeout=30
             )
-            response.raise_for_status()
+            logger.info(f"📡 CBC API status: {response.status_code}")
+            if response.status_code != 200:
+                logger.error(f"❌ CBC API returned {response.status_code}")
+                try:
+                    logger.error(response.text[:500])
+                except Exception:
+                    pass
+                return None
             
             data = response.json()
-            
-            # Check for errors
             error_code = data.get('errorCode', 0)
             if error_code == 1:
                 logger.error("❌ Content is geo-restricted to Canada")
                 return None
-            elif error_code == 35:
-                logger.error("❌ Authentication required for this content")
+            if error_code == 35:
+                logger.error("❌ Authentication required or claims token invalid; attempting refresh once")
+                # Clear cached claims token and retry once
+                self.authenticator.claims_token = None
+                refreshed_headers = self.authenticator.get_authenticated_headers()
+                if refreshed_headers.get('x-claims-token') and refreshed_headers.get('x-claims-token') != claims_token:
+                    return self._get_stream_from_cbc_api(media_id)
                 return None
-            elif error_code != 0:
-                error_msg = data.get('message', 'Unknown error')
-                logger.error(f"❌ CBC API error {error_code}: {error_msg}")
+            if error_code != 0:
+                logger.error(f"❌ CBC API error {error_code}: {data.get('message', 'Unknown error')}")
                 return None
             
-            # Extract stream URL
             stream_url = data.get('url')
             if not stream_url:
                 logger.error("❌ No stream URL in CBC API response")
+                logger.error(str(data)[:500])
                 return None
             
-            # Determine manifest type
             manifest_type = 'hls'
             if '.m3u8' in stream_url:
                 manifest_type = 'hls'
@@ -1565,13 +1606,70 @@ class CBCProvider:
             
             logger.info(f"✅ Got CBC stream: {manifest_type.upper()}")
             
+            # Only return safe playback headers
+            playback_headers = {
+                'User-Agent': headers.get('User-Agent', self.session.headers.get('User-Agent', '')),
+                'Referer': headers.get('Referer', 'https://gem.cbc.ca/'),
+                'Origin': headers.get('Origin', 'https://gem.cbc.ca')
+            }
+            
             return {
                 "url": stream_url,
                 "manifest_type": manifest_type,
-                "headers": headers,
-                "title": f"CBC Gem Content"
+                "headers": playback_headers,
+                "title": "CBC Gem Dragon's Den"
             }
-            
         except Exception as e:
             logger.error(f"❌ Error getting stream from CBC API: {e}")
+            try:
+                import traceback
+                logger.error(traceback.format_exc())
+            except Exception:
+                pass
             return None
+
+    def debug_episode_stream(self, episode_id: str) -> Dict[str, Any]:
+        """Debug method to trace the entire stream resolution process"""
+        debug_info: Dict[str, Any] = {"episode_id": episode_id, "steps": [], "final_result": None}
+        try:
+            debug_info["steps"].append("1. Extracting media ID...")
+            media_id = self._extract_media_id_from_episode_id(episode_id)
+            debug_info["media_id"] = media_id
+            debug_info["steps"].append(f"   Media ID: {media_id}")
+            if not media_id:
+                debug_info["steps"].append("   ❌ FAILED: No media ID found")
+                debug_info["final_result"] = "FAILED"
+                return debug_info
+            
+            debug_info["steps"].append("2. Checking authentication...")
+            is_auth = self.authenticator.is_authenticated()
+            debug_info["authenticated"] = is_auth
+            debug_info["steps"].append(f"   Authenticated: {is_auth}")
+            if not is_auth:
+                debug_info["steps"].append("   ❌ FAILED: Not authenticated")
+                debug_info["final_result"] = "FAILED"
+                return debug_info
+            
+            debug_info["steps"].append("3. Getting claims token...")
+            claims_token = self.authenticator.get_claims_token()
+            debug_info["has_claims_token"] = bool(claims_token)
+            debug_info["steps"].append(f"   Claims token: {claims_token[:20] if claims_token else 'None'}...")
+            if not claims_token:
+                debug_info["steps"].append("   ❌ FAILED: No claims token")
+                debug_info["final_result"] = "FAILED"
+                return debug_info
+            
+            debug_info["steps"].append("4. Calling CBC stream API...")
+            stream_info = self._get_stream_from_cbc_api(media_id)
+            debug_info["stream_info"] = stream_info
+            if stream_info:
+                debug_info["steps"].append("   ✅ SUCCESS: Got stream info")
+                debug_info["final_result"] = "SUCCESS"
+            else:
+                debug_info["steps"].append("   ❌ FAILED: No stream info returned")
+                debug_info["final_result"] = "FAILED"
+            return debug_info
+        except Exception as e:
+            debug_info["steps"].append(f"   ❌ EXCEPTION: {e}")
+            debug_info["final_result"] = "EXCEPTION"
+            return debug_info

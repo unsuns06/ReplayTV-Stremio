@@ -238,10 +238,24 @@ class CBCAuthenticator:
                 headers={'Authorization': f'Bearer {access_token}'},
                 timeout=30
             )
+            logger.info(f"Claims token API response: {response.status_code}")
+            
+            if response.status_code == 401:
+                logger.error("Access token expired or invalid when fetching claims token")
+                # Clear tokens and force re-auth path
+                self.access_token = None
+                self.refresh_token = None
+                return None
+            
             response.raise_for_status()
             
             data = response.json()
             self.claims_token = data.get('claimsToken')
+            
+            if not self.claims_token:
+                logger.error("No claims token in response payload")
+                logger.error(str(data)[:500])
+                return None
             
             # Cache claims token
             if self.cache_handler and hasattr(self.cache_handler, 'set'):
@@ -250,6 +264,7 @@ class CBCAuthenticator:
                 self.cache_handler['cbc_claims_token'] = self.claims_token
             
             logger.info("Successfully fetched claims token")
+            logger.info(f"Claims token (truncated): {self.claims_token[:20]}...")
             return self.claims_token
             
         except Exception as e:
