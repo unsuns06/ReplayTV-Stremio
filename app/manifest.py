@@ -35,10 +35,16 @@ def get_manifest():
                 "id": "fr-6play-replay",
                 "type": "series",
                 "name": "6play TV Shows: Capital, 66 minutes, Zone Interdite, Enquête Exclusive"
+            },
+            {
+                "id": "ca-cbc-dragons-den",
+                "type": "series",
+                "name": "CBC Dragon's Den"
             }
         ],
         "idPrefixes": [
-            "cutam:fr:"
+            "cutam:fr:",
+            "cutam:ca:"
         ],
         "behaviorHints": {
             "configurable": True,

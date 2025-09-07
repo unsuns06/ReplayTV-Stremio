@@ -1,9 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional
 from fastapi import Request
+
+# Import French providers
 from app.providers.fr.francetv import FranceTVProvider
 from app.providers.fr.mytf1 import MyTF1Provider
 from app.providers.fr.sixplay import SixPlayProvider
+
+# Import Canadian providers
 from app.providers.ca.cbc import CBCProvider
 
 class Provider(ABC):
@@ -35,3 +39,4 @@ class ProviderFactory:
             return CBCProvider(request)
         else:
             raise ValueError(f"Unknown provider: {provider_name}")
+

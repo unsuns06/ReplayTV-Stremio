@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 import logging
 import traceback
 from app.schemas.stremio import StreamResponse, Stream
-from app.providers.fr.common import ProviderFactory
+from app.providers.common import ProviderFactory
 from app.utils.client_ip import make_ip_headers
 
 router = APIRouter()
@@ -230,6 +230,67 @@ async def get_stream(type: str, id: str, request: Request):
                 
         except Exception as e:
             logger.error(f"❌ Error getting 6play stream: {e}")
+            logger.error(f"   Full traceback:")
+            logger.error(traceback.format_exc())
+            return StreamResponse(streams=[{
+                "url": "https://example.com/error-stream.mp4",
+                "title": "Error getting stream"
+            }])
+    
+    # Handle CBC Dragon's Den streams
+    elif type == "series" and "cbc" in id and "dragons-den" in id:
+        logger.info(f"📺 Processing CBC Dragon's Den stream request: {id}")
+        try:
+            provider = ProviderFactory.create_provider("cbc", request)
+            
+            # Extract episode ID from the series ID
+            if "episode-" in id:
+                episode_id = id
+                logger.info(f"🎬 Getting stream for specific episode: {episode_id}")
+            else:
+                logger.warning(f"⚠️ No episode specified in series ID: {id}")
+                return StreamResponse(streams=[{
+                    "url": "https://example.com/episode-not-specified.mp4",
+                    "title": "Please select a specific episode"
+                }])
+            
+            # Get stream URL for the episode
+            stream_info = provider.get_episode_stream_url(episode_id)
+            
+            if stream_info:
+                logger.info(f"✅ CBC returned stream info: {stream_info.get('manifest_type', 'unknown')}")
+                
+                # Merge any provider-specified headers with viewer IP headers
+                merged_headers = {}
+                if stream_info.get('headers'):
+                    merged_headers.update(stream_info.get('headers'))
+                merged_headers.update(make_ip_headers())
+
+                # Merge license headers too, if provided
+                merged_license_headers = None
+                if stream_info.get('licenseHeaders'):
+                    merged_license_headers = dict(stream_info.get('licenseHeaders'))
+                    merged_license_headers.update(make_ip_headers())
+
+                stream = Stream(
+                    url=stream_info["url"],
+                    title=f"{stream_info.get('manifest_type', 'mp4').upper()} Stream",
+                    headers=merged_headers if merged_headers else None,
+                    manifest_type=stream_info.get('manifest_type'),
+                    licenseUrl=stream_info.get('licenseUrl'),
+                    licenseHeaders=merged_license_headers
+                )
+                return StreamResponse(streams=[stream])
+            else:
+                logger.warning(f"⚠️ CBC returned no stream info for episode: {episode_id}")
+                # Failed to get stream info
+                return StreamResponse(streams=[{
+                    "url": "https://example.com/stream-not-available.mp4",
+                    "title": "Stream not available"
+                }])
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting CBC Dragon's Den stream: {e}")
             logger.error(f"   Full traceback:")
             logger.error(traceback.format_exc())
             return StreamResponse(streams=[{
