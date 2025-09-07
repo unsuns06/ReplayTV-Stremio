@@ -8,9 +8,11 @@ import json
 import re
 import logging
 from typing import List, Dict, Optional, Any
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import requests
 from fastapi import Request
+from app.auth.cbc_auth import CBCAuthenticator
+from app.utils.credentials import load_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +23,16 @@ class CBCProvider:
         self.request = request
         self.base_url = "https://gem.cbc.ca"
         self.api_base = "https://services.radio-canada.ca"
-        self.catalog_api = f"{self.api_base}/ott/catalog/v2/toutv"
+        self.catalog_api = f"{self.api_base}/ott/catalog/v2/gem"
         self.media_api = f"{self.api_base}/media/validation/v2"
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
+        
+        # Initialize CBC authenticator
+        self.authenticator = CBCAuthenticator()
+        self._authenticate_if_needed()
         
         # CBC regions for live streams
         self.live_regions = {
@@ -46,6 +52,53 @@ class CBCProvider:
             "St. John's": "CBNT"
         }
     
+    def _authenticate_if_needed(self):
+        """Authenticate with CBC if credentials are available"""
+        try:
+            credentials = load_credentials()
+            cbc_creds = credentials.get('cbcgem', {})
+            
+            if cbc_creds.get('login') and cbc_creds.get('password'):
+                logger.info("🇨🇦 Authenticating with CBC Gem")
+                success = self.authenticator.login(
+                    cbc_creds['login'], 
+                    cbc_creds['password']
+                )
+                if success:
+                    logger.info("✅ CBC authentication successful")
+                else:
+                    logger.warning("⚠️ CBC authentication failed")
+            else:
+                logger.info("ℹ️ No CBC credentials provided, using unauthenticated access")
+        except Exception as e:
+            logger.error(f"❌ Error during CBC authentication: {e}")
+    
+    def get_shows(self) -> List[Dict[str, Any]]:
+        """Get CBC shows/series"""
+        try:
+            logger.info("🇨🇦 Getting CBC shows...")
+            
+            # For now, return the shows we know about
+            shows = [
+                {
+                    "id": "cutam:ca:cbc:dragons-den",
+                    "title": "Dragon's Den",
+                    "description": "Aspiring entrepreneurs pitch their business ideas to a panel of wealthy investors.",
+                    "poster": "https://images.radio-canada.ca/v1/synps-cbc/show/perso/cbc_dragons_den_show_thumbnail_v01.jpg?impolicy=ott&im=Resize=680&quality=100",
+                    "background": "https://images.radio-canada.ca/v1/synps-cbc/show/perso/cbc_dragons_den_show_fanart_v01.jpg?impolicy=ott&im=Resize=1920&quality=100",
+                    "type": "series",
+                    "country": "CA",
+                    "provider": "cbc"
+                }
+            ]
+            
+            logger.info(f"📺 Found {len(shows)} CBC shows")
+            return shows
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting CBC shows: {e}")
+            return []
+
     def get_live_channels(self) -> List[Dict[str, Any]]:
         """Get CBC live TV channels"""
         try:
@@ -118,7 +171,7 @@ class CBCProvider:
                         "type": "series",
                         "name": "Dragon's Den",
                         "poster": "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg",
-                        "logo": "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg",
+                        "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
                         "description": "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists",
                         "genres": ["Reality", "Business", "Entrepreneurship"],
                         "year": 2024,
@@ -169,7 +222,7 @@ class CBCProvider:
                 "type": "series",
                 "name": show_title,
                 "poster": "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B",
-                "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png",
+                "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
                 "description": description,
                 "genres": ["Reality", "Business", "Entrepreneurship"],
                 "year": 2024,
@@ -872,6 +925,9 @@ class CBCProvider:
             # Get GEM URL
             gem_url = f"https://gem.cbc.ca/dragons-den/s{season_num:02d}e{episode_num:02d}"
             
+            # Get the CBC media ID from the item - THIS IS CRITICAL FOR STREAM RESOLUTION
+            cbc_media_id = item.get('idMedia')
+            
             # Create episode data
             episode_data = {
                 "id": f"cutam:ca:cbc:dragons-den:episode-{season_num}-{episode_num}",
@@ -889,7 +945,8 @@ class CBCProvider:
                 "thumbnail": thumbnail,
                 "gem_url": gem_url,
                 "cast": cast,
-                "genres": ["Reality", "Business", "Entrepreneurship"]
+                "genres": ["Reality", "Business", "Entrepreneurship"],
+                "cbc_media_id": cbc_media_id  # Add the CBC media ID for stream resolution
             }
             
             return episode_data
@@ -1259,24 +1316,22 @@ class CBCProvider:
             return None
     
     def get_episode_stream_url(self, episode_id: str) -> Optional[Dict[str, Any]]:
-        """Get stream URL for a CBC episode"""
+        """Get stream URL for a CBC episode using proper CBC Gem API"""
         try:
             logger.info(f"🇨🇦 Getting stream for episode: {episode_id}")
             
-            if "dragons-den" in episode_id:
-                # Try to get real stream from CBC API
-                stream_info = self._get_real_episode_stream(episode_id)
-                if stream_info:
-                    return stream_info
-                
-                # Fallback to placeholder
-                return {
-                    "url": "https://example.com/cbc-dragons-den-placeholder.mp4",
-                    "manifest_type": "mp4",
-                    "title": "Dragon's Den Episode (Placeholder)"
-                }
+            # Extract media ID from episode ID
+            media_id = self._extract_media_id_from_episode_id(episode_id)
+            if not media_id:
+                logger.error(f"❌ Could not extract media ID from episode: {episode_id}")
+                return None
             
-            logger.warning(f"⚠️ Unknown episode ID: {episode_id}")
+            # Get stream using CBC Gem API
+            stream_info = self._get_stream_from_cbc_api(media_id)
+            if stream_info:
+                return stream_info
+            
+            logger.warning(f"⚠️ No stream found for episode: {episode_id}")
             return None
             
         except Exception as e:
@@ -1429,15 +1484,15 @@ class CBCProvider:
             logger.error(f"❌ Error getting stream from API: {e}")
             return None
     
-    def _get_episode_media_id(self, episode_id: str) -> Optional[str]:
-        """Get CBC media ID for an episode"""
+    def _extract_media_id_from_episode_id(self, episode_id: str) -> Optional[str]:
+        """Extract CBC media ID from episode ID"""
         try:
-            # Extract episode number from ID
-            episode_num = episode_id.split(':')[-1].replace('episode-', '')
+            # For CBC Gem URLs like 'schitts-creek/s06e01', extract the path
+            if '/' in episode_id:
+                return episode_id
             
-            # Get episodes to find the media ID
+            # For other formats, try to find the media ID in our episodes
             episodes = self.get_episodes("cutam:ca:cbc:dragons-den")
-            
             for episode in episodes:
                 if episode['id'] == episode_id and 'cbc_media_id' in episode:
                     return episode['cbc_media_id']
@@ -1446,5 +1501,77 @@ class CBCProvider:
             return None
             
         except Exception as e:
-            logger.error(f"❌ Error getting episode media ID: {e}")
+            logger.error(f"❌ Error extracting media ID: {e}")
+            return None
+    
+    def _get_stream_from_cbc_api(self, media_id: str) -> Optional[Dict[str, Any]]:
+        """Get stream URL from CBC Gem API with authentication"""
+        try:
+            logger.info(f"🔍 Getting stream from CBC API for media: {media_id}")
+            
+            # Get authenticated headers
+            headers = self.authenticator.get_authenticated_headers()
+            
+            # Call CBC media validation API
+            params = {
+                'appCode': 'gem',
+                'connectionType': 'hd',
+                'deviceType': 'ipad',
+                'multibitrate': 'true',
+                'output': 'json',
+                'tech': 'hls',
+                'manifestVersion': '2',
+                'manifestType': 'desktop',
+                'idMedia': media_id,
+            }
+            
+            response = self.session.get(
+                self.media_api,
+                params=params,
+                headers=headers,
+                timeout=30
+            )
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Check for errors
+            error_code = data.get('errorCode', 0)
+            if error_code == 1:
+                logger.error("❌ Content is geo-restricted to Canada")
+                return None
+            elif error_code == 35:
+                logger.error("❌ Authentication required for this content")
+                return None
+            elif error_code != 0:
+                error_msg = data.get('message', 'Unknown error')
+                logger.error(f"❌ CBC API error {error_code}: {error_msg}")
+                return None
+            
+            # Extract stream URL
+            stream_url = data.get('url')
+            if not stream_url:
+                logger.error("❌ No stream URL in CBC API response")
+                return None
+            
+            # Determine manifest type
+            manifest_type = 'hls'
+            if '.m3u8' in stream_url:
+                manifest_type = 'hls'
+            elif '.mpd' in stream_url:
+                manifest_type = 'dash'
+            elif '.ism' in stream_url:
+                manifest_type = 'ism'
+            
+            logger.info(f"✅ Got CBC stream: {manifest_type.upper()}")
+            
+            return {
+                "url": stream_url,
+                "manifest_type": manifest_type,
+                "headers": headers,
+                "title": f"CBC Gem Content"
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting stream from CBC API: {e}")
             return None

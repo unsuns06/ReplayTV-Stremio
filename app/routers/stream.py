@@ -274,7 +274,7 @@ async def get_stream(type: str, id: str, request: Request):
 
                 stream = Stream(
                     url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'mp4').upper()} Stream",
+                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
                     headers=merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),

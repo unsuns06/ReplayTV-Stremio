@@ -461,7 +461,7 @@ async def get_meta(type: str, id: str, request: Request):
             
             show_name = "Dragon's Den"
             show_description = "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists"
-            show_logo = f"{static_base}/static/logos/ca/cbc.png"
+            show_logo = "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75"
             show_channel = "CBC"
             show_genres = ["Reality", "Business", "Entrepreneurship"]
             

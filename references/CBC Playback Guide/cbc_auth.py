@@ -1,105 +1,103 @@
-#!/usr/bin/env python3
 """
-CBC Gem Authentication Module
-Based on the yt-dlp CBC extractor implementation
+CBC Gem Authentication Module for Stremio Addon
+Based on yt-dlp CBC extractor implementation
 """
 
-import os
 import json
 import time
-import logging
 import base64
-from typing import Optional, Dict, Any
-from urllib.parse import urlencode
-try:
-    import jwt
-except ImportError:
-    try:
-        import PyJWT as jwt
-    except ImportError:
-        # Fallback implementation without JWT validation
-        class jwt:
-            @staticmethod
-            def decode(token, options=None):
-                import json
-                import base64
-                # Simple JWT decode without verification
-                parts = token.split('.')
-                if len(parts) >= 2:
-                    payload = parts[1]
-                    # Add padding if needed
-                    payload += '=' * (4 - len(payload) % 4)
-                    decoded_bytes = base64.urlsafe_b64decode(payload)
-                    return json.loads(decoded_bytes)
-                return {}
+import hmac
+import hashlib
+import urllib.parse
 import requests
+from typing import Dict, Optional, Tuple, Any
+import logging
 
 logger = logging.getLogger(__name__)
 
 class CBCAuthenticator:
     """
-    CBC Gem OAuth 2.0 authenticator using ROPC flow
+    CBC Gem authentication handler that replicates yt-dlp functionality
     """
     
+    # Constants from yt-dlp CBC extractor
     CLIENT_ID = 'fc05b0ee-3865-4400-a3cc-3da82c330c23'
+    SETTINGS_URL = 'https://services.radio-canada.ca/ott/catalog/v1/gem/settings'
+    SHOW_API_URL = 'https://services.radio-canada.ca/ott/catalog/v2/gem/show/'
+    VALIDATION_URL = 'https://services.radio-canada.ca/media/validation/v2/'
+    CLAIMS_URL = 'https://services.radio-canada.ca/ott/subscription/v2/gem/Subscriber/profile'
     
     def __init__(self, cache_handler=None):
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
+        """
+        Initialize CBC authenticator
         
-        # Token storage
+        Args:
+            cache_handler: Optional cache handler for storing tokens
+        """
+        self.cache_handler = cache_handler or {}
         self.refresh_token = None
         self.access_token = None
         self.claims_token = None
-        
-        # Cache handler for token persistence
-        self.cache_handler = cache_handler or {}
-        
-        # ROPC settings cache
         self._ropc_settings = None
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        })
+    
+    def _jwt_decode_hs256(self, token: str) -> Dict[str, Any]:
+        """
+        Decode JWT token (simplified version)
+        """
+        try:
+            # Split the token
+            header, payload, signature = token.split('.')
+            
+            # Add padding if needed
+            payload += '=' * (4 - len(payload) % 4)
+            
+            # Decode payload
+            decoded = base64.b64decode(payload)
+            return json.loads(decoded.decode('utf-8'))
+        except Exception as e:
+            logger.error(f"Failed to decode JWT: {e}")
+            return {}
+    
+    def _is_jwt_expired(self, token: str) -> bool:
+        """
+        Check if JWT token is expired (with 5 min buffer)
+        """
+        if not token:
+            return True
+            
+        try:
+            payload = self._jwt_decode_hs256(token)
+            exp_time = payload.get('exp', 0)
+            return exp_time - time.time() < 300  # 5 minute buffer
+        except Exception:
+            return True
     
     def get_ropc_settings(self) -> Dict[str, Any]:
         """
-        Get ROPC settings from CBC API
+        Get ROPC settings from CBC
         """
-        if not self._ropc_settings:
+        if self._ropc_settings is None:
             try:
                 response = self.session.get(
-                    'https://services.radio-canada.ca/ott/catalog/v1/gem/settings',
+                    self.SETTINGS_URL,
                     params={'device': 'web'},
                     timeout=30
                 )
                 response.raise_for_status()
-                data = response.json()
-                self._ropc_settings = data['identityManagement']['ropc']
-                logger.info("Retrieved ROPC settings")
+                settings = response.json()
+                self._ropc_settings = settings['identityManagement']['ropc']
+                logger.info("Successfully fetched ROPC settings")
             except Exception as e:
-                logger.error(f"Failed to get ROPC settings: {e}")
-                raise Exception(f"Failed to get ROPC settings: {e}")
+                logger.error(f"Failed to fetch ROPC settings: {e}")
+                raise Exception(f"Failed to get CBC settings: {e}")
         
         return self._ropc_settings
     
-    def _is_jwt_expired(self, token: str) -> bool:
-        """
-        Check if JWT token is expired (with 5 minute buffer)
-        """
-        if not token:
-            return True
-        
-        try:
-            # Decode without verification to check expiry
-            decoded = jwt.decode(token, options={"verify_signature": False})
-            exp_time = decoded.get('exp', 0)
-            current_time = time.time()
-            
-            # Add 5 minute buffer
-            return exp_time - current_time < 300
-        except Exception:
-            return True
-    
-    def _call_oauth_api(self, oauth_data: Dict[str, Any], note: str = 'OAuth API call') -> Dict[str, Any]:
+    def _call_oauth_api(self, oauth_data: Dict[str, str], note: str = 'OAuth API call') -> Dict[str, Any]:
         """
         Call CBC OAuth API
         """
@@ -204,7 +202,7 @@ class CBCAuthenticator:
                 self._call_oauth_api({
                     'grant_type': 'refresh_token',
                     'refresh_token': self.refresh_token,
-                }, 'Refresh token')
+                }, 'Token refresh')
                 return self.access_token
             except Exception as e:
                 logger.error(f"Token refresh failed: {e}")
@@ -213,12 +211,11 @@ class CBCAuthenticator:
                 self.access_token = None
                 return None
         
-        logger.warning("No valid access token available")
         return None
     
     def get_claims_token(self) -> Optional[str]:
         """
-        Get valid claims token for content access
+        Get claims token for content access
         """
         # Check if current claims token is valid
         if self.claims_token and not self._is_jwt_expired(self.claims_token):
@@ -227,21 +224,20 @@ class CBCAuthenticator:
         # Get fresh access token
         access_token = self.get_access_token()
         if not access_token:
-            logger.error("No access token available for claims token")
             return None
         
         try:
             logger.info("Fetching claims token")
             response = self.session.get(
-                'https://services.radio-canada.ca/ott/subscription/v2/gem/Subscriber/profile',
+                self.CLAIMS_URL,
                 params={'device': 'web'},
                 headers={'Authorization': f'Bearer {access_token}'},
                 timeout=30
             )
             response.raise_for_status()
+            claims_data = response.json()
             
-            data = response.json()
-            self.claims_token = data.get('claimsToken')
+            self.claims_token = claims_data.get('claimsToken')
             
             # Cache claims token
             if self.cache_handler and hasattr(self.cache_handler, 'set'):
@@ -256,26 +252,79 @@ class CBCAuthenticator:
             logger.error(f"Failed to get claims token: {e}")
             return None
     
-    def get_authenticated_headers(self) -> Dict[str, str]:
+    def get_show_info(self, show_id: str) -> Optional[Dict[str, Any]]:
         """
-        Get headers with authentication tokens for API requests
+        Get show information from CBC API
         """
-        headers = {
-            'User-Agent': self.session.headers['User-Agent'],
-            'Referer': 'https://gem.cbc.ca/',
-            'Origin': 'https://gem.cbc.ca'
+        try:
+            url = f"{self.SHOW_API_URL}{show_id}"
+            response = self.session.get(
+                url,
+                params={'device': 'web'},
+                timeout=30
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to get show info for {show_id}: {e}")
+            return None
+    
+    def get_stream_data(self, media_id: str, require_auth: bool = True) -> Optional[Dict[str, Any]]:
+        """
+        Get stream data for content
+        """
+        headers = {}
+        
+        # Add claims token if authentication required
+        if require_auth:
+            claims_token = self.get_claims_token()
+            if claims_token:
+                headers['x-claims-token'] = claims_token
+            else:
+                logger.warning("No claims token available for authenticated content")
+        
+        params = {
+            'appCode': 'gem',
+            'connectionType': 'hd',
+            'deviceType': 'ipad',
+            'multibitrate': 'true',
+            'output': 'json',
+            'tech': 'hls',
+            'manifestVersion': '2',
+            'manifestType': 'desktop',
+            'idMedia': media_id,
         }
         
-        # Add claims token if available
-        claims_token = self.get_claims_token()
-        if claims_token:
-            headers['x-claims-token'] = claims_token
-        
-        return headers
+        try:
+            response = self.session.get(
+                self.VALIDATION_URL,
+                params=params,
+                headers=headers,
+                timeout=30
+            )
+            response.raise_for_status()
+            stream_data = response.json()
+            
+            # Check for errors in response
+            error_code = stream_data.get('errorCode', 0)
+            
+            if error_code == 1:
+                raise Exception("Content is geo-restricted to Canada")
+            elif error_code == 35:
+                raise Exception("Authentication required for this content")
+            elif error_code != 0:
+                error_msg = stream_data.get('message', f'Unknown error {error_code}')
+                raise Exception(f"CBC API error: {error_msg}")
+            
+            return stream_data
+            
+        except Exception as e:
+            logger.error(f"Failed to get stream data for {media_id}: {e}")
+            return None
     
     def is_authenticated(self) -> bool:
         """
-        Check if user is properly authenticated
+        Check if user is authenticated
         """
         return bool(self.get_access_token())
     
@@ -290,7 +339,7 @@ class CBCAuthenticator:
         # Clear from cache
         if self.cache_handler and hasattr(self.cache_handler, 'delete'):
             self.cache_handler.delete('cbc_refresh_token')
-            self.cache_handler.delete('cbc_access_token')
+            self.cache_handler.delete('cbc_access_token')  
             self.cache_handler.delete('cbc_claims_token')
         elif isinstance(self.cache_handler, dict):
             self.cache_handler.pop('cbc_refresh_token', None)
