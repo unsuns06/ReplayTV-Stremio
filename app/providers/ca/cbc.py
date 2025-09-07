@@ -163,7 +163,7 @@ class CBCProvider:
                     "id": "cutam:ca:cbc:dragons-den",
                     "title": "Dragon's Den",
                     "description": "Aspiring entrepreneurs pitch their business ideas to a panel of wealthy investors.",
-                    "poster": "https://images.radio-canada.ca/v1/synps-cbc/show/perso/cbc_dragons_den_show_thumbnail_v01.jpg?impolicy=ott&im=Resize=680&quality=100",
+                    "poster": "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B",
                     "background": "https://images.radio-canada.ca/v1/synps-cbc/show/perso/cbc_dragons_den_show_fanart_v01.jpg?impolicy=ott&im=Resize=1920&quality=100",
                     "type": "series",
                     "country": "CA",
@@ -260,7 +260,7 @@ class CBCProvider:
                         "id": "cutam:ca:cbc:dragons-den",
                         "type": "series",
                         "name": "Dragon's Den",
-                        "poster": "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg",
+                        "poster": "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B",
                         "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
                         "description": "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists",
                         "genres": ["Reality", "Business", "Entrepreneurship"],
@@ -312,7 +312,7 @@ class CBCProvider:
             
             # Extract poster image
             poster_element = soup.find('img', class_='poster') or soup.find('img', {'alt': lambda x: x and 'dragon' in x.lower()})
-            poster_url = poster_element.get('src') if poster_element else "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+            poster_url = poster_element.get('src') if poster_element else "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
             
             logger.info(f"✅ Found Dragon's Den on GEM: {show_title}")
             
@@ -373,7 +373,7 @@ class CBCProvider:
                         "channel": "CBC",
                         "program": "Dragon's Den",
                         "type": "episode",
-                        "poster": "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+                        "poster": "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
                     },
                     {
                         "id": "cutam:ca:cbc:dragons-den:episode-2", 
@@ -387,7 +387,7 @@ class CBCProvider:
                         "channel": "CBC",
                         "program": "Dragon's Den",
                         "type": "episode",
-                        "poster": "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+                        "poster": "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
                     }
                 ]
                 
@@ -605,11 +605,11 @@ class CBCProvider:
                 return og_image.get('content')
             
             # Fallback to Dragon's Den default image
-            return "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+            return "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
             
         except Exception as e:
             logger.error(f"❌ Error extracting thumbnail: {e}")
-            return "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+            return "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
     
     def _extract_air_date_from_gem(self, soup) -> str:
         """Extract episode air date from GEM page based on actual structure"""
@@ -820,11 +820,11 @@ class CBCProvider:
                 return og_image.get('content')
             
             # Fallback to Dragon's Den default image
-            return "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+            return "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
             
         except Exception as e:
             logger.error(f"❌ Error extracting thumbnail: {e}")
-            return "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+            return "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
     
     def _extract_air_date(self, soup) -> str:
         """Extract episode air date from GEM page"""
@@ -1268,7 +1268,7 @@ class CBCProvider:
         except Exception as e:
             logger.error(f"❌ Error generating CBC thumbnail URL: {e}")
             # Fallback to a generic Dragon's Den image
-            return "https://images.ctv.ca/archives/CTVNews/img/2010/01/15/dragons_den_100115.jpg"
+            return "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
     
     def _get_episode_details_from_gem(self, episode_url: str) -> Dict[str, str]:
         """Get detailed information for a specific episode from GEM"""
