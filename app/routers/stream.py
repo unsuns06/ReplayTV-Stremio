@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 import logging
 import traceback
 from app.schemas.stremio import StreamResponse, Stream
-from app.providers.fr.common import ProviderFactory
+from app.providers.common import ProviderFactory
 from app.utils.client_ip import make_ip_headers
 
 router = APIRouter()
