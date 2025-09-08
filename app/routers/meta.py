@@ -5,6 +5,20 @@ from app.providers.common import ProviderFactory
 
 router = APIRouter()
 
+# Dragon's Den metadata configuration
+DRAGONS_DEN_META = {
+    "id": "cutam:ca:cbc:dragons-den",
+    "name": "Dragon's Den",
+    "description": "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists",
+    "poster": "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B",
+    "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
+    "background": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_program_v12.jpg?impolicy=ott&im=Resize=1920&quality=75",
+    "channel": "CBC",
+    "genres": ["Reality", "Business", "Entrepreneurship"],
+    "year": 2024,
+    "rating": "G"
+}
+
 @router.get("/meta/{type}/{id}.json")
 async def get_meta(type: str, id: str, request: Request):
     # Get base URL for static assets
@@ -459,15 +473,8 @@ async def get_meta(type: str, id: str, request: Request):
         try:
             provider = ProviderFactory.create_provider("cbc", request)
             
-            show_name = "Dragon's Den"
-            show_description = "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists"
-            show_poster = "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B"
-            show_logo = "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75"
-            show_channel = "CBC"
-            show_genres = ["Reality", "Business", "Entrepreneurship"]
-            
             # Get episodes for the show
-            episodes = provider.get_episodes(f"cutam:ca:cbc:dragons-den")
+            episodes = provider.get_episodes(DRAGONS_DEN_META["id"])
             
             # Convert episodes to Stremio video format with enhanced metadata
             videos = []
@@ -477,7 +484,7 @@ async def get_meta(type: str, id: str, request: Request):
                     "title": episode["title"],
                     "season": episode.get("season", 1),
                     "episode": episode.get("episode", len(videos) + 1),
-                    "thumbnail": episode.get("poster", show_poster),
+                    "thumbnail": episode.get("poster", DRAGONS_DEN_META["poster"]),
                     "overview": episode.get("description", ""),  # Use 'overview' field for Stremio episode descriptions
                     "description": episode.get("description", ""),  # Keep for backward compatibility
                     "summary": episode.get("description", ""),  # Keep for backward compatibility
@@ -486,25 +493,16 @@ async def get_meta(type: str, id: str, request: Request):
                     "rating": episode.get("rating", ""),
                     "director": episode.get("director", ""),
                     "cast": episode.get("cast", []),
-                    "channel": episode.get("channel", show_channel),
-                    "program": episode.get("program", show_name),
+                    "channel": episode.get("channel", DRAGONS_DEN_META["channel"]),
+                    "program": episode.get("program", DRAGONS_DEN_META["name"]),
                     "type": episode.get("type", "episode")
                 }
                 videos.append(video_data)
             
-            # Create enhanced series metadata
+            # Create enhanced series metadata using the configuration
             series_meta = {
-                "id": "cutam:ca:cbc:dragons-den",
+                **DRAGONS_DEN_META,  # Spread all the configuration values
                 "type": "series",
-                "name": show_name,
-                "poster": show_poster,
-                "logo": show_logo,
-                "background": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_program_v12.jpg?impolicy=ott&im=Resize=1920&quality=75",
-                "description": show_description,
-                "channel": show_channel,
-                "genres": show_genres,
-                "year": 2024,
-                "rating": "G",
                 "videos": videos
             }
             

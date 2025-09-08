@@ -6,6 +6,7 @@ import json
 from app.schemas.stremio import CatalogResponse
 from app.providers.common import ProviderFactory
 from app.utils.base_url import get_logo_url
+from app.routers.meta import DRAGONS_DEN_META
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -279,16 +280,8 @@ async def get_catalog(type: str, id: str, request: Request):
             logger.info("🔄 Using fallback CBC Dragon's Den shows")
             fallback_shows = [
                 {
-                    "id": "cutam:ca:cbc:dragons-den",
-                    "type": "series",
-                    "name": "Dragon's Den",
-                    "poster": "https://scontent.fyto3-1.fna.fbcdn.net/v/t39.30808-6/535392832_1195964615903965_9196960806522485851_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=833d8c&_nc_ohc=d_n3zKCq_iQQ7kNvwH1mtas&_nc_oc=Adkf5Kz1pVRBkmob--lrYe20hyj1YEYyQr4PTCiLZBJpRyXOQojD6F0dGt06TAkdtDM&_nc_zt=23&_nc_ht=scontent.fyto3-1.fna&_nc_gid=qAJepOriBG4vRnuRQV4gDg&oh=00_Afav6IQ9z6RXP43ynmBGPGn6y7mGjXgQ7oJVOfpo9YoMfQ&oe=68C2E83B",
-                    "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
-                    "description": "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists",
-                    "genres": ["Reality", "Business", "Entrepreneurship"],
-                    "year": 2024,
-                    "rating": "G",
-                    "channel": "CBC"
+                    **DRAGONS_DEN_META,  # Use centralized configuration
+                    "type": "series"
                 }
             ]
             return CatalogResponse(metas=fallback_shows)
