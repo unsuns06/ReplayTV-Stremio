@@ -1,0 +1,36 @@
+[
+  {
+    "id": "cutam:fr:mytf1:sept-a-huit",
+    "type": "series",
+    "name": "Sept \u00e0 huit",
+    "description": "Magazine d'information de TF1",
+    "logo": "https://photos.tf1.fr/700/933/flux-program-card-portrait-1-ef81e8-2576ce-63e706-0@1x.jpg",
+    "poster": "https://photos.tf1.fr/700/933/flux-program-card-portrait-1-ef81e8-2576ce-63e706-0@1x.jpg",
+    "fanart": "https://photos.tf1.fr/1920/1080/cover-showpage-f7ed23-3b0e99-0@1x.jpg",
+    "genres": [
+      "News",
+      "Documentary",
+      "Magazine"
+    ],
+    "channel": "TF1",
+    "year": 2024,
+    "rating": "Tous publics"
+  },
+  {
+    "id": "cutam:fr:mytf1:quotidien",
+    "type": "series",
+    "name": "Quotidien",
+    "description": "\u00c9mission de divertissement et d'actualit\u00e9 de TMC",
+    "logo": "https://photos.tf1.fr/700/933/flux-program-card-portrait-3-quotidien-2024-v2-66f2e9-01755f-257d34-0@1x.jpg",
+    "poster": "https://photos.tf1.fr/700/933/flux-program-card-portrait-3-quotidien-2024-v2-66f2e9-01755f-257d34-0@1x.jpg",
+    "fanart": "https://photos.tf1.fr/1920/1080/background-ott-quotidien-2024-v2-34620e-121ba1-0@1x.jpg",
+    "genres": [
+      "Entertainment",
+      "News",
+      "Talk Show"
+    ],
+    "channel": "TMC",
+    "year": 2024,
+    "rating": "Tous publics"
+  }
+]

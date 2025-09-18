@@ -1,0 +1,182 @@
+{
+  "media": {
+    "id": "14361480",
+    "type": "video",
+    "error_code": "PERMISSION_DENIED",
+    "error_desc": "Permission insuffisante",
+    "title": "Quotidien troisième partie du 17 septembre 2025",
+    "geoList": [
+      "AD",
+      "AO",
+      "BE",
+      "BL",
+      "BW",
+      "CH",
+      "CV",
+      "EG",
+      "ER",
+      "ET",
+      "FR",
+      "GF",
+      "GH",
+      "GM",
+      "GP",
+      "GW",
+      "KE",
+      "LR",
+      "LS",
+      "LU",
+      "LY",
+      "MC",
+      "MF",
+      "MQ",
+      "MW",
+      "MZ",
+      "NA",
+      "NC",
+      "NG",
+      "PF",
+      "PM",
+      "RE",
+      "SD",
+      "SL",
+      "SO",
+      "SS",
+      "ST",
+      "SZ",
+      "TF",
+      "TZ",
+      "UG",
+      "WF",
+      "YT",
+      "ZA",
+      "ZM",
+      "ZW"
+    ],
+    "owner": "quotidien-tmc",
+    "preview": "https://photos.tf1.fr/1280/720/quotidien-troisieme-partie-du-17-septembre-2025-1-1-1408bf-c76594-0@1x.jpg",
+    "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-2-quotidien-2024-v2-651ac7-b6254f-0@1x.jpg",
+    "channel": "tmc",
+    "duration": 1292,
+    "geolock": true,
+    "sb": "https://video-storyboards.tf1.fr/e508c729e0902e0ec9ac04b70459c5c368672339454d16a9f37dfe2a4121337f/lsb.vtt",
+    "syndicable": false,
+    "shortTitle": "Troisième partie du 17 septembre 2025",
+    "programName": "Quotidien",
+    "programSlug": "quotidien-avec-yann-barthes",
+    "publisherSlug": "tf1",
+    "attach": "TMC"
+  },
+  "content": {
+    "title": "quotidien-troisieme-partie-du-17-septembre-2025",
+    "emId": "2114349"
+  },
+  "mediametrie": {
+    "chapters": [
+      {
+        "title": "14361480_PLAYLISTID_quotidien-troisieme-partie-du-17-septembre-2025",
+        "estatTitle": "14361480_PLAYLISTID_quotidien-troisieme-partie-du-17-septembre-2025",
+        "estatS1": "MYTF1",
+        "estatS2": "quotidien-avec-yann-barthes",
+        "estatS3": "catch-up",
+        "estatS4": "2025-09-17",
+        "estatS5": "312781_2114349",
+        "estatGenre": "desktop_browsing_windows_html5"
+      }
+    ],
+    "id": "210010205672",
+    "mediaId": "14361480",
+    "estatMsDm": "TVOD",
+    "estatMsCh": "861",
+    "estatMsCid": "2114349"
+  },
+  "nielsen": {
+    "type": "content",
+    "assetId": 2114349,
+    "program": "quotidien-avec-yann-barthes",
+    "title": "14361480_PLAYLISTID_quotidien-troisieme-partie-du-17-septembre-2025",
+    "channel": "tmc",
+    "length": 1292,
+    "isLive": "n",
+    "climd": "TVOD",
+    "clich": 861,
+    "clicn": 2114349,
+    "p3": "p3,Gratuit",
+    "p4": "p4,83d0b811-d283-40cf-bd0d-cb897b13fbe1",
+    "p5": "p5,catch-up"
+  },
+  "richmedia": {
+    "site": 553584,
+    "mediaType": "video",
+    "mediaLevel2": 104,
+    "mediaLabel": {
+      "label": "int::[CONTENTTYPE]::quotidien_TMC::14361480_PLAYLISTID_quotidien-troisieme-partie-du-17-septembre-2025",
+      "contentType": "vod_catch-up"
+    },
+    "refreshDuration": 60,
+    "duration": 1292,
+    "isEmbedded": false,
+    "broadcastMode": "clip",
+    "webdomain": ""
+  },
+  "fw": {
+    "adManagerSwf": "https://mssl.fwmrm.net/p/tf1_flash_live/AdManager.swf",
+    "id": 506334,
+    "asset": "14361480",
+    "profile": "506334:tf1_html5_desktop_live_mills",
+    "abTest": {
+      "fwabkey": "test",
+      "fwakey": "testa",
+      "fwbkey": "testb",
+      "fwabid": "208811",
+      "fwabdevice": "|tablet|tablette|mobile|"
+    },
+    "url": "https://7b9de.v.fwmrm.net",
+    "channel": "tmc",
+    "page": "sites",
+    "section": "tmc_page_type_sites_platform_desktop_media_desktop",
+    "duration": 1292
+  },
+  "googleAd": {
+    "cmsid": "2576987",
+    "vid": "83d0b811-d283-40cf-bd0d-cb897b13fbe1",
+    "iu": "/169657134/MYTF1_VOD_Applicatif/TF1_VOD_Applicatif_Android_Tablette"
+  },
+  "yb": {
+    "accountCode": "tf1",
+    "username": "unregistered",
+    "transactionCode": "MYTF1",
+    "media": {
+      "title": "quotidien-troisieme-partie-du-17-septembre-2025",
+      "title2": "quotidien",
+      "duration": 1292,
+      "isLive": false
+    },
+    "properties": {
+      "content_id": "14361480",
+      "genre": "desktop_browsing_windows_html5",
+      "language": "FR",
+      "year": "2025-09-17",
+      "owner": "quotidien_TMC"
+    },
+    "extraParams": {
+      "param1": "MYTF1",
+      "param2": "TMC",
+      "param3": "HLS",
+      "param4": "HTML5",
+      "param5": "DESKTOP",
+      "param6": "NO"
+    },
+    "ads": {
+      "campaign": "506334:tf1_html5_desktop_live_mills:tmc_page_type_sites_platform_desktop_media_desktop"
+    },
+    "enableAnalytics": true
+  },
+  "delivery": {
+    "code": 403,
+    "error": "Permission insuffisante",
+    "country": "FR",
+    "format": "hls",
+    "stream-id": "83d0b811-d283-40cf-bd0d-cb897b13fbe1_hls_nodrm_nomax"
+  }
+}

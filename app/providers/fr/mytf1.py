@@ -661,7 +661,7 @@ class MyTF1Provider:
                 'device': 'desktop',
                 'os': 'windows',
                 'osVersion': '10.0',
-                'topDomain': self.base_url,  # Use actual TF1 domain instead of 'unknown'
+                'topDomain': 'www.tf1.fr',  # Use actual TF1 host
                 'playerVersion': '5.29.0',
                 'productName': 'mytf1',
                 'productVersion': '3.37.0',

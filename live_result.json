@@ -1,0 +1,13 @@
+{
+  "url": "https://alphanet06-cutv.hf.space/proxy/hls/manifest.m3u8?d=https%3A%2F%2Flive-tf1-hls-ssai.cdn-0.diff.tf1.fr%2F9023effe3c16b0475d35e9f31c778b5c%2FeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNzguMTMyLjEwNy4zMyIsImNtY2QiOiIiLCJleHAiOjE3NTgxNzU4MjgsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4MTYxNDI4LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzJhNWVmMmE0Y2U0YTQxMjA5ZTBhODgxMDc0ZDE1OTMyL3RmMS1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.CyLbTZceSaBLUs9EdDCMYMg4aRqcDMs6zaGKsWmPBm0%2Fout%2Fv1%2F2a5ef2a4ce4a41209e0a881074d15932%2Ftf1-cmaf%2Findex.m3u8&api_password=your_password&h_user-agent=Mozilla%2F5.0+%28Windows+NT+10.0%3B+Win64%3B+x64%3B+rv%3A109.0%29+Gecko%2F20100101+Firefox%2F109.0&h_referer=https%3A%2F%2Fwww.tf1.fr&h_origin=https%3A%2F%2Fwww.tf1.fr&h_authorization=Bearer+eyJhbGciOiJFUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJhYlRlc3QiOnt9LCJleHAiOjE3NTgyMDQ2MjYsImZjZmEiOjAsImZ0Ijp7fSwiaWF0IjoxNzU4MTYxNDI2LCJpZGQiOjAsImlzcyI6ImdpZ3lhIiwibHZsIjoxLCJtc2NiIjpmYWxzZSwibm9BdWRpZW5jZSI6ZmFsc2UsIm5vQ3VzdG9taXphdGlvbiI6ZmFsc2UsIm5vUHJvZmlsaW5nIjpmYWxzZSwicGx0Ijoid2ViIiwic2lkIjoiNDIxZGVkZWItNjAyYy00MDc3LThjMDctYWRjNjk1OTdmZTdlIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.VDRnEfzK22ySY3AznrlVUldB7unr4s47gWdsYqO4BNlDZ_V0olejO1PMX_MbMEuqzw_GaKPwDa8LZe46X5gU2w&license_url=https%3A%2F%2Fdrm-wide.tf1.fr%2Fproxy%3Fid%3DL_TF1",
+  "manifest_type": "hls",
+  "headers": {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0",
+    "authorization": "Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6ImRlZmF1bHQiLCJ0eXAiOiJKV1QifQ.eyJhYlRlc3QiOnt9LCJleHAiOjE3NTgyMDQ2MjYsImZjZmEiOjAsImZ0Ijp7fSwiaWF0IjoxNzU4MTYxNDI2LCJpZGQiOjAsImlzcyI6ImdpZ3lhIiwibHZsIjoxLCJtc2NiIjpmYWxzZSwibm9BdWRpZW5jZSI6ZmFsc2UsIm5vQ3VzdG9taXphdGlvbiI6ZmFsc2UsIm5vUHJvZmlsaW5nIjpmYWxzZSwicGx0Ijoid2ViIiwic2lkIjoiNDIxZGVkZWItNjAyYy00MDc3LThjMDctYWRjNjk1OTdmZTdlIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.VDRnEfzK22ySY3AznrlVUldB7unr4s47gWdsYqO4BNlDZ_V0olejO1PMX_MbMEuqzw_GaKPwDa8LZe46X5gU2w",
+    "referer": "https://www.tf1.fr",
+    "origin": "https://www.tf1.fr",
+    "accept-language": "fr-FR,fr;q=0.9",
+    "accept": "application/json, text/plain, */*"
+  },
+  "licenseUrl": "https://drm-wide.tf1.fr/proxy?id=L_TF1"
+}
