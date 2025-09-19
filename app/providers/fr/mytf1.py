@@ -18,6 +18,7 @@ from app.utils.credentials import get_provider_credentials
 from app.utils.safe_print import safe_print
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.base_url import get_base_url, get_logo_url
+from app.utils.client_ip import make_ip_headers
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -85,6 +86,10 @@ class MyTF1Provider:
         self.request = request
         # Get base URL for static assets
         self.static_base = get_base_url(request)
+
+        self.viewer_ip_headers = make_ip_headers()
+        if self.viewer_ip_headers:
+            safe_print(f"? [MyTF1Provider] Viewer IP headers injected: {self.viewer_ip_headers}")
 
         self.accounts_login = "https://compte.tf1.fr/accounts.login"
         self.accounts_bootstrap = "https://compte.tf1.fr/accounts.webSdkBootstrap"
@@ -651,7 +656,10 @@ class MyTF1Provider:
                 "accept-language": "fr-FR,fr;q=0.9",
                 # Some stacks require explicit Accept for JSON
                 "accept": "application/json, text/plain, */*",
+            
             }
+            if self.viewer_ip_headers:
+                headers_video_stream.update(self.viewer_ip_headers)
 
             # Params follow reference; LCI could be treated specially but we align to reference pver block
             params = {
@@ -661,7 +669,7 @@ class MyTF1Provider:
                 'device': 'desktop',
                 'os': 'windows',
                 'osVersion': '10.0',
-                'topDomain': self.base_url,  # Use actual TF1 domain instead of 'unknown'
+                'topDomain': 'www.tf1.fr',  # Use actual TF1 host
                 'playerVersion': '5.29.0',
                 'productName': 'mytf1',
                 'productVersion': '3.37.0',
@@ -823,7 +831,10 @@ class MyTF1Provider:
                 "accept-language": "fr-FR,fr;q=0.9",
                 # Some stacks require explicit Accept for JSON
                 "accept": "application/json, text/plain, */*",
+            
             }
+            if self.viewer_ip_headers:
+                headers_video_stream.update(self.viewer_ip_headers)
 
             params = {
                 'context': 'MYTF1',
