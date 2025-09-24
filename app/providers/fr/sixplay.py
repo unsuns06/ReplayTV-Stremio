@@ -427,111 +427,113 @@ class SixPlayProvider:
                     video_assets = json_parser['clips'][0].get('assets', [])
                     
                     if video_assets:
-                        # Try to find HLS streams first
-                        print(f"🔍 Looking for HLS streams in {len(video_assets)} assets...")
-                        final_video_url = self._get_final_video_url(video_assets, 'http_h264')
+                        # Dynamic format detection - analyze available assets to determine best format
+                        print(f"🔍 Analyzing {len(video_assets)} available assets for optimal format...")
                         
-                        if final_video_url and 'http_h264' in final_video_url:
-                            print(f"✅ HLS stream found: {final_video_url[:100]}...")
-                            return {
-                                "url": final_video_url,
-                                "manifest_type": "hls"
-                            }
-                        else:
-                            print("❌ No HLS streams found, trying MPD...")
+                        # Analyze available asset types
+                        available_formats = self._analyze_available_formats(video_assets)
+                        print(f"📊 Available formats: {available_formats}")
                         
-                        # Fallback to MPD if no HLS available - enhanced DRM handling with MediaFlow option
-                        final_video_url = self._get_final_video_url(video_assets, 'usp_dashcenc_h264')
+                        # Determine best format based on server response and client capabilities
+                        best_format = self._determine_best_format(available_formats)
+                        print(f"🎯 Selected format: {best_format}")
+                        
+                        # Get the stream URL for the selected format
+                        final_video_url = self._get_final_video_url(video_assets, best_format['asset_type'])
                         
                         if final_video_url:
-                            print(f"✅ MPD stream found: {final_video_url[:100]}...")
+                            print(f"✅ {best_format['format_name']} stream found: {final_video_url}")
                             
-                            # Get DRM token for this video (following Kodi addon approach)
-                            drm_token = None
-                            if self.account_id and self.login_token:
-                                try:
-                                    payload_headers = {
-                                        'X-Customer-Name': 'm6web',
-                                        'X-Client-Release': '5.103.3',
-                                        'Authorization': f'Bearer {self.login_token}',
-                                    }
-                                    
-                                    # Use the exact URL from Kodi addon
-                                    token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
-                                    token_response = self.session.get(token_url, headers=merge_ip_headers(payload_headers), timeout=10)
-                                    
-                                    if token_response.status_code == 200:
-                                        token_data = token_response.json()
-                                        drm_token = token_data["token"]
-                                        print(f"✅ DRM token obtained successfully")
-                                    else:
-                                        print(f"❌ DRM token request failed: {token_response.status_code}")
-                                        print(f"   Check your 6play credentials and authentication")
+                            # Handle HLS streams (no DRM required)
+                            if best_format['format_type'] == 'hls':
+                                return {
+                                    "url": final_video_url,
+                                    "manifest_type": "hls"
+                                }
+                            
+                            # Handle MPD/DASH streams (DRM required)
+                            elif best_format['format_type'] == 'mpd':
+                                # Get DRM token for this video (following Kodi addon approach)
+                                drm_token = None
+                                if self.account_id and self.login_token:
+                                    try:
+                                        payload_headers = {
+                                            'X-Customer-Name': 'm6web',
+                                            'X-Client-Release': '5.103.3',
+                                            'Authorization': f'Bearer {self.login_token}',
+                                        }
                                         
-                                except Exception as e:
-                                    print(f"❌ DRM setup failed: {e}")
+                                        # Merge with IP headers for complete header set
+                                        complete_headers = merge_ip_headers(payload_headers)
+                                        
+                                        # Expose all token headers and their values for debugging
+                                        print(f"🔍 [SixPlay] DRM Token Request Headers:")
+                                        for header_name, header_value in complete_headers.items():
+                                            # Mask sensitive values for security
+                                            if header_name.lower() in ['authorization', 'x-auth-token', 'token']:
+                                                masked_value = f"{header_value[:20]}..." if len(str(header_value)) > 20 else "***"
+                                                print(f"   {header_name}: {masked_value}")
+                                            else:
+                                                print(f"   {header_name}: {header_value}")
+                                        
+                                        # Use the exact URL from Kodi addon
+                                        token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
+                                        print(f"🔍 [SixPlay] DRM Token URL: {token_url}")
+                                        
+                                        token_response = self.session.get(token_url, headers=complete_headers, timeout=10)
+                                        
+                                        # Expose response details
+                                        print(f"🔍 [SixPlay] DRM Token Response:")
+                                        print(f"   Status Code: {token_response.status_code}")
+                                        print(f"   Response Headers: {dict(token_response.headers)}")
+                                        
+                                        if token_response.status_code == 200:
+                                            token_data = token_response.json()
+                                            drm_token = token_data["token"]
+                                            print(f"✅ DRM token obtained successfully")
+                                            print(f"🔍 [SixPlay] DRM Token Value: {drm_token}")
+                                        else:
+                                            print(f"❌ DRM token request failed: {token_response.status_code}")
+                                            print(f"   Response content: {token_response.text[:500]}...")
+                                            print(f"   Check your 6play credentials and authentication")
+                                            
+                                    except Exception as e:
+                                        print(f"❌ DRM setup failed: {e}")
                             
-                            # Try MediaFlow with proper DRM token integration
-                            if self.mediaflow_url and self.mediaflow_password and drm_token:
-                                try:
-                                    print(f"🔄 Using MediaFlow with DRM token integration...")
-                                    
-                                    # Build license URL following Kodi plugin pattern
+                                # Direct DRM approach (MediaFlow removed for replay streams)
+                                if drm_token:
+                                    # Build license URL exactly like Kodi addon
                                     license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={drm_token}|R{{SSM}}|JBlicense"
                                     
-                                    # MediaFlow headers for accessing the MPD
-                                    mediaflow_headers = {
-                                        'User-Agent': get_random_windows_ua(),
-                                        'Origin': 'https://www.6play.fr',
-                                        'Referer': 'https://www.6play.fr/',
-                                        'Authorization': f'Bearer {self.login_token}',
-                                        'X-Customer-Name': 'm6web',
-                                        'X-Client-Release': '5.103.3'
-                                    }
-                                    
-                                    # Use MediaFlow's DASH to HLS conversion with license
-                                    mediaflow_url = build_mediaflow_url(
-                                        base_url=self.mediaflow_url,
-                                        password=self.mediaflow_password,
-                                        destination_url=final_video_url,
-                                        endpoint="/proxy/mpd/manifest.m3u8",
-                                        request_headers=mediaflow_headers,
-                                        license_url=license_url
-                                    )
-                                    
-                                    print(f"✅ MediaFlow URL with DRM integration: {mediaflow_url[:60]}...")
-                                    
-                                    return {
-                                        "url": mediaflow_url,
-                                        "manifest_type": "hls",  # MediaFlow converts DASH to HLS
-                                        "drm_protected": True
-                                    }
-                                        
-                                except Exception as e:
-                                    print(f"❌ MediaFlow DRM integration failed: {e}")
-                                    print(f"   Falling back to direct DRM approach")
-                            
-                            # Fallback to direct DRM approach
-                            if drm_token:
-                                # Build license URL exactly like Kodi addon
-                                license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={drm_token}|R{{SSM}}|JBlicense"
-                                
-                                print(f"✅ Using direct DRM approach with license")
-                                
-                                return {
-                                    "url": final_video_url,
-                                    "manifest_type": "mpd",
-                                    "licenseUrl": license_url,
-                                    "licenseHeaders": {
+                                    # Build license headers
+                                    license_headers = {
                                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
                                     }
-                                }
+                                    
+                                    # Expose all DRM information for debugging
+                                    print(f"🔍 [SixPlay] DRM License Information:")
+                                    print(f"   License URL: {license_url}")
+                                    print(f"   License Headers: {license_headers}")
+                                    print(f"   Video URL: {final_video_url}")
+                                    
+                                    print(f"✅ Using direct DRM approach with license")
+                                    
+                                    return {
+                                        "url": final_video_url,
+                                        "manifest_type": "mpd",
+                                        "licenseUrl": license_url,
+                                        "licenseHeaders": license_headers,
+                                        "drm_token": drm_token,  # Expose token for debugging
+                                        "drm_protected": True
+                                    }
+                                else:
+                                    print(f"❌ No DRM token available - returning basic MPD")
+                                    return {
+                                        "url": final_video_url,
+                                        "manifest_type": "mpd"
+                                    }
                             else:
-                                print(f"❌ No DRM token available - returning basic MPD")
-                                return {
-                                    "url": final_video_url,
-                                    "manifest_type": "mpd"
-                                }
+                                print(f"❌ No {best_format['format_name']} streams found")
                         else:
                             print("❌ No MPD streams found either")
                 else:
@@ -562,6 +564,19 @@ class SixPlayProvider:
                 'Authorization': f'Bearer {self.login_token}',
             }
             
+            # Merge with IP headers for complete header set
+            complete_headers = merge_ip_headers(payload_headers)
+            
+            # Expose all live token headers and their values for debugging
+            print(f"🔍 [SixPlay] Live Token Request Headers:")
+            for header_name, header_value in complete_headers.items():
+                # Mask sensitive values for security
+                if header_name.lower() in ['authorization', 'x-auth-token', 'token']:
+                    masked_value = f"{header_value[:20]}..." if len(str(header_value)) > 20 else "***"
+                    print(f"   {header_name}: {masked_value}")
+                else:
+                    print(f"   {header_name}: {header_value}")
+            
             live_item_id = channel_name.upper()
             if channel_name == '6ter':
                 live_item_id = '6T'
@@ -570,11 +585,20 @@ class SixPlayProvider:
             
             # Get token for live stream using correct URL pattern
             token_url = f"https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users/{self.account_id}/live/dashcenc_{live_item_id}/upfront-token"
-            token_response = self.session.get(token_url, headers=merge_ip_headers(payload_headers), timeout=10)
+            print(f"🔍 [SixPlay] Live Token URL: {token_url}")
+            
+            token_response = self.session.get(token_url, headers=complete_headers, timeout=10)
+            
+            # Expose response details
+            print(f"🔍 [SixPlay] Live Token Response:")
+            print(f"   Status Code: {token_response.status_code}")
+            print(f"   Response Headers: {dict(token_response.headers)}")
             
             if token_response.status_code == 200:
                 token_jsonparser = token_response.json()
                 token = token_jsonparser["token"]
+                print(f"✅ Live token obtained successfully")
+                print(f"🔍 [SixPlay] Live Token Value: {token[:50]}...")
                 
                 # Get live stream information using correct URL
                 params = {
@@ -595,52 +619,73 @@ class SixPlayProvider:
                         video_assets = json_parser[live_item_id][0]['live']['assets']
                         
                         if video_assets:
-                            # Try to find HLS streams first
-                            print(f"🔍 Looking for HLS streams in {len(video_assets)} assets...")
-                            final_video_url = self._get_final_video_url(video_assets, 'http_h264')
+                            # Dynamic format detection for live streams
+                            print(f"🔍 Analyzing {len(video_assets)} live assets for optimal format...")
                             
-                            if final_video_url and 'http_h264' in final_video_url:
-                                print(f"✅ HLS stream found: {final_video_url[:100]}...")
-                                return {
-                                    "url": final_video_url,
-                                    "manifest_type": "hls"
-                                }
-                            else:
-                                print("❌ No HLS streams found, trying MPD...")
+                            # Analyze available asset types for live content
+                            available_formats = self._analyze_available_formats(video_assets)
+                            print(f"📊 Available live formats: {available_formats}")
                             
-                            # Fallback to MPD if no HLS available - get DRM token for live content
-                            final_video_url = self._get_final_video_url(video_assets, 'delta_dashcenc_h264')
+                            # Determine best format for live content
+                            best_format = self._determine_best_format(available_formats, is_live=True)
+                            print(f"🎯 Selected live format: {best_format}")
+                            
+                            # Get the stream URL for the selected format
+                            final_video_url = self._get_final_video_url(video_assets, best_format['asset_type'])
                             
                             if final_video_url:
-                                print(f"✅ MPD stream found: {final_video_url[:100]}...")
+                                print(f"✅ {best_format['format_name']} live stream found: {final_video_url}")
                                 
-                                # Get DRM token for live content (following Kodi addon approach)
-                                if self.account_id and self.login_token:
-                                    try:
-                                        # Build license URL for live content using the live token
-                                        license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={token}|R{{SSM}}|JBlicense"
-                                        
-                                        print(f"✅ Live DRM stream configured")
-                                        
-                                        return {
-                                            "url": final_video_url,
-                                            "manifest_type": "mpd",
-                                            "licenseUrl": license_url,
-                                            "licenseHeaders": {
+                                # Handle HLS live streams (no DRM required)
+                                if best_format['format_type'] == 'hls':
+                                    return {
+                                        "url": final_video_url,
+                                        "manifest_type": "hls"
+                                    }
+                                
+                                # Handle MPD/DASH live streams (DRM required)
+                                elif best_format['format_type'] == 'mpd':
+                                    # Get DRM token for live content (following Kodi addon approach)
+                                    if self.account_id and self.login_token:
+                                        try:
+                                            # Build license URL for live content using the live token
+                                            license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={token}|R{{SSM}}|JBlicense"
+                                            
+                                            # Build license headers
+                                            license_headers = {
                                                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
                                             }
-                                        }
-                                        
-                                    except Exception as e:
-                                        print(f"❌ [SixPlayProvider] Live DRM setup failed: {e}")
-                                        # Continue with fallback approach below
-                                
-                                # Fallback: return raw MPD stream (might not work without proper DRM)
-                                print(f"⚠️  No authentication for live DRM content")
-                                return {
-                                    "url": final_video_url,
-                                    "manifest_type": "mpd"
-                                }
+                                            
+                                            # Expose all live DRM information for debugging
+                                            print(f"🔍 [SixPlay] Live DRM License Information:")
+                                            print(f"   License URL: {license_url}")
+                                            print(f"   License Headers: {license_headers}")
+                                            print(f"   Live Token: {token[:50]}...")
+                                            print(f"   Video URL: {final_video_url}")
+                                            
+                                            print(f"✅ Live DRM stream configured")
+                                            
+                                            return {
+                                                "url": final_video_url,
+                                                "manifest_type": "mpd",
+                                                "licenseUrl": license_url,
+                                                "licenseHeaders": license_headers,
+                                                "live_token": token,  # Expose token for debugging
+                                                "drm_protected": True
+                                            }
+                                            
+                                        except Exception as e:
+                                            print(f"❌ [SixPlayProvider] Live DRM setup failed: {e}")
+                                            # Continue with fallback approach below
+                                    
+                                    # Fallback: return raw MPD stream (might not work without proper DRM)
+                                    print(f"⚠️  No authentication for live DRM content")
+                                    return {
+                                        "url": final_video_url,
+                                        "manifest_type": "mpd"
+                                    }
+                                else:
+                                    print(f"❌ No {best_format['format_name']} live streams found")
                             else:
                                 print("❌ No MPD streams found either")
                 else:
@@ -703,6 +748,110 @@ class SixPlayProvider:
                 pass  # Use original URL if redirect check fails
         
         return final_video_url
+
+    def _analyze_available_formats(self, video_assets: List[Dict]) -> Dict:
+        """Analyze available video formats from assets and return format information"""
+        formats = {
+            'hls': {'available': False, 'asset_types': [], 'qualities': []},
+            'mpd': {'available': False, 'asset_types': [], 'qualities': []}
+        }
+        
+        for asset in video_assets:
+            asset_type = asset.get('type', '')
+            quality = asset.get('video_quality', 'sd').lower()
+            
+            # Check for HLS formats
+            if 'http_h264' in asset_type:
+                formats['hls']['available'] = True
+                formats['hls']['asset_types'].append(asset_type)
+                if quality not in formats['hls']['qualities']:
+                    formats['hls']['qualities'].append(quality)
+            
+            # Check for MPD/DASH formats
+            elif 'dashcenc' in asset_type or 'mpd' in asset_type:
+                formats['mpd']['available'] = True
+                formats['mpd']['asset_types'].append(asset_type)
+                if quality not in formats['mpd']['qualities']:
+                    formats['mpd']['qualities'].append(quality)
+        
+        return formats
+
+    def _determine_best_format(self, available_formats: Dict, is_live: bool = False) -> Dict:
+        """Determine the best format based on available options and content type"""
+        
+        # Format priority and characteristics
+        format_preferences = [
+            {
+                'format_type': 'hls',
+                'format_name': 'HLS',
+                'asset_type': 'http_h264',
+                'priority': 1,
+                'drm_required': False,
+                'description': 'HTTP Live Streaming (no DRM)'
+            },
+            {
+                'format_type': 'mpd', 
+                'format_name': 'MPD/DASH',
+                'asset_type': 'usp_dashcenc_h264' if not is_live else 'delta_dashcenc_h264',
+                'priority': 2,
+                'drm_required': True,
+                'description': 'Dynamic Adaptive Streaming (DRM protected)'
+            }
+        ]
+        
+        # For live content, prefer HLS if available (better for live streaming)
+        # For replay content, prefer MPD if available (better quality, adaptive bitrate)
+        if is_live:
+            # Live content: prefer HLS for better live streaming performance
+            preferred_order = ['hls', 'mpd']
+        else:
+            # Replay content: prefer MPD for better quality and adaptive streaming
+            preferred_order = ['mpd', 'hls']
+        
+        # Find the best available format
+        for format_type in preferred_order:
+            if available_formats[format_type]['available']:
+                for pref in format_preferences:
+                    if pref['format_type'] == format_type:
+                        # Select the best quality available
+                        qualities = available_formats[format_type]['qualities']
+                        best_quality = 'hd' if 'hd' in qualities else 'sd'
+                        
+                        return {
+                            'format_type': format_type,
+                            'format_name': pref['format_name'],
+                            'asset_type': pref['asset_type'],
+                            'quality': best_quality,
+                            'drm_required': pref['drm_required'],
+                            'description': pref['description']
+                        }
+        
+        # Fallback: if no preferred format is available, use whatever is available
+        for format_type in ['hls', 'mpd']:
+            if available_formats[format_type]['available']:
+                for pref in format_preferences:
+                    if pref['format_type'] == format_type:
+                        qualities = available_formats[format_type]['qualities']
+                        best_quality = 'hd' if 'hd' in qualities else 'sd'
+                        
+                        return {
+                            'format_type': format_type,
+                            'format_name': pref['format_name'],
+                            'asset_type': pref['asset_type'],
+                            'quality': best_quality,
+                            'drm_required': pref['drm_required'],
+                            'description': pref['description']
+                        }
+        
+        # Ultimate fallback: default to HLS
+        return {
+            'format_type': 'hls',
+            'format_name': 'HLS',
+            'asset_type': 'http_h264',
+            'quality': 'sd',
+            'drm_required': False,
+            'description': 'Default HLS fallback'
+        }
 
     def _get_show_api_metadata(self, show_id: str, show_info: Dict) -> Dict:
         """Get show metadata from 6play API using program ID from Algolia search"""
