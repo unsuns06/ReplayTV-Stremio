@@ -126,7 +126,7 @@ class MyTF1Provider:
             }
         }
     
-    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3) -> Optional[Dict]:
+    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3, timeout: int = 15) -> Optional[Dict]:
         """Make a safe API call with retry logic and error handling"""
         for attempt in range(max_retries):
             try:
@@ -153,13 +153,13 @@ class MyTF1Provider:
                     if data:
                         # Check if we need form data or JSON based on Content-Type
                         if current_headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=timeout, proxies=proxies)
                         else:
-                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=timeout, proxies=proxies)
                     else:
-                        response = self.session.post(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                        response = self.session.post(url, params=params, headers=current_headers, timeout=timeout, proxies=proxies)
                 else:
-                    response = self.session.get(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                    response = self.session.get(url, params=params, headers=current_headers, timeout=timeout, proxies=proxies)
                 
                 if response.status_code == 200:
                     # Log response details for debugging
@@ -861,10 +861,10 @@ class MyTF1Provider:
             proxied_url = proxy_base + url_json
 
             json_parser = None
-            safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy with FORCE URL DECODING: {proxied_url}")
-            data_try = self._safe_api_call(proxied_url, headers=headers_video_stream)
-            safe_print(f"✅ *** FINAL PROXY URL (TF1 REPLAY): {proxied_url}")
+            safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy : {proxied_url}")
 
+
+            data_try = self._safe_api_call(proxied_url, headers=headers_video_stream, params=params)
             if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
                 json_parser = data_try
                 safe_print(f"✅ [MyTF1Provider] TF1 REPLAY proxy with force URL decoding succeeded!")
