@@ -858,7 +858,7 @@ class MyTF1Provider:
             
             # FORCE URL DECODING FOR ALL TF1 PROXY REQUESTS - Critical to avoid double-encoding issues
             decoded_url = force_decode_tf1_replay_url(dest_with_params)
-            proxied_url = proxy_base + quote(decoded_url, safe="")
+            proxied_url = proxy_base + url_json
 
             json_parser = None
             safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy with FORCE URL DECODING: {proxied_url}")
