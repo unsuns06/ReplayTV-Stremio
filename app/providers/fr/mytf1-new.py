@@ -126,7 +126,7 @@ class MyTF1Provider:
             }
         }
     
-    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3) -> Optional[Dict]:
+    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3, timeout: int = 15) -> Optional[Dict]:
         """Make a safe API call with retry logic and error handling"""
         for attempt in range(max_retries):
             try:
@@ -153,13 +153,13 @@ class MyTF1Provider:
                     if data:
                         # Check if we need form data or JSON based on Content-Type
                         if current_headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=timeout, proxies=proxies)
                         else:
-                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=timeout, proxies=proxies)
                     else:
-                        response = self.session.post(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                        response = self.session.post(url, params=params, headers=current_headers, timeout=timeout, proxies=proxies)
                 else:
-                    response = self.session.get(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                    response = self.session.get(url, params=params, headers=current_headers, timeout=timeout, proxies=proxies)
                 
                 if response.status_code == 200:
                     # Log response details for debugging
@@ -715,7 +715,7 @@ class MyTF1Provider:
                 
                 if json_parser['delivery']['code'] <= 400:
                     video_url = json_parser['delivery']['url']
-                    safe_print(f"✅ [MyTF1Provider] Stream URL obtained: {video_url[:50]}...")
+                    safe_print(f"✅ [MyTF1Provider] Stream URL obtained: {video_url}")
 
                     license_url = None
                     license_headers = {}
@@ -775,7 +775,7 @@ class MyTF1Provider:
                             license_headers=license_headers
                         )
                         safe_print(f"✅ *** FINAL MEDIAFLOW URL (LIVE): {final_url}")
-                        manifest_type = 'hls' if is_hls else 'mpd'
+                        manifest_type = 'hls'  # MediaFlow converts everything to HLS
                     else:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else 'mpd'
@@ -846,7 +846,8 @@ class MyTF1Provider:
                 'topDomain': 'www.tf1.fr',
                 'playerVersion': '5.19.0',
                 'productName': 'mytf1',
-                'productVersion': '3.22.0',
+                'productVersion': '3.22.0'
+                # Removed forced HLS format - let server determine appropriate format
             }
             
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
@@ -857,13 +858,13 @@ class MyTF1Provider:
             
             # FORCE URL DECODING FOR ALL TF1 PROXY REQUESTS - Critical to avoid double-encoding issues
             decoded_url = force_decode_tf1_replay_url(dest_with_params)
-            proxied_url = proxy_base + quote(decoded_url, safe="")
+            proxied_url = proxy_base + url_json
 
             json_parser = None
-            safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy with FORCE URL DECODING: {proxied_url}")
-            data_try = self._safe_api_call(proxied_url, headers=headers_video_stream)
-            safe_print(f"✅ *** FINAL PROXY URL (TF1 REPLAY): {proxied_url}")
+            safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy : {proxied_url}")
 
+
+            data_try = self._safe_api_call(proxied_url, headers=headers_video_stream, params=params)
             if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
                 json_parser = data_try
                 safe_print(f"✅ [MyTF1Provider] TF1 REPLAY proxy with force URL decoding succeeded!")
@@ -904,58 +905,36 @@ class MyTF1Provider:
                     safe_print(f"❌ [MyTF1Provider] No replay DRM info found, using fallback license URL")
                     license_url = self.license_base_url % actual_episode_id
 
-                # Check if the stream URL is MPD or HLS
-                is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
-                is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
+                # Enhanced format detection based on URL and response data
+                lower_url = (video_url or '').lower()
+                is_mpd = lower_url.endswith('.mpd') or 'mpd' in lower_url
+                is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
                 
-                # Build MediaFlow URL with enhanced DRM support for replay content
-                if self.mediaflow_url and self.mediaflow_password:
-                    try:
-                        # Determine the appropriate endpoint based on stream type
-                        if is_hls:
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                            safe_print(f"✅ [MyTF1Provider] Using HLS proxy for HLS stream")
-                        elif is_mpd:
-                            endpoint = '/proxy/mpd/manifest.m3u8'
-                            safe_print(f"✅ [MyTF1Provider] Using MPD proxy for MPD stream")
-                        else:
-                            # Default to HLS proxy for unknown formats
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                            safe_print(f"✅ [MyTF1Provider] Using HLS proxy for unknown format")
-                        
-                        # Build request headers for MediaFlow
-                        mediaflow_headers = {
-                            'user-agent': headers_video_stream['User-Agent'],
-                            'referer': self.base_url,
-                            'origin': self.base_url,
-                            'authorization': f"Bearer {self.auth_token}"
-                        }
-                        
-                        # Use enhanced MediaFlow utility with full DRM support
-                        final_url = build_mediaflow_url(
-                            base_url=self.mediaflow_url,
-                            password=self.mediaflow_password,
-                            destination_url=video_url,
-                            endpoint=endpoint,
-                            request_headers=mediaflow_headers,
-                            license_url=license_url,
-                            license_headers=license_headers
-                        )
-                        
-                        safe_print(f"✅ *** FINAL MEDIAFLOW URL (REPLAY): {final_url}")
-                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
-                        
-                        safe_print(f"✅ [MyTF1Provider] MediaFlow URL with DRM support generated: {final_url[:50]}...")
-                        
-                    except Exception as e:
-                        safe_print(f"❌ [MyTF1Provider] MediaFlow URL generation failed: {e}")
-                        # Fallback to direct URL
-                        final_url = video_url
+                # Check if response contains format information
+                response_format = None
+                if 'delivery' in json_parser and 'format' in json_parser['delivery']:
+                    response_format = json_parser['delivery']['format'].lower()
+                    safe_print(f"✅ [MyTF1Provider] Response format from server: {response_format}")
+                
+                # Determine manifest type with priority: response format > URL detection > default
+                if response_format:
+                    if response_format in ['hls', 'm3u8']:
+                        manifest_type = 'hls'
+                    elif response_format in ['dash', 'mpd']:
+                        manifest_type = 'mpd'
+                    else:
+                        # Fallback to URL detection
                         manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
                 else:
-                    # No MediaFlow, use direct URL
-                    final_url = video_url
+                    # Use URL-based detection
                     manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+                
+                safe_print(f"✅ [MyTF1Provider] Detected format: URL={lower_url[:50]}..., is_hls={is_hls}, is_mpd={is_mpd}, manifest_type={manifest_type}")
+                
+                # For replay streams, use direct URL (no MediaFlow)
+                safe_print(f"✅ [MyTF1Provider] Using DIRECT URL for replay stream (no MediaFlow)")
+                final_url = video_url
+                safe_print(f"✅ *** FINAL DIRECT URL (REPLAY): {final_url}")
 
                 stream_info = {
                     "url": final_url,

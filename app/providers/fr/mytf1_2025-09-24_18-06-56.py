@@ -775,7 +775,7 @@ class MyTF1Provider:
                             license_headers=license_headers
                         )
                         safe_print(f"✅ *** FINAL MEDIAFLOW URL (LIVE): {final_url}")
-                        manifest_type = 'hls' if is_hls else 'mpd'
+                        manifest_type = 'hls'  # MediaFlow converts everything to HLS
                     else:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else 'mpd'
@@ -943,7 +943,7 @@ class MyTF1Provider:
                         )
                         
                         safe_print(f"✅ *** FINAL MEDIAFLOW URL (REPLAY): {final_url}")
-                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+                        manifest_type = 'hls'  # MediaFlow always returns HLS
                         
                         safe_print(f"✅ [MyTF1Provider] MediaFlow URL with DRM support generated: {final_url[:50]}...")
                         
