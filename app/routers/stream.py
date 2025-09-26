@@ -39,7 +39,7 @@ async def get_stream(type: str, id: str, request: Request):
             
             if stream_info:
                 logger.info(f"✅ {provider_name} returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-                
+
                 # Merge any provider-specified headers with viewer IP headers
                 merged_headers = {}
                 if stream_info.get('headers'):
@@ -52,9 +52,13 @@ async def get_stream(type: str, id: str, request: Request):
                     merged_license_headers = dict(stream_info.get('licenseHeaders'))
                     merged_license_headers.update(make_ip_headers())
 
+                # Handle externalUrl for external playback streams
+                stream_url = stream_info.get("externalUrl") or stream_info["url"]
+                stream_title = stream_info.get("title") or f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+
                 stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    url=stream_url,
+                    title=stream_title,
                     headers= merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
@@ -103,9 +107,18 @@ async def get_stream(type: str, id: str, request: Request):
             
             if stream_info:
                 logger.info(f"✅ France TV returned stream info: {stream_info.get('manifest_type', 'unknown')}")
+
+                # Handle externalUrl for external playback streams
+                stream_url = stream_info.get("externalUrl") or stream_info["url"]
+                stream_title = stream_info.get("title") or f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+
                 stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+                    url=stream_url,
+                    title=stream_title,
+                    headers=stream_info.get('headers'),
+                    manifest_type=stream_info.get('manifest_type'),
+                    licenseUrl=stream_info.get('licenseUrl'),
+                    licenseHeaders=stream_info.get('licenseHeaders')
                 )
                 return StreamResponse(streams=[stream])
             else:
@@ -161,9 +174,13 @@ async def get_stream(type: str, id: str, request: Request):
                     merged_license_headers = dict(stream_info.get('licenseHeaders'))
                     merged_license_headers.update(make_ip_headers())
 
+                # Handle externalUrl for external playback streams
+                stream_url = stream_info.get("externalUrl") or stream_info["url"]
+                stream_title = stream_info.get("title") or f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+
                 stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    url=stream_url,
+                    title=stream_title,
                     headers= merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
@@ -210,9 +227,14 @@ async def get_stream(type: str, id: str, request: Request):
             
             if stream_info:
                 logger.info(f"✅ 6play returned stream info: {stream_info.get('manifest_type', 'unknown')}")
+
+                # Handle externalUrl for external playback streams
+                stream_url = stream_info.get("externalUrl") or stream_info["url"]
+                stream_title = stream_info.get("title") or f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+
                 stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    url=stream_url,
+                    title=stream_title,
                     headers=stream_info.get('headers'),
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
@@ -266,7 +288,7 @@ async def get_stream(type: str, id: str, request: Request):
             
             if stream_info:
                 logger.info(f"✅ CBC returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-                
+
                 # Merge any provider-specified headers with viewer IP headers
                 merged_headers = {}
                 if stream_info.get('headers'):
@@ -279,9 +301,13 @@ async def get_stream(type: str, id: str, request: Request):
                     merged_license_headers = dict(stream_info.get('licenseHeaders'))
                     merged_license_headers.update(make_ip_headers())
 
+                # Handle externalUrl for external playback streams
+                stream_url = stream_info.get("externalUrl") or stream_info["url"]
+                stream_title = stream_info.get("title") or f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+
                 stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    url=stream_url,
+                    title=stream_title,
                     headers=merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
@@ -335,7 +361,7 @@ async def get_stream(type: str, id: str, request: Request):
             
             if stream_info:
                 logger.info(f"✅ CBC returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-                
+
                 # Merge any provider-specified headers with viewer IP headers
                 merged_headers = {}
                 if stream_info.get('headers'):
@@ -348,9 +374,13 @@ async def get_stream(type: str, id: str, request: Request):
                     merged_license_headers = dict(stream_info.get('licenseHeaders'))
                     merged_license_headers.update(make_ip_headers())
 
+                # Handle externalUrl for external playback streams
+                stream_url = stream_info.get("externalUrl") or stream_info["url"]
+                stream_title = stream_info.get("title") or f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+
                 stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    url=stream_url,
+                    title=stream_title,
                     headers=merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
