@@ -1055,8 +1055,8 @@ class MyTF1Provider:
 
                         # For DASH proxy streams, set both url and externalUrl for external fallback
                         stream_info = {
-                            #"url": final_url,  # Stremio will try this first (DASH stream)
                             "externalUrl": final_url,  # Open externally when internal playback fails
+                            "url": final_url,  # Stremio will try this first (DASH stream)
                             "manifest_type": manifest_type,
                             "headers": headers_video_stream
                         }
