@@ -1060,7 +1060,7 @@ class MyTF1Provider:
                     final_url = proxy_base + '?' + urlencode(proxy_params)
 
                     safe_print(f"✅ [MyTF1Provider] Using DASH DRM proxy for replay content")
-                    safe_print(f"✅ *** FINAL DASH PROXY URL (REPLAY): {final_url[:100]}...")
+                    safe_print(f"✅ *** FINAL DASH PROXY URL (REPLAY): {final_url}")
 
                     # Set manifest type based on the original stream format
                     manifest_type = 'mpd'  # The proxy expects MPD format
