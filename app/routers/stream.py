@@ -104,22 +104,11 @@ async def get_stream(type: str, id: str, request: Request):
             
             if stream_info:
                 logger.info(f"✅ France TV returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-
-                # Handle external streams (DASH proxy)
-                if stream_info.get('manifest_type') == 'external' and stream_info.get('externalUrl'):
-                    # External streams open in browser, no internal playback
-                    stream = Stream(
-                        externalUrl=stream_info["externalUrl"],
-                        title=stream_info.get('title', 'External DASH Stream'),
-                        manifest_type='external'
-                    )
-                else:
-                    # Regular stream processing
-                    stream = Stream(
-                        url=stream_info["url"],
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                        externalUrl=stream_info.get('externalUrl')
-                    )
+                stream = Stream(
+                    url=stream_info["url"],
+                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    externalUrl=stream_info.get('externalUrl')
+                )
                 return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ France TV returned no stream info for episode: {episode_id}")
@@ -162,37 +151,27 @@ async def get_stream(type: str, id: str, request: Request):
             if stream_info:
                 logger.info(f"✅ TF1+ returned stream info: {stream_info.get('manifest_type', 'unknown')}")
 
-                # Handle external streams (DASH proxy)
-                if stream_info.get('manifest_type') == 'external' and stream_info.get('externalUrl'):
-                    # External streams open in browser, no internal playback
-                    stream = Stream(
-                        externalUrl=stream_info["externalUrl"],
-                        title=stream_info.get('title', 'External DASH Stream'),
-                        manifest_type='external'
-                    )
-                else:
-                    # Regular stream processing for HLS/MPD streams
-                    # Merge any provider-specified headers with viewer IP headers
-                    merged_headers = {}
-                    if stream_info.get('headers'):
-                        merged_headers.update(stream_info.get('headers'))
-                    merged_headers.update(make_ip_headers())
+                # Merge any provider-specified headers with viewer IP headers
+                merged_headers = {}
+                if stream_info.get('headers'):
+                    merged_headers.update(stream_info.get('headers'))
+                merged_headers.update(make_ip_headers())
 
-                    # Merge license headers too, if provided
-                    merged_license_headers = None
-                    if stream_info.get('licenseHeaders'):
-                        merged_license_headers = dict(stream_info.get('licenseHeaders'))
-                        merged_license_headers.update(make_ip_headers())
+                # Merge license headers too, if provided
+                merged_license_headers = None
+                if stream_info.get('licenseHeaders'):
+                    merged_license_headers = dict(stream_info.get('licenseHeaders'))
+                    merged_license_headers.update(make_ip_headers())
 
-                    stream = Stream(
-                        url=stream_info["url"],
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                        headers= merged_headers if merged_headers else None,
-                        manifest_type=stream_info.get('manifest_type'),
-                        licenseUrl=stream_info.get('licenseUrl'),
-                        licenseHeaders=merged_license_headers,
-                        externalUrl=stream_info.get('externalUrl')
-                    )
+                stream = Stream(
+                    url=stream_info["url"],
+                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    headers= merged_headers if merged_headers else None,
+                    manifest_type=stream_info.get('manifest_type'),
+                    licenseUrl=stream_info.get('licenseUrl'),
+                    licenseHeaders=merged_license_headers,
+                    externalUrl=stream_info.get('externalUrl')
+                )
                 return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ TF1+ returned no stream info for episode: {episode_id}")
@@ -234,26 +213,15 @@ async def get_stream(type: str, id: str, request: Request):
             
             if stream_info:
                 logger.info(f"✅ 6play returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-
-                # Handle external streams (DASH proxy)
-                if stream_info.get('manifest_type') == 'external' and stream_info.get('externalUrl'):
-                    # External streams open in browser, no internal playback
-                    stream = Stream(
-                        externalUrl=stream_info["externalUrl"],
-                        title=stream_info.get('title', 'External DASH Stream'),
-                        manifest_type='external'
-                    )
-                else:
-                    # Regular stream processing
-                    stream = Stream(
-                        url=stream_info["url"],
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                        headers=stream_info.get('headers'),
-                        manifest_type=stream_info.get('manifest_type'),
-                        licenseUrl=stream_info.get('licenseUrl'),
-                        licenseHeaders=stream_info.get('licenseHeaders'),
-                        externalUrl=stream_info.get('externalUrl')
-                    )
+                stream = Stream(
+                    url=stream_info["url"],
+                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    headers=stream_info.get('headers'),
+                    manifest_type=stream_info.get('manifest_type'),
+                    licenseUrl=stream_info.get('licenseUrl'),
+                    licenseHeaders=stream_info.get('licenseHeaders'),
+                    externalUrl=stream_info.get('externalUrl')
+                )
                 return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ 6play returned no stream info for episode: {episode_id}")
@@ -321,8 +289,7 @@ async def get_stream(type: str, id: str, request: Request):
                     headers=merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=merged_license_headers,
-                    externalUrl=stream_info.get('externalUrl')
+                    licenseHeaders=merged_license_headers
                 )
                 return StreamResponse(streams=[stream])
             else:
@@ -391,8 +358,7 @@ async def get_stream(type: str, id: str, request: Request):
                     headers=merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=merged_license_headers,
-                    externalUrl=stream_info.get('externalUrl')
+                    licenseHeaders=merged_license_headers
                 )
                 return StreamResponse(streams=[stream])
             else:
