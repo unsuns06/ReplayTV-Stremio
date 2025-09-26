@@ -1030,10 +1030,10 @@ class MyTF1Provider:
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
 
-                # For DRM-protected MPD streams (replays only), use external DASH proxy
+                # For DRM-protected MPD streams (replays only), use external DASH proxy through MediaFlow
                 if is_mpd and license_url:
                     try:
-                        safe_print(f"✅ [MyTF1Provider] Using DASH proxy for DRM-protected MPD replay stream")
+                        safe_print(f"✅ [MyTF1Provider] Using DASH proxy through MediaFlow for DRM-protected MPD replay stream")
 
                         # URL encode the manifest and license URLs (NOT base64)
                         encoded_manifest = quote(video_url, safe='')
@@ -1048,10 +1048,43 @@ class MyTF1Provider:
                         proxy_params += '&streaming.capabilities.supportedEssentialProperties.0.schemeIdUri=urn%3Advb%3Adash%3Afontdownload%3A2014'
                         proxy_params += '&streaming.capabilities.supportedEssentialProperties.1.schemeIdUri=urn%3Ampeg%3AmpegB%3Acicp%3AColourPrimaries'
 
-                        final_url = f"{dash_proxy_base}/proxy?{proxy_params}"
-                        manifest_type = 'mpd'
+                        dash_proxy_url = f"{dash_proxy_base}/proxy?{proxy_params}"
+                        safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {dash_proxy_url}")
 
-                        safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
+                        # Route the DASH proxy URL through MediaFlow as MPD
+                        if self.mediaflow_url and self.mediaflow_password:
+                            try:
+                                safe_print(f"✅ [MyTF1Provider] Routing DASH proxy through MediaFlow MPD endpoint")
+
+                                # Build request headers for MediaFlow
+                                mediaflow_headers = {
+                                    'user-agent': headers_video_stream['User-Agent'],
+                                    'referer': self.base_url,
+                                    'origin': self.base_url,
+                                    'authorization': f"Bearer {self.auth_token}"
+                                }
+
+                                # Use MediaFlow MPD endpoint to proxy the DASH proxy URL
+                                final_url = build_mediaflow_url(
+                                    base_url=self.mediaflow_url,
+                                    password=self.mediaflow_password,
+                                    destination_url=dash_proxy_url,
+                                    endpoint='/proxy/mpd/manifest.m3u8',
+                                    request_headers=mediaflow_headers
+                                )
+
+                                safe_print(f"✅ [MyTF1Provider] MediaFlow MPD URL generated: {final_url}")
+                                manifest_type = 'mpd'
+
+                            except Exception as e:
+                                safe_print(f"❌ [MyTF1Provider] MediaFlow routing failed: {e}")
+                                # Fallback to direct DASH proxy URL
+                                final_url = dash_proxy_url
+                                manifest_type = 'mpd'
+                        else:
+                            # No MediaFlow, use direct DASH proxy URL
+                            final_url = dash_proxy_url
+                            manifest_type = 'mpd'
 
                     except Exception as e:
                         safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
