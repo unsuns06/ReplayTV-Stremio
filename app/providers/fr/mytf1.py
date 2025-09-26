@@ -152,13 +152,13 @@ class MyTF1Provider:
                     if data:
                         # Check if we need form data or JSON based on Content-Type
                         if current_headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15)
                         else:
-                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15)
                     else:
-                        response = self.session.post(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                        response = self.session.post(url, params=params, headers=current_headers, timeout=15)
                 else:
-                    response = self.session.get(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                    response = self.session.get(url, params=params, headers=current_headers, timeout=15)
                 
                 if response.status_code == 200:
                     # Log response details for debugging
