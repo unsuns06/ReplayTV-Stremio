@@ -1048,91 +1048,28 @@ class MyTF1Provider:
 
                         safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
 
-                        # For DASH proxy streams, provide both browser and internal options
-                        streams = []
-
-                        # Option 1: External browser opening (DASH proxy)
-                        dash_proxy_stream = {
-                            "externalUrl": final_url,  # Opens in browser
-                            "title": "DASH Stream (Browser)",
-                            "manifest_type": "external"
+                        # For DASH proxy streams, set externalUrl to open in browser
+                        stream_info = {
+                            "url": final_url,  # This will be opened externally
+                            "manifest_type": manifest_type,
+                            "headers": headers_video_stream
                         }
 
-                        streams.append(dash_proxy_stream)
+                        # Add license info if available
+                        if license_url:
+                            stream_info["licenseUrl"] = license_url
+                            if license_headers:
+                                stream_info["licenseHeaders"] = license_headers
 
-                        # Option 2: Internal playback (use MediaFlow or direct if available)
-                        internal_stream = None
-                        if self.mediaflow_url and self.mediaflow_password:
-                            try:
-                                # Use MediaFlow for internal playback
-                                mediaflow_headers = {
-                                    'user-agent': headers_video_stream['User-Agent'],
-                                    'referer': self.base_url,
-                                    'origin': self.base_url,
-                                    'authorization': f"Bearer {self.auth_token}"
-                                }
-
-                                internal_url = build_mediaflow_url(
-                                    base_url=self.mediaflow_url,
-                                    password=self.mediaflow_password,
-                                    destination_url=video_url,
-                                    endpoint='/proxy/mpd/manifest.m3u8',
-                                    request_headers=mediaflow_headers,
-                                    license_url=license_url,
-                                    license_headers=license_headers
-                                )
-
-                                internal_stream = {
-                                    "url": internal_url,
-                                    "title": "MPD Stream (Internal)",
-                                    "manifest_type": "mpd",
-                                    "headers": headers_video_stream
-                                }
-
-                                if license_url:
-                                    internal_stream["licenseUrl"] = license_url
-                                    if license_headers:
-                                        internal_stream["licenseHeaders"] = license_headers
-
-                            except Exception as e:
-                                safe_print(f"❌ [MyTF1Provider] MediaFlow fallback failed: {e}")
-                                # Fallback to direct URL
-                                internal_stream = {
-                                    "url": video_url,
-                                    "title": "MPD Stream (Direct)",
-                                    "manifest_type": "mpd",
-                                    "headers": headers_video_stream
-                                }
-
-                                if license_url:
-                                    internal_stream["licenseUrl"] = license_url
-                                    if license_headers:
-                                        internal_stream["licenseHeaders"] = license_headers
-                        else:
-                            # No MediaFlow, use direct URL
-                            internal_stream = {
-                                "url": video_url,
-                                "title": "MPD Stream (Direct)",
-                                "manifest_type": "mpd",
-                                "headers": headers_video_stream
-                            }
-
-                            if license_url:
-                                internal_stream["licenseUrl"] = license_url
-                                if license_headers:
-                                    internal_stream["licenseHeaders"] = license_headers
-
-                        streams.append(internal_stream)
-
-                        safe_print(f"✅ [MyTF1Provider] MyTF1 dual stream options prepared: {len(streams)} streams")
-                        return {"streams": streams}
+                        safe_print(f"✅ [MyTF1Provider] MyTF1 DASH proxy stream info prepared: manifest_type={stream_info['manifest_type']}")
+                        return stream_info
 
                     except Exception as e:
                         safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
                         # Fallback to MediaFlow or direct URL
                         final_url = video_url
                         manifest_type = 'mpd'
-                        # Continue to MediaFlow fallback logic - no return here
+                        # Continue to MediaFlow fallback logic
                 else:
                     # Use existing MediaFlow proxy for HLS streams or non-DRM MPD streams
                     if self.mediaflow_url and self.mediaflow_password:
