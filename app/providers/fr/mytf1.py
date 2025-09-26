@@ -22,10 +22,10 @@ import requests
 import time
 import logging
 import os
+import base64
 import urllib.parse
 from urllib.parse import urlencode, quote, unquote
 import random
-import base64
 from typing import Dict, List, Optional, Tuple
 from fastapi import Request
 from app.utils.credentials import get_provider_credentials
@@ -47,23 +47,23 @@ def get_random_windows_ua():
     ]
     return random.choice(user_agents)
 
-    def force_decode_tf1_replay_url(self, original_url: str) -> str:
-        """
-        Force decode TF1 replay URLs to prevent double-encoding issues when routing through proxy.
-
-        This is critical for TF1 replay content as the mediainfo URLs often contain encoded parameters
-        that need to be properly decoded before being passed through the French IP proxy.
-
-        Args:
-            original_url (str): The original URL with potential encoding
-
-        Returns:
-            str: The force-decoded URL ready for proxy routing
-        """
-        safe_print(f"✅ [TF1 URL Decoder] Original URL: {original_url}")
-        decoded_url = unquote(original_url)
-        safe_print(f"✅ [TF1 URL Decoder] Force-decoded URL: {decoded_url}")
-        return decoded_url
+def force_decode_tf1_replay_url(original_url: str) -> str:
+    """
+    Force decode TF1 replay URLs to prevent double-encoding issues when routing through proxy.
+    
+    This is critical for TF1 replay content as the mediainfo URLs often contain encoded parameters
+    that need to be properly decoded before being passed through the French IP proxy.
+    
+    Args:
+        original_url (str): The original URL with potential encoding
+        
+    Returns:
+        str: The force-decoded URL ready for proxy routing
+    """
+    safe_print(f"✅ [TF1 URL Decoder] Original URL: {original_url}")
+    decoded_url = unquote(original_url)
+    safe_print(f"✅ [TF1 URL Decoder] Force-decoded URL: {decoded_url}")
+    return decoded_url
 
 class MyTF1Provider:
     """MyTF1 provider implementation with robust error handling and fallbacks"""
@@ -116,54 +116,6 @@ class MyTF1Provider:
 
         # Initialize IP forwarding headers (critical for geo-restricted content)
         self.viewer_ip_headers = make_ip_headers(None, getattr(request, 'headers', {}) if request else {})
-
-    def _encode_url_base64(self, url: str) -> str:
-        """
-        Base64 encode a URL for the DASH DRM proxy.
-
-        Args:
-            url (str): The URL to encode
-
-        Returns:
-            str: The base64 encoded URL
-        """
-        try:
-            # Convert URL to bytes and encode with base64
-            encoded_bytes = base64.b64encode(url.encode('utf-8'))
-            encoded_url = encoded_bytes.decode('utf-8')
-            safe_print(f"✅ [MyTF1Provider] URL encoded: {url[:50]}... -> {encoded_url}")
-            return encoded_url
-        except Exception as e:
-            safe_print(f"❌ [MyTF1Provider] Error encoding URL: {e}")
-            return url  # Fallback to original URL if encoding fails
-
-    def _build_drm_proxy_url(self, manifest_url: str, license_url: str) -> str:
-        """
-        Build the DASH DRM proxy URL for MyTF1 replays.
-
-        Args:
-            manifest_url (str): The MPD manifest URL
-            license_url (str): The license server URL
-
-        Returns:
-            str: The complete proxy URL with encoded parameters
-        """
-        try:
-            # Base64 encode the URLs
-            encoded_manifest = self._encode_url_base64(manifest_url)
-            encoded_license = self._encode_url_base64(license_url)
-
-            # Build the proxy URL according to the API specification
-            proxy_base = "https://alphanet06-dash-proxy-server.hf.space/proxy"
-            proxy_url = f"{proxy_base}?mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}"
-
-            safe_print(f"✅ [MyTF1Provider] DRM proxy URL built successfully")
-            safe_print(f"✅ *** FINAL DRM PROXY URL (REPLAY): {proxy_url}")
-            return proxy_url
-
-        except Exception as e:
-            safe_print(f"❌ [MyTF1Provider] Error building DRM proxy URL: {e}")
-            return manifest_url  # Fallback to direct manifest URL
 
     # TF1+ shows configuration based on reference plugin
         self.shows = {
@@ -1078,78 +1030,44 @@ class MyTF1Provider:
                 # Check if the stream URL is MPD or HLS
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
+                
+                # Build DASH DRM proxy URL for replay content (replaces MediaFlow for DRM)
+                try:
+                    # Use the online DASH DRM proxy for replay content
+                    proxy_base = "https://alphanet06-dash-proxy-server.hf.space/proxy"
 
-                # Check if DRM is present for replay content - use DASH DRM proxy if available
-                use_drm_proxy = license_url is not None and is_mpd  # Use DRM proxy for MPD streams with license
+                    # Encode URLs using base64 (as per API documentation)
+                    encoded_manifest = base64.b64encode(video_url.encode('utf-8')).decode('utf-8')
+                    encoded_license = base64.b64encode(license_url.encode('utf-8')).decode('utf-8') if license_url else ''
 
-                if use_drm_proxy:
-                    # Use the online DASH DRM proxy for MyTF1 replays
-                    safe_print(f"✅ [MyTF1Provider] Using DASH DRM proxy for replay content with DRM protection")
-                    final_url = self._build_drm_proxy_url(video_url, license_url)
-                    manifest_type = 'mpd'
-
-                    safe_print(f"✅ [MyTF1Provider] DASH DRM proxy URL generated: {final_url[:50]}...")
-
-                    stream_info = {
-                        "url": final_url,
-                        "manifest_type": manifest_type,
-                        "headers": headers_video_stream
+                    # Build proxy URL with required parameters
+                    proxy_params = {
+                        'mpd': encoded_manifest,
+                        'widevine.isActive': 'true',
+                        'widevine.drmKeySystem': 'com.widevine.alpha',
+                        'widevine.licenseServerUrl': encoded_license,
+                        'widevine.priority': '0',
+                        'debug.logLevel': '5'
                     }
 
-                    # Add license info to stream_info if available
-                    if license_url:
-                        stream_info["licenseUrl"] = license_url
-                        if license_headers:
-                            stream_info["licenseHeaders"] = license_headers
+                    # Add additional dash.js parameters for better compatibility
+                    proxy_params.update({
+                        'streaming.capabilities.supportedEssentialProperties.0.schemeIdUri': 'urn:dvb:dash:fontdownload:2014',
+                        'streaming.capabilities.supportedEssentialProperties.1.schemeIdUri': 'urn:mpeg:mpegB:cicp:ColourPrimaries'
+                    })
 
-                    safe_print(f"✅ [MyTF1Provider] MyTF1 DRM proxy stream info prepared: manifest_type={stream_info['manifest_type']}")
-                    return stream_info
+                    # Build final proxy URL
+                    final_url = proxy_base + '?' + urlencode(proxy_params)
 
-                elif self.mediaflow_url and self.mediaflow_password:
-                    try:
-                        # Determine the appropriate endpoint based on stream type
-                        if is_hls:
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                            safe_print(f"✅ [MyTF1Provider] Using HLS proxy for HLS stream")
-                        elif is_mpd:
-                            endpoint = '/proxy/mpd/manifest.m3u8'
-                            safe_print(f"✅ [MyTF1Provider] Using MPD proxy for MPD stream")
-                        else:
-                            # Default to HLS proxy for unknown formats
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                            safe_print(f"✅ [MyTF1Provider] Using HLS proxy for unknown format")
-                        
-                        # Build request headers for MediaFlow
-                        mediaflow_headers = {
-                            'user-agent': headers_video_stream['User-Agent'],
-                            'referer': self.base_url,
-                            'origin': self.base_url,
-                            'authorization': f"Bearer {self.auth_token}"
-                        }
-                        
-                        # Use enhanced MediaFlow utility with full DRM support
-                        final_url = build_mediaflow_url(
-                            base_url=self.mediaflow_url,
-                            password=self.mediaflow_password,
-                            destination_url=video_url,
-                            endpoint=endpoint,
-                            request_headers=mediaflow_headers,
-                            license_url=license_url,
-                            license_headers=license_headers
-                        )
-                        
-                        safe_print(f"✅ *** FINAL MEDIAFLOW URL (REPLAY): {final_url}")
-                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
-                        
-                        safe_print(f"✅ [MyTF1Provider] MediaFlow URL with DRM support generated: {final_url[:50]}...")
-                        
-                    except Exception as e:
-                        safe_print(f"❌ [MyTF1Provider] MediaFlow URL generation failed: {e}")
-                        # Fallback to direct URL
-                        final_url = video_url
-                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
-                else:
-                    # No MediaFlow, use direct URL
+                    safe_print(f"✅ [MyTF1Provider] Using DASH DRM proxy for replay content")
+                    safe_print(f"✅ *** FINAL DASH PROXY URL (REPLAY): {final_url[:100]}...")
+
+                    # Set manifest type based on the original stream format
+                    manifest_type = 'mpd'  # The proxy expects MPD format
+
+                except Exception as e:
+                    safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
+                    # Fallback to direct URL (will likely not work for DRM content)
                     final_url = video_url
                     manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
