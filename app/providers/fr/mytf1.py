@@ -18,7 +18,7 @@ from app.utils.credentials import get_provider_credentials
 from app.utils.safe_print import safe_print
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.base_url import get_base_url, get_logo_url
-from app.utils.client_ip import make_ip_headers
+from app.utils.client_ip import make_ip_headers, merge_ip_headers
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -133,6 +133,9 @@ class MyTF1Provider:
                 # Rotate User-Agent for each attempt
                 current_headers = headers or {}
                 current_headers['User-Agent'] = get_random_windows_ua()
+
+                # Forward viewer IP to upstream servers (critical for geo-restricted content)
+                current_headers = merge_ip_headers(current_headers)
 
                 # Optional per-request proxy support via env
                 proxy_env = os.getenv('MYTF1_HTTP_PROXY')
@@ -678,36 +681,28 @@ class MyTF1Provider:
             
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             
-            # Prefer French IP proxy first (two variants), then fall back to direct
+            # ✅ RECOMMENDED: Use FR proxy FIRST for live streams (it works as fallback)
+            # Test showed that FR proxy works as well as direct for live streams
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
-            proxy_base_no_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            proxy_base_with_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router/?url="
-            # FORCE URL DECODING FOR ALL TF1 PROXY REQUESTS - Critical to avoid double-encoding issues
-            decoded_url = force_decode_tf1_replay_url(dest_with_params)
-            proxied_url_no_slash = proxy_base_no_slash + quote(decoded_url, safe="")
-            proxied_url_with_slash = proxy_base_with_slash + quote(decoded_url, safe="")
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+
+            # Use URL encoding (Variant 2) - proven to work best
+            proxied_url = proxy_base + quote(dest_with_params, safe="")
 
             json_parser = None
-            safe_print(f"✅ [MyTF1Provider] Trying TF1 LIVE stream through FR-IP proxy with FORCE URL DECODING (no slash): {proxied_url_no_slash}")
-            data_try = self._safe_api_call(proxied_url_no_slash, headers=headers_video_stream)
-            # Log the primary proxy attempt URL regardless of outcome for traceability
-            safe_print(f"✅ *** FINAL PROXY URL (LIVE): {proxied_url_no_slash}")
+            safe_print(f"✅ [MyTF1Provider] Trying TF1 LIVE stream through FR-IP proxy: {proxied_url}")
+            data_try = self._safe_api_call(proxied_url, headers=headers_video_stream)
+            safe_print(f"✅ *** FINAL PROXY URL (LIVE): {proxied_url}")
+
+            # If proxy fails or returns 403, fallback to direct (both have same result for live)
             if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
                 json_parser = data_try
+                safe_print(f"✅ [MyTF1Provider] FR proxy successful for live stream")
             else:
-                safe_print("❌ FR-IP proxy (no slash) failed; trying variant with slash...")
-                safe_print(f"✅ [MyTF1Provider] Trying TF1 LIVE stream through FR-IP proxy with FORCE URL DECODING (with slash): {proxied_url_with_slash}")
-                data_try = self._safe_api_call(proxied_url_with_slash, headers=headers_video_stream)
-                if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
-                    safe_print(f"✅ *** FINAL PROXY URL (LIVE): {proxied_url_with_slash}")
-                    json_parser = data_try
-                else:
-                    # Log final attempted proxy URL even if failing for visibility in tests/logs
-                    safe_print(f"❌ *** FINAL PROXY URL (LIVE): {proxied_url_with_slash}")
-                    safe_print("❌ FR-IP proxy (with slash) failed; falling back to direct call...")
-                    safe_print(f"✅ [MyTF1Provider] Making DIRECT request for live feed: {url_json}")
-                    safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
-                    json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
+                safe_print("❌ FR-IP proxy failed for live; falling back to direct call...")
+                safe_print(f"✅ [MyTF1Provider] Making DIRECT request for live feed: {url_json}")
+                safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
+                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
 
             if json_parser:
                 safe_print(f"✅ [MyTF1Provider] Stream API response received for {video_id}")
@@ -851,24 +846,26 @@ class MyTF1Provider:
             
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
             
-            # TF1 REPLAY - Force French IP proxy with enhanced URL decoding
+            # ✅ RECOMMENDED: Use FR proxy FIRST for replay streams (CRITICAL for success)
+            # Test showed FR proxy returns 200 + stream URLs while direct returns 403
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
             proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            
-            # FORCE URL DECODING FOR ALL TF1 PROXY REQUESTS - Critical to avoid double-encoding issues
-            decoded_url = force_decode_tf1_replay_url(dest_with_params)
-            proxied_url = proxy_base + quote(decoded_url, safe="")
+
+            # Use URL encoding (Variant 2) - proven to work best and get 200 responses
+            proxied_url = proxy_base + quote(dest_with_params, safe="")
 
             json_parser = None
-            safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy with FORCE URL DECODING: {proxied_url}")
+            safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy: {proxied_url}")
             data_try = self._safe_api_call(proxied_url, headers=headers_video_stream)
             safe_print(f"✅ *** FINAL PROXY URL (TF1 REPLAY): {proxied_url}")
 
+            # CRITICAL: FR proxy is REQUIRED for replay success - direct calls fail with 403
             if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
                 json_parser = data_try
-                safe_print(f"✅ [MyTF1Provider] TF1 REPLAY proxy with force URL decoding succeeded!")
+                safe_print(f"✅ [MyTF1Provider] TF1 REPLAY proxy successful - got stream URL!")
             else:
-                safe_print("❌ FR-IP proxy for TF1 REPLAY with force decoding failed; falling back to direct call...")
+                # Fallback to direct only if absolutely necessary, but expect 403
+                safe_print("❌ FR-IP proxy for TF1 REPLAY failed; falling back to direct call (will likely fail)...")
                 safe_print(f"✅ [MyTF1Provider] Making DIRECT request for replay feed: {url_json}")
                 safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
                 json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
