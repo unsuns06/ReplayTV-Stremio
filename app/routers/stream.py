@@ -161,31 +161,14 @@ async def get_stream(type: str, id: str, request: Request):
                     merged_license_headers = dict(stream_info.get('licenseHeaders'))
                     merged_license_headers.update(make_ip_headers())
 
-                # Check if this is a DASH proxy URL that should open externally
-                stream_url = stream_info["url"]
-                is_dash_proxy = "alphanet06-dash-proxy-server.hf.space" in stream_url
-
-                if is_dash_proxy:
-                    logger.info(f"🌐 DASH proxy URL detected, using externalUrl for browser playback")
-                    stream = Stream(
-                        externalUrl=stream_url,
-                        title=f"{stream_info.get('manifest_type', 'mpd').upper()} Stream (External)",
-                        headers= merged_headers if merged_headers else None,
-                        manifest_type=stream_info.get('manifest_type'),
-                        licenseUrl=stream_info.get('licenseUrl'),
-                        licenseHeaders=merged_license_headers
-                    )
-                else:
-                    # Use regular url for non-DASH proxy streams
-                    stream = Stream(
-                        url=stream_url,
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                        headers= merged_headers if merged_headers else None,
-                        manifest_type=stream_info.get('manifest_type'),
-                        licenseUrl=stream_info.get('licenseUrl'),
-                        licenseHeaders=merged_license_headers
-                    )
-
+                stream = Stream(
+                    url=stream_info["url"],
+                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    headers= merged_headers if merged_headers else None,
+                    manifest_type=stream_info.get('manifest_type'),
+                    licenseUrl=stream_info.get('licenseUrl'),
+                    licenseHeaders=merged_license_headers
+                )
                 return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ TF1+ returned no stream info for episode: {episode_id}")

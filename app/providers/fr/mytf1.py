@@ -1030,57 +1030,37 @@ class MyTF1Provider:
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
 
-                # Validate URLs before processing
-                if not video_url or not license_url:
-                    safe_print(f"❌ [MyTF1Provider] Missing video_url or license_url for DRM stream")
-                    final_url = video_url
-                    manifest_type = 'mpd' if is_mpd else 'hls'
-                else:
-                    # For DRM-protected MPD streams (replays only), use external DASH proxy
-                    if is_mpd:
-                        try:
-                            safe_print(f"✅ [MyTF1Provider] Using DASH proxy for DRM-protected MPD replay stream")
+                # For DRM-protected MPD streams (replays only), use external DASH proxy
+                if is_mpd and license_url:
+                    try:
+                        safe_print(f"✅ [MyTF1Provider] Using DASH proxy for DRM-protected MPD replay stream")
 
-                            # URL encode the manifest and license URLs (NOT base64)
-                            # Use safe='' to encode all special characters including & = % etc.
-                            encoded_manifest = quote(video_url, safe='')
-                            encoded_license = quote(license_url, safe='')
+                        # URL encode the manifest and license URLs (NOT base64)
+                        encoded_manifest = quote(video_url, safe='')
+                        encoded_license = quote(license_url, safe='')
 
-                            # Validate encoded URLs are not empty
-                            if not encoded_manifest or not encoded_license:
-                                raise ValueError("URL encoding resulted in empty strings")
+                        # Construct the DASH proxy URL
+                        dash_proxy_base = "https://alphanet06-dash-proxy-server.hf.space"
+                        proxy_params = f"mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}&widevine.priority=0"
 
-                            # Construct the DASH proxy URL with proper parameter structure
-                            dash_proxy_base = "https://alphanet06-dash-proxy-server.hf.space"
-                            proxy_params = f"mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}&widevine.priority=0"
+                        # Add common dash.js parameters
+                        proxy_params += '&debug.logLevel=5'
+                        proxy_params += '&streaming.capabilities.supportedEssentialProperties.0.schemeIdUri=urn%3Advb%3Adash%3Afontdownload%3A2014'
+                        proxy_params += '&streaming.capabilities.supportedEssentialProperties.1.schemeIdUri=urn%3Ampeg%3AmpegB%3Acicp%3AColourPrimaries'
 
-                            # Add common dash.js parameters for better compatibility
-                            proxy_params += '&debug.logLevel=5'
-                            proxy_params += '&streaming.capabilities.supportedEssentialProperties.0.schemeIdUri=urn%3Advb%3Adash%3Afontdownload%3A2014'
-                            proxy_params += '&streaming.capabilities.supportedEssentialProperties.1.schemeIdUri=urn%3Ampeg%3AmpegB%3Acicp%3AColourPrimaries'
+                        final_url = f"{dash_proxy_base}/proxy?{proxy_params}"
+                        manifest_type = 'mpd'
 
-                            final_url = f"{dash_proxy_base}/proxy?{proxy_params}"
-                            manifest_type = 'mpd'
+                        safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
 
-                            safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated successfully")
-                            safe_print(f"✅ [MyTF1Provider] Original manifest URL: {video_url[:100]}...")
-                            safe_print(f"✅ [MyTF1Provider] Original license URL: {license_url[:100]}...")
-                            safe_print(f"✅ [MyTF1Provider] Encoded manifest: {encoded_manifest[:100]}...")
-                            safe_print(f"✅ [MyTF1Provider] Encoded license: {encoded_license[:100]}...")
-
-                        except Exception as e:
-                            safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
-                            safe_print(f"❌ [MyTF1Provider] Video URL: {video_url}")
-                            safe_print(f"❌ [MyTF1Provider] License URL: {license_url}")
-                            # Fallback to MediaFlow or direct URL
-                            final_url = video_url
-                            manifest_type = 'mpd'
-                    else:
-                        # Non-MPD streams use existing logic
+                    except Exception as e:
+                        safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
+                        # Fallback to MediaFlow or direct URL
                         final_url = video_url
-                        manifest_type = 'mpd' if is_mpd else 'hls'
-                # Use existing MediaFlow proxy for HLS streams or non-DRM MPD streams
-                if self.mediaflow_url and self.mediaflow_password:
+                        manifest_type = 'mpd'
+                else:
+                    # Use existing MediaFlow proxy for HLS streams or non-DRM MPD streams
+                    if self.mediaflow_url and self.mediaflow_password:
                         try:
                             # Determine the appropriate endpoint based on stream type
                             if is_hls:
@@ -1123,10 +1103,10 @@ class MyTF1Provider:
                             # Fallback to direct URL
                             final_url = video_url
                             manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
-                else:
-                    # No MediaFlow, use direct URL
-                    final_url = video_url
-                    manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+                    else:
+                        # No MediaFlow, use direct URL
+                        final_url = video_url
+                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
                 stream_info = {
                     "url": final_url,
