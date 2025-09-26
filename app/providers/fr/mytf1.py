@@ -1041,24 +1041,23 @@ class MyTF1Provider:
 
                         # Construct the DASH proxy URL
                         dash_proxy_base = "https://alphanet06-dash-proxy-server.hf.space"
-                        proxy_params = f"mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}"
+                        proxy_params = f"mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}&widevine.priority=0"
 
                         # Add common dash.js parameters
-                        #proxy_params += '&debug.logLevel=5'
-                        #proxy_params += '&streaming.capabilities.supportedEssentialProperties.0.schemeIdUri=urn%3Advb%3Adash%3Afontdownload%3A2014'
-                        #proxy_params += '&streaming.capabilities.supportedEssentialProperties.1.schemeIdUri=urn%3Ampeg%3AmpegB%3Acicp%3AColourPrimaries'
+                        proxy_params += '&debug.logLevel=5'
+                        proxy_params += '&streaming.capabilities.supportedEssentialProperties.0.schemeIdUri=urn%3Advb%3Adash%3Afontdownload%3A2014'
+                        proxy_params += '&streaming.capabilities.supportedEssentialProperties.1.schemeIdUri=urn%3Ampeg%3AmpegB%3Acicp%3AColourPrimaries'
 
                         final_url = f"{dash_proxy_base}/proxy?{proxy_params}"
                         manifest_type = 'mpd'
 
                         safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
 
-                        # For DASH proxy streams, set both url and externalUrl for external fallback
+                        # For DASH proxy streams, use externalUrl to open in browser (not url)
                         stream_info = {
-                            "externalUrl": final_url,  # Open externally when internal playback fails
-                            "url": final_url,  # Stremio will try this first (DASH stream)
-                            "manifest_type": manifest_type,
-                            "headers": headers_video_stream
+                            "externalUrl": final_url,  # The DASH proxy URL to open in browser
+                            "manifest_type": "external",  # Mark as external to prevent internal playback
+                            "title": "DASH Stream (Browser Required)"
                         }
 
                         # Add license info if available
