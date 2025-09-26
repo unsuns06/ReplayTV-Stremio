@@ -1051,7 +1051,7 @@ class MyTF1Provider:
                         final_url = f"{dash_proxy_base}/proxy?{proxy_params}"
                         manifest_type = 'mpd'
 
-                        safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url[:100]}...")
+                        safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
 
                     except Exception as e:
                         safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
