@@ -58,7 +58,8 @@ async def get_stream(type: str, id: str, request: Request):
                     headers= merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=merged_license_headers
+                    licenseHeaders=merged_license_headers,
+                    externalUrl=stream_info.get('externalUrl')
                 )
                 return StreamResponse(streams=[stream])
             else:
@@ -105,7 +106,8 @@ async def get_stream(type: str, id: str, request: Request):
                 logger.info(f"✅ France TV returned stream info: {stream_info.get('manifest_type', 'unknown')}")
                 stream = Stream(
                     url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream"
+                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    externalUrl=stream_info.get('externalUrl')
                 )
                 return StreamResponse(streams=[stream])
             else:
@@ -167,7 +169,8 @@ async def get_stream(type: str, id: str, request: Request):
                     headers= merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=merged_license_headers
+                    licenseHeaders=merged_license_headers,
+                    externalUrl=stream_info.get('externalUrl')
                 )
                 return StreamResponse(streams=[stream])
             else:
@@ -216,7 +219,8 @@ async def get_stream(type: str, id: str, request: Request):
                     headers=stream_info.get('headers'),
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=stream_info.get('licenseHeaders')
+                    licenseHeaders=stream_info.get('licenseHeaders'),
+                    externalUrl=stream_info.get('externalUrl')
                 )
                 return StreamResponse(streams=[stream])
             else:

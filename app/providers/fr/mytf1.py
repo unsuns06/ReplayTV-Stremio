@@ -1053,11 +1053,29 @@ class MyTF1Provider:
 
                         safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
 
+                        # For DASH proxy streams, set externalUrl to open in browser
+                        stream_info = {
+                            "url": final_url,  # This will be opened externally
+                            "externalUrl": final_url,  # The actual DASH proxy URL to open in browser
+                            "manifest_type": manifest_type,
+                            "headers": headers_video_stream
+                        }
+
+                        # Add license info if available
+                        if license_url:
+                            stream_info["licenseUrl"] = license_url
+                            if license_headers:
+                                stream_info["licenseHeaders"] = license_headers
+
+                        safe_print(f"✅ [MyTF1Provider] MyTF1 DASH proxy stream info prepared: manifest_type={stream_info['manifest_type']}")
+                        return stream_info
+
                     except Exception as e:
                         safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
                         # Fallback to MediaFlow or direct URL
                         final_url = video_url
                         manifest_type = 'mpd'
+                        # Continue to MediaFlow fallback logic
                 else:
                     # Use existing MediaFlow proxy for HLS streams or non-DRM MPD streams
                     if self.mediaflow_url and self.mediaflow_password:
@@ -1108,18 +1126,19 @@ class MyTF1Provider:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
+                # For non-DASH proxy streams, construct stream_info normally
                 stream_info = {
                     "url": final_url,
                     "manifest_type": manifest_type,
                     "headers": headers_video_stream
                 }
-                
+
                 # Add license info to stream_info if available
                 if license_url:
                     stream_info["licenseUrl"] = license_url
                     if license_headers:
                         stream_info["licenseHeaders"] = license_headers
-                
+
                 safe_print(f"✅ [MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
                 return stream_info
             else:
