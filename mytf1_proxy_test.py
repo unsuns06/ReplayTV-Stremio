@@ -29,7 +29,7 @@ class MyTF1ProxyTester:
         self.video_stream_url = "https://mediainfo.tf1.fr/mediainfocombo"
         self.api_url = "https://www.tf1.fr/graphql/web"
         self.license_base_url = 'https://drm-wide.tf1.fr/proxy?id=%s'
-        self.proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+        self.proxy_base = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': get_random_windows_ua()

@@ -137,10 +137,6 @@ class MyTF1Provider:
                 # Forward viewer IP to upstream servers (critical for geo-restricted content)
                 current_headers = merge_ip_headers(current_headers)
 
-                # Optional per-request proxy support via env
-                proxy_env = os.getenv('MYTF1_HTTP_PROXY')
-                proxies = {'http': proxy_env, 'https': proxy_env} if proxy_env else None
-
                 
                 safe_print(f"✅ [MyTF1] API call attempt {attempt + 1}/{max_retries}: {url}")
                 if params:
@@ -156,13 +152,13 @@ class MyTF1Provider:
                     if data:
                         # Check if we need form data or JSON based on Content-Type
                         if current_headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15)
                         else:
-                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15, proxies=proxies)
+                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15)
                     else:
-                        response = self.session.post(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                        response = self.session.post(url, params=params, headers=current_headers, timeout=15)
                 else:
-                    response = self.session.get(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
+                    response = self.session.get(url, params=params, headers=current_headers, timeout=15)
                 
                 if response.status_code == 200:
                     # Log response details for debugging
@@ -634,20 +630,20 @@ class MyTF1Provider:
         """Get stream URL for a specific channel with robust error handling and fallbacks"""
         # Extract the actual channel name from our ID format
         channel_name = channel_id.split(":")[-1]  # e.g., "tf1"
-
+        
         try:
             safe_print(f"✅ [MyTF1Provider] Getting stream for channel: {channel_name}")
-
+            
             # Lazy authentication - only authenticate when needed
             safe_print("✅ [MyTF1Provider] Checking authentication...")
             if not self._authenticated and not self._authenticate():
                 safe_print("❌ [MyTF1Provider] MyTF1 authentication failed")
                 return None
-
+                
             # TF1 live streams use 'L_' prefix (e.g., 'L_TF1')
             video_id = f'L_{channel_name.upper()}'
             safe_print(f"✅ [MyTF1Provider] Using video ID: {video_id}")
-
+            
             # Get the actual stream URL using the mediainfo API
             headers_video_stream = {
                 "User-Agent": get_random_windows_ua(),
@@ -656,22 +652,10 @@ class MyTF1Provider:
                 "referer": self.base_url,
                 "origin": self.base_url,
                 # Hint FR locale to upstream
-                "accept-language": "fr-FR,fr;q=0.9,en;q=0.8,en-US;q=0.7",
+                "accept-language": "fr-FR,fr;q=0.9",
                 # Some stacks require explicit Accept for JSON
                 "accept": "application/json, text/plain, */*",
-                # Additional headers to help with geo-blocking
-                "Accept-Encoding": "gzip, deflate, br",
-                "Accept-Charset": "UTF-8,*;q=0.5",
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                # Additional security headers that might help
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-                "Sec-GPC": "1",
-                # Content Security Policy headers that might be checked
-                "DNT": "1",
-                "Upgrade-Insecure-Requests": "1",
+            
             }
             if self.viewer_ip_headers:
                 headers_video_stream.update(self.viewer_ip_headers)
@@ -693,53 +677,36 @@ class MyTF1Provider:
             
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
             
-            # Try multiple proxy services to avoid geo-blocking
+            # Prefer French IP proxy first (two variants), then fall back to direct
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
-
-            # Multiple French proxy services to try in order
-            proxy_services = [
-                "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url=",
-                "https://api.allorigins.win/raw?url=",  # Alternative proxy service
-                "https://cors-anywhere.herokuapp.com/",  # Another alternative
-            ]
+            proxy_base_no_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxy_base_with_slash = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router/?url="
+            # FORCE URL DECODING FOR ALL TF1 PROXY REQUESTS - Critical to avoid double-encoding issues
+            decoded_url = force_decode_tf1_replay_url(dest_with_params)
+            proxied_url_no_slash = proxy_base_no_slash + quote(decoded_url, safe="")
+            proxied_url_with_slash = proxy_base_with_slash + quote(decoded_url, safe="")
 
             json_parser = None
-
-            # Try each proxy service in order
-            for i, proxy_base in enumerate(proxy_services):
-                try:
-                    # Use URL encoding (Variant 2) - proven to work best
-                    proxied_url = proxy_base + quote(dest_with_params, safe="")
-
-                    safe_print(f"✅ [MyTF1Provider] Trying TF1 LIVE stream through proxy {i+1}/{len(proxy_services)}: {proxy_base[:50]}...")
-                    data_try = self._safe_api_call(proxied_url, headers=headers_video_stream, max_retries=2)
-                    safe_print(f"✅ *** FINAL PROXY URL (LIVE) {i+1}: {proxied_url}")
-
-                    # Check if the response is successful and not geo-blocked
-                    if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
-                        # Additional check: ensure the country is not US (geo-blocked)
-                        delivery_country = data_try.get('delivery', {}).get('country', 'UNKNOWN')
-                        if delivery_country != 'US':
-                            json_parser = data_try
-                            safe_print(f"✅ [MyTF1Provider] Proxy {i+1} successful for live stream - Country: {delivery_country}")
-                            break
-                        else:
-                            safe_print(f"❌ [MyTF1Provider] Proxy {i+1} returned US country (still geo-blocked)")
-                            continue
-                    else:
-                        safe_print(f"❌ [MyTF1Provider] Proxy {i+1} failed or returned error code")
-                        continue
-
-                except Exception as e:
-                    safe_print(f"❌ [MyTF1Provider] Error with proxy {i+1}: {e}")
-                    continue
-
-            # If all proxies failed, try direct call as last resort
-            if not json_parser:
-                safe_print("❌ All proxies failed for live; trying direct call as last resort...")
-                safe_print(f"✅ [MyTF1Provider] Making DIRECT request for live feed: {url_json}")
-                safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
-                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
+            safe_print(f"✅ [MyTF1Provider] Trying TF1 LIVE stream through FR-IP proxy with FORCE URL DECODING (no slash): {proxied_url_no_slash}")
+            data_try = self._safe_api_call(proxied_url_no_slash, headers=headers_video_stream)
+            # Log the primary proxy attempt URL regardless of outcome for traceability
+            safe_print(f"✅ *** FINAL PROXY URL (LIVE): {proxied_url_no_slash}")
+            if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
+                json_parser = data_try
+            else:
+                safe_print("❌ FR-IP proxy (no slash) failed; trying variant with slash...")
+                safe_print(f"✅ [MyTF1Provider] Trying TF1 LIVE stream through FR-IP proxy with FORCE URL DECODING (with slash): {proxied_url_with_slash}")
+                data_try = self._safe_api_call(proxied_url_with_slash, headers=headers_video_stream)
+                if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
+                    safe_print(f"✅ *** FINAL PROXY URL (LIVE): {proxied_url_with_slash}")
+                    json_parser = data_try
+                else:
+                    # Log final attempted proxy URL even if failing for visibility in tests/logs
+                    safe_print(f"❌ *** FINAL PROXY URL (LIVE): {proxied_url_with_slash}")
+                    safe_print("❌ FR-IP proxy (with slash) failed; falling back to direct call...")
+                    safe_print(f"✅ [MyTF1Provider] Making DIRECT request for live feed: {url_json}")
+                    safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
+                    json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
 
             if json_parser:
                 safe_print(f"✅ [MyTF1Provider] Stream API response received for {video_id}")
@@ -807,7 +774,7 @@ class MyTF1Provider:
                             license_headers=license_headers
                         )
                         safe_print(f"✅ *** FINAL MEDIAFLOW URL (LIVE): {final_url}")
-                        manifest_type = 'hls' if is_hls else 'mpd'
+                        manifest_type = 'hls'  # MediaFlow converts everything to HLS
                     else:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else 'mpd'
@@ -843,16 +810,16 @@ class MyTF1Provider:
             actual_episode_id = episode_id.split("episode:")[-1]
         else:
             actual_episode_id = episode_id
-
+        
         try:
             safe_print(f"✅ [MyTF1Provider] Getting replay stream for MyTF1 episode: {actual_episode_id}")
-
+            
             # Lazy authentication - only authenticate when needed
             safe_print("✅ [MyTF1Provider] Checking authentication...")
             if not self._authenticated and not self._authenticate():
                 safe_print("❌ [MyTF1Provider] MyTF1 authentication failed")
                 return None
-
+            
             # Use the same approach as the reference plugin for replay content
             headers_video_stream = {
                 "authorization": f"Bearer {self.auth_token}",
@@ -860,22 +827,10 @@ class MyTF1Provider:
                 "referer": self.base_url,
                 "origin": self.base_url,
                 # Hint FR locale to upstream
-                "accept-language": "fr-FR,fr;q=0.9,en;q=0.8,en-US;q=0.7",
+                "accept-language": "fr-FR,fr;q=0.9",
                 # Some stacks require explicit Accept for JSON
                 "accept": "application/json, text/plain, */*",
-                # Additional headers to help with geo-blocking
-                "Accept-Encoding": "gzip, deflate, br",
-                "Accept-Charset": "UTF-8,*;q=0.5",
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                # Additional security headers that might help
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-                "Sec-GPC": "1",
-                # Content Security Policy headers that might be checked
-                "DNT": "1",
-                "Upgrade-Insecure-Requests": "1",
+            
             }
             if self.viewer_ip_headers:
                 headers_video_stream.update(self.viewer_ip_headers)
@@ -895,50 +850,24 @@ class MyTF1Provider:
             
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
             
-            # Try multiple proxy services for replay streams (CRITICAL for success)
+            # TF1 REPLAY - Force French IP proxy with enhanced URL decoding
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
-
-            # Multiple proxy services to try in order for replay content
-            proxy_services = [
-                "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url=",
-                "https://api.allorigins.win/raw?url=",  # Alternative proxy service
-                "https://cors-anywhere.herokuapp.com/",  # Another alternative
-            ]
+            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            
+            # FORCE URL DECODING FOR ALL TF1 PROXY REQUESTS - Critical to avoid double-encoding issues
+            decoded_url = force_decode_tf1_replay_url(dest_with_params)
+            proxied_url = proxy_base + quote(decoded_url, safe="")
 
             json_parser = None
+            safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through FR-IP proxy with FORCE URL DECODING: {proxied_url}")
+            data_try = self._safe_api_call(proxied_url, headers=headers_video_stream)
+            safe_print(f"✅ *** FINAL PROXY URL (TF1 REPLAY): {proxied_url}")
 
-            # Try each proxy service in order for replay content
-            for i, proxy_base in enumerate(proxy_services):
-                try:
-                    # Use URL encoding (Variant 2) - proven to work best and get 200 responses
-                    proxied_url = proxy_base + quote(dest_with_params, safe="")
-
-                    safe_print(f"✅ [MyTF1Provider] Trying TF1 REPLAY stream through proxy {i+1}/{len(proxy_services)}: {proxy_base[:50]}...")
-                    data_try = self._safe_api_call(proxied_url, headers=headers_video_stream, max_retries=2)
-                    safe_print(f"✅ *** FINAL PROXY URL (TF1 REPLAY) {i+1}: {proxied_url}")
-
-                    # Check if the response is successful and not geo-blocked
-                    if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
-                        # Additional check: ensure the country is not US (geo-blocked)
-                        delivery_country = data_try.get('delivery', {}).get('country', 'UNKNOWN')
-                        if delivery_country != 'US':
-                            json_parser = data_try
-                            safe_print(f"✅ [MyTF1Provider] Proxy {i+1} successful for TF1 REPLAY - Country: {delivery_country}")
-                            break
-                        else:
-                            safe_print(f"❌ [MyTF1Provider] Proxy {i+1} returned US country (still geo-blocked)")
-                            continue
-                    else:
-                        safe_print(f"❌ [MyTF1Provider] Proxy {i+1} failed or returned error code")
-                        continue
-
-                except Exception as e:
-                    safe_print(f"❌ [MyTF1Provider] Error with proxy {i+1}: {e}")
-                    continue
-
-            # CRITICAL: If all proxies failed, try direct call as last resort (will likely fail with 403)
-            if not json_parser:
-                safe_print("❌ All proxies failed for TF1 REPLAY; trying direct call as last resort (will likely fail)...")
+            if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
+                json_parser = data_try
+                safe_print(f"✅ [MyTF1Provider] TF1 REPLAY proxy with force URL decoding succeeded!")
+            else:
+                safe_print("❌ FR-IP proxy for TF1 REPLAY with force decoding failed; falling back to direct call...")
                 safe_print(f"✅ [MyTF1Provider] Making DIRECT request for replay feed: {url_json}")
                 safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
                 json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
@@ -1013,7 +942,7 @@ class MyTF1Provider:
                         )
                         
                         safe_print(f"✅ *** FINAL MEDIAFLOW URL (REPLAY): {final_url}")
-                        manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+                        manifest_type = 'hls'  # MediaFlow always returns HLS
                         
                         safe_print(f"✅ [MyTF1Provider] MediaFlow URL with DRM support generated: {final_url[:50]}...")
                         
