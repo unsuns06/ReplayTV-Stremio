@@ -146,33 +146,79 @@ async def get_stream(type: str, id: str, request: Request):
                 }])
             
             # Get stream URL for the episode
-            stream_info = provider.get_episode_stream_url(episode_id)
-            
-            if stream_info:
-                logger.info(f"✅ TF1+ returned stream info: {stream_info.get('manifest_type', 'unknown')}")
+            stream_result = provider.get_episode_stream_url(episode_id)
 
-                # Merge any provider-specified headers with viewer IP headers
-                merged_headers = {}
-                if stream_info.get('headers'):
-                    merged_headers.update(stream_info.get('headers'))
-                merged_headers.update(make_ip_headers())
+            if stream_result:
+                # Handle both single stream and multiple streams
+                if "streams" in stream_result:
+                    # Multiple streams returned (e.g., DASH proxy + internal options)
+                    streams = []
+                    for stream_info in stream_result["streams"]:
+                        logger.info(f"✅ TF1+ returned stream: {stream_info.get('title', 'Unknown')}")
 
-                # Merge license headers too, if provided
-                merged_license_headers = None
-                if stream_info.get('licenseHeaders'):
-                    merged_license_headers = dict(stream_info.get('licenseHeaders'))
-                    merged_license_headers.update(make_ip_headers())
+                        # Handle external streams (DASH proxy)
+                        if stream_info.get('externalUrl') and stream_info.get('manifest_type') == 'external':
+                            stream = Stream(
+                                externalUrl=stream_info["externalUrl"],
+                                title=stream_info.get('title', 'External DASH Stream')
+                            )
+                        else:
+                            # Regular stream processing
+                            merged_headers = {}
+                            if stream_info.get('headers'):
+                                merged_headers.update(stream_info.get('headers'))
+                            merged_headers.update(make_ip_headers())
 
-                stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                    headers= merged_headers if merged_headers else None,
-                    manifest_type=stream_info.get('manifest_type'),
-                    licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=merged_license_headers,
-                    externalUrl=stream_info.get('externalUrl')
-                )
-                return StreamResponse(streams=[stream])
+                            merged_license_headers = None
+                            if stream_info.get('licenseHeaders'):
+                                merged_license_headers = dict(stream_info.get('licenseHeaders'))
+                                merged_license_headers.update(make_ip_headers())
+
+                            stream = Stream(
+                                url=stream_info["url"],
+                                title=stream_info.get('title', f"{stream_info.get('manifest_type', 'hls').upper()} Stream"),
+                                headers=merged_headers if merged_headers else None,
+                                manifest_type=stream_info.get('manifest_type'),
+                                licenseUrl=stream_info.get('licenseUrl'),
+                                licenseHeaders=merged_license_headers
+                            )
+
+                        streams.append(stream)
+
+                    return StreamResponse(streams=streams)
+                else:
+                    # Single stream returned (legacy format)
+                    stream_info = stream_result
+                    logger.info(f"✅ TF1+ returned stream info: {stream_info.get('manifest_type', 'unknown')}")
+
+                    # Handle external streams (DASH proxy)
+                    if stream_info.get('externalUrl') and stream_info.get('manifest_type') == 'external':
+                        stream = Stream(
+                            externalUrl=stream_info["externalUrl"],
+                            title=stream_info.get('title', 'External DASH Stream')
+                        )
+                    else:
+                        # Regular stream processing
+                        merged_headers = {}
+                        if stream_info.get('headers'):
+                            merged_headers.update(stream_info.get('headers'))
+                        merged_headers.update(make_ip_headers())
+
+                        merged_license_headers = None
+                        if stream_info.get('licenseHeaders'):
+                            merged_license_headers = dict(stream_info.get('licenseHeaders'))
+                            merged_license_headers.update(make_ip_headers())
+
+                        stream = Stream(
+                            url=stream_info["url"],
+                            title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                            headers=merged_headers if merged_headers else None,
+                            manifest_type=stream_info.get('manifest_type'),
+                            licenseUrl=stream_info.get('licenseUrl'),
+                            licenseHeaders=merged_license_headers
+                        )
+
+                    return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ TF1+ returned no stream info for episode: {episode_id}")
                 # Failed to get stream info
