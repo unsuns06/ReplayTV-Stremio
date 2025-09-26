@@ -1030,10 +1030,10 @@ class MyTF1Provider:
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
 
-                # For DRM-protected MPD streams (replays only), use external DASH proxy directly
+                # For DRM-protected MPD streams (replays only), use external DASH proxy
                 if is_mpd and license_url:
                     try:
-                        safe_print(f"✅ [MyTF1Provider] Using DASH proxy directly for DRM-protected MPD replay stream")
+                        safe_print(f"✅ [MyTF1Provider] Using DASH proxy for DRM-protected MPD replay stream")
 
                         # URL encode the manifest and license URLs (NOT base64)
                         encoded_manifest = quote(video_url, safe='')
@@ -1058,6 +1058,24 @@ class MyTF1Provider:
                         # Fallback to MediaFlow or direct URL
                         final_url = video_url
                         manifest_type = 'mpd'
+
+                # For DASH proxy streams, return as external URL for external player
+                if is_mpd and license_url and 'dash_proxy_base' in locals():
+                    stream_info = {
+                        "externalUrl": final_url,
+                        "manifest_type": manifest_type,
+                        "headers": headers_video_stream,
+                        "title": "MyTF1 Replay (External Player)"
+                    }
+
+                    # Add license info if available
+                    if license_url:
+                        stream_info["licenseUrl"] = license_url
+                        if license_headers:
+                            stream_info["licenseHeaders"] = license_headers
+
+                    safe_print(f"✅ [MyTF1Provider] Using external URL for DASH proxy: {final_url[:100]}...")
+                    return stream_info
                 else:
                     # Use existing MediaFlow proxy for HLS streams or non-DRM MPD streams
                     if self.mediaflow_url and self.mediaflow_password:
@@ -1108,12 +1126,22 @@ class MyTF1Provider:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
-                stream_info = {
-                    "url": final_url,
-                    "manifest_type": manifest_type,
-                    "headers": headers_video_stream
-                }
-                
+                # For DASH proxy streams, use externalUrl instead of direct url
+                if is_mpd and license_url and 'dash_proxy_base' in locals() and 'alphanet06-dash-proxy-server' in final_url:
+                    stream_info = {
+                        "externalUrl": final_url,
+                        "manifest_type": manifest_type,
+                        "headers": headers_video_stream,
+                        "title": "MyTF1 Replay (External Player)"
+                    }
+                    safe_print(f"✅ [MyTF1Provider] Using external URL for DASH proxy in fallback: {final_url[:100]}...")
+                else:
+                    stream_info = {
+                        "url": final_url,
+                        "manifest_type": manifest_type,
+                        "headers": headers_video_stream
+                    }
+
                 # Add license info to stream_info if available
                 if license_url:
                     stream_info["licenseUrl"] = license_url
