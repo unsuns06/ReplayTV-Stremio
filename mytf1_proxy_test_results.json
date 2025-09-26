@@ -41,13 +41,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -55,19 +55,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -79,15 +79,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -97,7 +97,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -123,7 +123,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -131,7 +131,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -166,7 +166,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ2OSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNjksImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.36CYxi4fHe_nolBUenK_GUdcx37_n18dbhCSqMK6LNQ/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.5pgK0g1R6LehHHjdXyfBmuOdFHfT3yYKe0bQ06CwSBg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -197,13 +197,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -211,19 +211,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -235,15 +235,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -253,7 +253,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -279,7 +279,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -287,7 +287,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -308,7 +308,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ2OSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNjksImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.36CYxi4fHe_nolBUenK_GUdcx37_n18dbhCSqMK6LNQ/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.5pgK0g1R6LehHHjdXyfBmuOdFHfT3yYKe0bQ06CwSBg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -322,7 +322,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3MCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9._H4fsCKqe4NJ4XcBJ78MB_e_WVraeH_nw65AsXAVeZE/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjYsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY2LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.2kmjTxPWfuHzHIXKv3lU0QOCRh30XcOMjbaoDYywbMg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -353,13 +353,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -367,19 +367,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -391,15 +391,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -409,7 +409,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -435,7 +435,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -443,7 +443,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -464,7 +464,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3MCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9._H4fsCKqe4NJ4XcBJ78MB_e_WVraeH_nw65AsXAVeZE/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjYsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY2LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.2kmjTxPWfuHzHIXKv3lU0QOCRh30XcOMjbaoDYywbMg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -478,7 +478,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3MiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.F3HgONEECtAU8qGe0YMI8TDybGZBSngNPJbaX39tb0s/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.ZhBkZ5kbiIMxzzb_s0mEv0cEbpZyqgRmBMpLzZF0BIA/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -509,13 +509,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -523,19 +523,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -547,15 +547,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -565,7 +565,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -591,7 +591,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -599,7 +599,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -620,7 +620,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3MiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.F3HgONEECtAU8qGe0YMI8TDybGZBSngNPJbaX39tb0s/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.ZhBkZ5kbiIMxzzb_s0mEv0cEbpZyqgRmBMpLzZF0BIA/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -667,13 +667,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -681,19 +681,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -705,15 +705,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -723,7 +723,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -749,7 +749,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -757,7 +757,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -791,7 +791,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzQsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.5rtJaBAagZFrJsX2WIwMsQFv2o2S8in02n_ToKZjqUI/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjksImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY5LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.SY_AmzXuubpfz_F65KAjuMElH0WCipm41FaHboSsFZA/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -822,13 +822,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -836,19 +836,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -860,15 +860,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -878,7 +878,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -904,7 +904,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -912,7 +912,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -933,7 +933,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzQsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.5rtJaBAagZFrJsX2WIwMsQFv2o2S8in02n_ToKZjqUI/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjksImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY5LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.SY_AmzXuubpfz_F65KAjuMElH0WCipm41FaHboSsFZA/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -947,7 +947,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzUsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.exdHzYFY0zmfRFp1adZt5PJfBC0SchCOqctrlZpxa0I/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzAsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTcwLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.3ZPSme0r1iGHPMGgwiL1MBScloJq58yfo5sAkKcsORg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -978,13 +978,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -992,19 +992,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -1016,15 +1016,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -1034,7 +1034,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -1060,7 +1060,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -1068,7 +1068,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -1089,7 +1089,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzUsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.exdHzYFY0zmfRFp1adZt5PJfBC0SchCOqctrlZpxa0I/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzAsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTcwLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.3ZPSme0r1iGHPMGgwiL1MBScloJq58yfo5sAkKcsORg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -1103,7 +1103,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.GtNntt2HBZlQZQiaRg9PCcsb61aMp7itOmbfR6x-ZlU/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTcxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.tyd9CRRFOsM1ZM-CVDhCxrNqJnQedD00sz1IVNMka3A/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -1134,13 +1134,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -1148,19 +1148,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -1172,15 +1172,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -1190,7 +1190,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -1216,7 +1216,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -1224,7 +1224,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -1245,7 +1245,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.GtNntt2HBZlQZQiaRg9PCcsb61aMp7itOmbfR6x-ZlU/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTcxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.tyd9CRRFOsM1ZM-CVDhCxrNqJnQedD00sz1IVNMka3A/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -1259,7 +1259,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzcsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.LnqIyd7QnI7nXr0u96iQ-dyQEBTaTuqyzrTghn5EmOQ/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzMsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTczLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.OM3fHS_Wb7CTe4bIFx2UuLhjOr2LrkbdDLl4Wsq3xTg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -1290,13 +1290,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -1304,19 +1304,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -1328,15 +1328,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -1346,7 +1346,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -1372,7 +1372,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -1380,7 +1380,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -1401,7 +1401,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3NywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzcsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.LnqIyd7QnI7nXr0u96iQ-dyQEBTaTuqyzrTghn5EmOQ/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzMsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTczLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.OM3fHS_Wb7CTe4bIFx2UuLhjOr2LrkbdDLl4Wsq3xTg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -1415,7 +1415,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3OSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzksImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.asZsVgtDiNW4Kiah9ZZzEr90MQiJ2ZOqP8NAS4Hd-CY/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.PtXViY-AMbJhVhbOB2VKHaBhZVaeTUScGsvBDKuouZ8/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -1446,13 +1446,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -1460,19 +1460,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -1484,15 +1484,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -1502,7 +1502,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -1528,7 +1528,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -1536,7 +1536,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -1557,7 +1557,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ3OSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNzksImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.asZsVgtDiNW4Kiah9ZZzEr90MQiJ2ZOqP8NAS4Hd-CY/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.PtXViY-AMbJhVhbOB2VKHaBhZVaeTUScGsvBDKuouZ8/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -1571,7 +1571,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.OKRtExq5qiprOrMSvBTb8teXkNp2OGwVVt_z7k4vdDc/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzUsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc1LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.kjfnajkZNZsSPfIWw_xFC_THbBVdPk9mkdR1l63qfzo/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -1602,13 +1602,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -1616,19 +1616,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -1640,15 +1640,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -1658,7 +1658,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -1684,7 +1684,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -1692,7 +1692,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -1713,7 +1713,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.OKRtExq5qiprOrMSvBTb8teXkNp2OGwVVt_z7k4vdDc/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzUsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc1LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.kjfnajkZNZsSPfIWw_xFC_THbBVdPk9mkdR1l63qfzo/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -1727,7 +1727,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODEsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.DHIq9H2nhCQCvIIRdmjHlCMKbDD_vLLAaw9xz6yZqxs/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzYsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc2LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.QyL6zVancbGDepycfZhnwUj49D1H6c-ZIp1bQ7pvzro/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -1758,13 +1758,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -1772,19 +1772,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -1796,15 +1796,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -1814,7 +1814,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -1840,7 +1840,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -1848,7 +1848,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -1869,7 +1869,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODEsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.DHIq9H2nhCQCvIIRdmjHlCMKbDD_vLLAaw9xz6yZqxs/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzYsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc2LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.QyL6zVancbGDepycfZhnwUj49D1H6c-ZIp1bQ7pvzro/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -1883,7 +1883,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.2wNPmEC4aHi7sP2e9yvAjZlDfOusVYB8Wt7r2SHoasg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.wlE5tFnl0rBju5QuZJ_F0mZWNNmInfUV00FJ-ShtW8M/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -1914,13 +1914,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -1928,19 +1928,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -1952,15 +1952,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -1970,7 +1970,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -1996,7 +1996,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -2004,7 +2004,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -2025,7 +2025,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.2wNPmEC4aHi7sP2e9yvAjZlDfOusVYB8Wt7r2SHoasg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.wlE5tFnl0rBju5QuZJ_F0mZWNNmInfUV00FJ-ShtW8M/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -2039,7 +2039,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODMsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.ReIvcxLeW3glqkwTZOExCLNVgOlLxYzAQrR9qaFbN3Y/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzksImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc5LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.C1IyvH0i2aMpPvpbMiuoNQljPm7_N2cn43Z1oBhNZgk/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -2070,13 +2070,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -2084,19 +2084,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -2108,15 +2108,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -2126,7 +2126,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -2152,7 +2152,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -2160,7 +2160,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -2181,7 +2181,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4MywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODMsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.ReIvcxLeW3glqkwTZOExCLNVgOlLxYzAQrR9qaFbN3Y/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNzksImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTc5LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.C1IyvH0i2aMpPvpbMiuoNQljPm7_N2cn43Z1oBhNZgk/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -2195,7 +2195,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4NSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODUsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.g1K1Dng0nEcV3bP7sgMC5qLTJmf5kaWcekCees1cbfU/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzODAsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTgwLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.cs8Pnqf-QaVqf7NlksF-pdY3WTaBUaGnlbUZ95c7xYg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -2226,13 +2226,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -2240,19 +2240,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -2264,15 +2264,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -2282,7 +2282,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -2308,7 +2308,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -2316,7 +2316,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -2337,7 +2337,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ4NSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwODUsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.g1K1Dng0nEcV3bP7sgMC5qLTJmf5kaWcekCees1cbfU/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzODAsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTgwLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.cs8Pnqf-QaVqf7NlksF-pdY3WTaBUaGnlbUZ95c7xYg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -2574,8 +2574,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -2777,20 +2777,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -2805,8 +2805,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDcsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.6l05IZDaar-qBxJztx-Xw-fR7F3xPcQgTu6Vd04hUWA/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDIsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAyLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.6NWhi6_rfNUCoozEMldLjO2zT4wVbZL2ybnsH6YJ1Ds/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -3008,20 +3008,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDcsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.6l05IZDaar-qBxJztx-Xw-fR7F3xPcQgTu6Vd04hUWA/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDIsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAyLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.6NWhi6_rfNUCoozEMldLjO2zT4wVbZL2ybnsH6YJ1Ds/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -3036,8 +3036,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwOCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDgsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.turIjEvT6zvghm-riu748U-HtM0TM-7vqlYLPadebwk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDMsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAzLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.1BKUe13KzA7vvxaWmLGlO-_aYILVuNCVMPoe5aoYSmE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -3239,20 +3239,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwOCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDgsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.turIjEvT6zvghm-riu748U-HtM0TM-7vqlYLPadebwk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDMsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAzLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.1BKUe13KzA7vvxaWmLGlO-_aYILVuNCVMPoe5aoYSmE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -3267,8 +3267,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.Pmf6MWMqlx2lYNpQe0OBroch37la9gJZo05Q-AhQS-U/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.biEIqYnd7XBzioGQVPvsrH_B-ybdySpL-emD_y2AlCE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -3470,20 +3470,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.Pmf6MWMqlx2lYNpQe0OBroch37la9gJZo05Q-AhQS-U/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.biEIqYnd7XBzioGQVPvsrH_B-ybdySpL-emD_y2AlCE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -3498,8 +3498,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTEsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.kDaON8QQL_YDdqDpCNZcuoLrxxJ4HnatztQ0LqQ4ZZk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDUsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA1LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.3czLMt_L7Sx9olHAdtG_GZyKjyJ6pqwgUlQXc1aiuu4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -3701,20 +3701,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTEsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.kDaON8QQL_YDdqDpCNZcuoLrxxJ4HnatztQ0LqQ4ZZk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDUsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA1LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.3czLMt_L7Sx9olHAdtG_GZyKjyJ6pqwgUlQXc1aiuu4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -3729,8 +3729,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.y27TMA0GqpUoLVVYp1y4gGy86yT1_CUN55JD_oF7SfU/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.JHot_c_J4mES4HkljxbO5fZwa18L9CRXpBgQIjlipp4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -3932,20 +3932,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.y27TMA0GqpUoLVVYp1y4gGy86yT1_CUN55JD_oF7SfU/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.JHot_c_J4mES4HkljxbO5fZwa18L9CRXpBgQIjlipp4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -3960,8 +3960,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTMsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.BCLrC08f18Y2EZP0iZITAolj7C4bmqtYPwgtnfw_vOc/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDgsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA4LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.037ZC7lbumrNsf1eQztvYe-8J8ZaPezu7nUz_9wZ4j4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -4163,20 +4163,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTMsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.BCLrC08f18Y2EZP0iZITAolj7C4bmqtYPwgtnfw_vOc/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDgsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA4LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.037ZC7lbumrNsf1eQztvYe-8J8ZaPezu7nUz_9wZ4j4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -4206,9 +4206,9 @@
               "catalogCode": "fr-fr",
               "version": "v1.7.3",
               "execution": {
-                "start": 1758890099348199681,
-                "end": 1758890099349635585,
-                "time": 1436009
+                "start": 1758891994184485011,
+                "end": 1758891994186530869,
+                "time": 2045909
               }
             }
           }
@@ -4230,9 +4230,9 @@
               "catalogCode": "fr-fr",
               "version": "v1.7.3",
               "execution": {
-                "start": 1758890100542812364,
-                "end": 1758890100544637298,
-                "time": 1824994
+                "start": 1758891995456508847,
+                "end": 1758891995458171364,
+                "time": 1662559
               }
             }
           }
@@ -4254,9 +4254,9 @@
               "catalogCode": "fr-fr",
               "version": "v1.7.3",
               "execution": {
-                "start": 1758890101749718171,
-                "end": 1758890101754303726,
-                "time": 4585645
+                "start": 1758891996645542307,
+                "end": 1758891996647393295,
+                "time": 1851072
               }
             }
           }
@@ -4276,7 +4276,7 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/L_TMC%3Fcontext%3DMYTF1%26pver%3D5029000%26platform%3Dweb%26device%3Ddesktop%26os%3Dwindows%26osVersion%3D10.0%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.29.0%26productName%3Dmytf1%26productVersion%3D3.37.0%26format%3Dhls",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ2OSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNjksImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.36CYxi4fHe_nolBUenK_GUdcx37_n18dbhCSqMK6LNQ/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+        "delivery_url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.5pgK0g1R6LehHHjdXyfBmuOdFHfT3yYKe0bQ06CwSBg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
         "license_url": null,
         "has_drm": false,
         "response": {
@@ -4307,13 +4307,13 @@
             "sqPreview": "https://photos.tf1.fr/400/400/program-card-square-ace236-1934ec-0@1x.jpg",
             "channel": "tmc",
             "channel2": "TMC",
-            "liveTS": 1758887681,
+            "liveTS": 1758890862,
             "geolock": true,
-            "emId": 562737,
-            "startDate": "2025-09-26T11:54:41Z",
-            "endDate": "2025-09-26T12:47:42Z",
+            "emId": 562738,
+            "startDate": "2025-09-26T12:47:42Z",
+            "endDate": "2025-09-26T13:34:45Z",
             "syndicable": false,
-            "shortTitle": "Monk p\u00e8te les plombs",
+            "shortTitle": "Monk cherche une rempla\u00e7ante",
             "programName": "Monk",
             "channelLogo": "https://photos.tf1.fr/450/0/logo-tmc-2020-min-4fcb24-0add2d-0@1x.jpg",
             "programSlug": "monk",
@@ -4321,19 +4321,19 @@
             "attach": "TMC"
           },
           "content": {
-            "title": "monk-pete-les-plombs",
-            "emId": "562737"
+            "title": "monk-cherche-une-rempla\u00e7ante",
+            "emId": "562738"
           },
           "mediametrie": {
             "chapters": [
               {
-                "title": "monk-pete-les-plombs",
-                "estatTitle": "monk-pete-les-plombs",
+                "title": "monk-cherche-une-rempla\u00e7ante",
+                "estatTitle": "monk-cherche-une-rempla\u00e7ante",
                 "estatS1": "MYTF1",
                 "estatS2": "monk",
                 "estatS3": "live",
-                "estatS4": "2025-09-26_13:54:41",
-                "estatS5": "0_562737",
+                "estatS4": "2025-09-26_14:47:42",
+                "estatS5": "0_562738",
                 "estatGenre": "desktop_browsing_windows_html5"
               }
             ],
@@ -4345,15 +4345,15 @@
           },
           "nielsen": {
             "type": "content",
-            "assetId": 562737,
+            "assetId": 562738,
             "program": "monk",
-            "title": "monk-pete-les-plombs",
+            "title": "monk-cherche-une-rempla\u00e7ante",
             "channel": "tmc",
             "length": 86400,
             "isLive": "y",
             "climd": "LIVE",
             "clich": 11,
-            "clicn": 562737,
+            "clicn": 562738,
             "p3": "p3,Gratuit",
             "p4": "p4,L_TMC",
             "p5": "p5,live"
@@ -4363,7 +4363,7 @@
             "mediaType": "video",
             "mediaLevel2": 103,
             "mediaLabel": {
-              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-pete-les-plombs",
+              "label": "int::[CONTENTTYPE]::monk_TMC::null_null_monk-cherche-une-rempla\u00e7ante",
               "contentType": "live"
             },
             "refreshDuration": 30,
@@ -4389,7 +4389,7 @@
             "username": "monk_TMC",
             "transactionCode": "MYTF1",
             "media": {
-              "title": "monk-pete-les-plombs",
+              "title": "monk-cherche-une-rempla\u00e7ante",
               "duration": -1,
               "isLive": true
             },
@@ -4397,7 +4397,7 @@
               "content_id": "L_TMC",
               "genre": "desktop_browsing_windows_html5",
               "language": "FR",
-              "year": "2025-09-26_13:54:41",
+              "year": "2025-09-26_14:47:42",
               "owner": "monk_TMC"
             },
             "extraParams": {
@@ -4418,7 +4418,7 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDQ2OSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAwNjksImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MCwic3RlbSI6Ii9vdXQvdjEvNDRmY2IxYzc3NjI4NGYyZGE3YzExZWY5NDhkN2VmMzQvdG1jLWNtYWYiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.36CYxi4fHe_nolBUenK_GUdcx37_n18dbhCSqMK6LNQ/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
+            "url": "https://live-tmc-hls.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDYzNjQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkxOTY0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjAsInN0ZW0iOiIvb3V0L3YxLzQ0ZmNiMWM3NzYyODRmMmRhN2MxMWVmOTQ4ZDdlZjM0L3RtYy1jbWFmIiwic3ViIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIifQ.5pgK0g1R6LehHHjdXyfBmuOdFHfT3yYKe0bQ06CwSBg/out/v1/44fcb1c776284f2da7c11ef948d7ef34/tmc-cmaf/index.m3u8",
             "country": "FR",
             "format": "hls",
             "level": "Basic",
@@ -4444,8 +4444,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -4647,20 +4647,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],
@@ -4917,8 +4917,8 @@
           "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
           "success": true,
           "delivery_code": 200,
-          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
           "has_drm": true,
           "response": {
             "media": {
@@ -5120,20 +5120,20 @@
             },
             "delivery": {
               "code": 200,
-              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
               "country": "FR",
               "format": "dash",
               "drm": "widevine",
-              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
               "drms": [
                 {
                   "name": "widevine",
-                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 },
                 {
                   "name": "playready",
-                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 }
               ],
@@ -5148,8 +5148,8 @@
           "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
           "success": true,
           "delivery_code": 200,
-          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDcsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.6l05IZDaar-qBxJztx-Xw-fR7F3xPcQgTu6Vd04hUWA/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDIsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAyLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.6NWhi6_rfNUCoozEMldLjO2zT4wVbZL2ybnsH6YJ1Ds/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
           "has_drm": true,
           "response": {
             "media": {
@@ -5351,20 +5351,20 @@
             },
             "delivery": {
               "code": 200,
-              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDcsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.6l05IZDaar-qBxJztx-Xw-fR7F3xPcQgTu6Vd04hUWA/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDIsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAyLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.6NWhi6_rfNUCoozEMldLjO2zT4wVbZL2ybnsH6YJ1Ds/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
               "country": "FR",
               "format": "dash",
               "drm": "widevine",
-              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
               "drms": [
                 {
                   "name": "widevine",
-                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 },
                 {
                   "name": "playready",
-                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904507&id=14330874&pla=86400&rn=1&si=66d580411c73860d91ee52a343d3b487613995679d529d3d6c5e613193ab81fd&ssc=22a274b2-3ad4-4767-be2d-eb573e15f32a&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906402&id=14330874&pla=86400&rn=1&si=b96a6647d1feece36bb11dc4402d03875a847762713c6a3c13c8bdb42fc9186b&ssc=b1dcea5e-dd20-4554-8d57-eb15a4d36f42&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 }
               ],
@@ -5379,8 +5379,8 @@
           "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
           "success": true,
           "delivery_code": 200,
-          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwOCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDgsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.turIjEvT6zvghm-riu748U-HtM0TM-7vqlYLPadebwk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDMsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAzLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.1BKUe13KzA7vvxaWmLGlO-_aYILVuNCVMPoe5aoYSmE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
           "has_drm": true,
           "response": {
             "media": {
@@ -5582,20 +5582,20 @@
             },
             "delivery": {
               "code": 200,
-              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwOCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDgsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.turIjEvT6zvghm-riu748U-HtM0TM-7vqlYLPadebwk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDMsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAzLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.1BKUe13KzA7vvxaWmLGlO-_aYILVuNCVMPoe5aoYSmE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
               "country": "FR",
               "format": "dash",
               "drm": "widevine",
-              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
               "drms": [
                 {
                   "name": "widevine",
-                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 },
                 {
                   "name": "playready",
-                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904508&id=14330874&pla=86400&rn=1&si=79bd160a4cb36c11f74c17027e2346961e772cef4cd1ac56de62459f2a497498&ssc=62be2bfc-8b7d-4593-9254-3d74a038146b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906403&id=14330874&pla=86400&rn=1&si=649f85e9276f2de6d2399af3ef12b8b04674de4aa5b13f288588ff52d920f42f&ssc=e176964e-1f03-4e29-81dc-352cb46210ac&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 }
               ],
@@ -5610,8 +5610,8 @@
           "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
           "success": true,
           "delivery_code": 200,
-          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.Pmf6MWMqlx2lYNpQe0OBroch37la9gJZo05Q-AhQS-U/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.biEIqYnd7XBzioGQVPvsrH_B-ybdySpL-emD_y2AlCE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
           "has_drm": true,
           "response": {
             "media": {
@@ -5813,20 +5813,20 @@
             },
             "delivery": {
               "code": 200,
-              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMCwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTAsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.Pmf6MWMqlx2lYNpQe0OBroch37la9gJZo05Q-AhQS-U/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDQsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA0LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.biEIqYnd7XBzioGQVPvsrH_B-ybdySpL-emD_y2AlCE/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
               "country": "FR",
               "format": "dash",
               "drm": "widevine",
-              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
               "drms": [
                 {
                   "name": "widevine",
-                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 },
                 {
                   "name": "playready",
-                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904510&id=14330874&pla=86400&rn=1&si=44f56344603a9b2f420b4cd51488294cde5ba24a4042ea6f10270d023c301f45&ssc=89ea5ab5-0216-4289-b4f7-8cb0f827b71b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906404&id=14330874&pla=86400&rn=1&si=4447b08e6ac45e28361f2c26e3cb986ddc2b9acce931ead6e8ca375ddd5490a3&ssc=61156d68-1adc-4fcb-986f-f98546bffc3b&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 }
               ],
@@ -5841,8 +5841,8 @@
           "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
           "success": true,
           "delivery_code": 200,
-          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTEsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.kDaON8QQL_YDdqDpCNZcuoLrxxJ4HnatztQ0LqQ4ZZk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDUsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA1LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.3czLMt_L7Sx9olHAdtG_GZyKjyJ6pqwgUlQXc1aiuu4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
           "has_drm": true,
           "response": {
             "media": {
@@ -6044,20 +6044,20 @@
             },
             "delivery": {
               "code": 200,
-              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMSwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTEsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.kDaON8QQL_YDdqDpCNZcuoLrxxJ4HnatztQ0LqQ4ZZk/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDUsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA1LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.3czLMt_L7Sx9olHAdtG_GZyKjyJ6pqwgUlQXc1aiuu4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
               "country": "FR",
               "format": "dash",
               "drm": "widevine",
-              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
               "drms": [
                 {
                   "name": "widevine",
-                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 },
                 {
                   "name": "playready",
-                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904511&id=14330874&pla=86400&rn=1&si=08646f58b0b0bffd77bcea752a939da03916a9019f9c50598d0d539c43a089ee&ssc=9a6c233d-25c1-4ef4-963e-17544aa37106&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906405&id=14330874&pla=86400&rn=1&si=5a706815983a999c3b507434201688eaa7002226de512f3a07dd6174f24e832f&ssc=f13090af-172b-4da8-a813-7a67e2560559&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 }
               ],
@@ -6072,8 +6072,8 @@
           "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
           "success": true,
           "delivery_code": 200,
-          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.y27TMA0GqpUoLVVYp1y4gGy86yT1_CUN55JD_oF7SfU/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.JHot_c_J4mES4HkljxbO5fZwa18L9CRXpBgQIjlipp4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
           "has_drm": true,
           "response": {
             "media": {
@@ -6275,20 +6275,20 @@
             },
             "delivery": {
               "code": 200,
-              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTIsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.y27TMA0GqpUoLVVYp1y4gGy86yT1_CUN55JD_oF7SfU/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDcsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA3LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.JHot_c_J4mES4HkljxbO5fZwa18L9CRXpBgQIjlipp4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
               "country": "FR",
               "format": "dash",
               "drm": "widevine",
-              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
               "drms": [
                 {
                   "name": "widevine",
-                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 },
                 {
                   "name": "playready",
-                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904512&id=14330874&pla=86400&rn=1&si=46ecb70f030c6fc88c8cbfa63e55f7a5918240bd237a2e74a7b7cc682cd2417c&ssc=27a195c3-a8da-4f1d-86e5-dca8b37deeb6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906407&id=14330874&pla=86400&rn=1&si=15a799ac9e400d504486773a4fb069aacac14a804ab2da9963184fabe9d6a527&ssc=504fb3fc-f11a-4b5f-9830-f6990146d0de&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 }
               ],
@@ -6303,8 +6303,8 @@
           "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
           "success": true,
           "delivery_code": 200,
-          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTMsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.BCLrC08f18Y2EZP0iZITAolj7C4bmqtYPwgtnfw_vOc/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+          "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDgsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA4LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.037ZC7lbumrNsf1eQztvYe-8J8ZaPezu7nUz_9wZ4j4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+          "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
           "has_drm": true,
           "response": {
             "media": {
@@ -6506,20 +6506,20 @@
             },
             "delivery": {
               "code": 200,
-              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUxMywiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMTMsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.BCLrC08f18Y2EZP0iZITAolj7C4bmqtYPwgtnfw_vOc/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+              "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDgsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDA4LCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.037ZC7lbumrNsf1eQztvYe-8J8ZaPezu7nUz_9wZ4j4/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
               "country": "FR",
               "format": "dash",
               "drm": "widevine",
-              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+              "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
               "drms": [
                 {
                   "name": "widevine",
-                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 },
                 {
                   "name": "playready",
-                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904513&id=14330874&pla=86400&rn=1&si=11d70d808ef51083b02bb6271e19ad2fff0b13f6e10d08419b4db849dae3683d&ssc=46367671-eef3-434a-b74a-cbb4b172e4b1&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                  "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906408&id=14330874&pla=86400&rn=1&si=7a15f3eb2a5f0884973b675fe7120af7ebad5ff674d22d1deca05c933621c5dd&ssc=f951cf6e-8f2b-4381-a8a1-b6d6059b8828&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                   "playbackDuration": 86400
                 }
               ],
@@ -6541,8 +6541,8 @@
         "url": "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url=https%3A//mediainfo.tf1.fr/mediainfocombo/450dd43d-04ed-4d6e-8b4b-42f21188c76e%3Fcontext%3DMYTF1%26pver%3D5010000%26platform%3Dweb%26device%3Ddesktop%26os%3Dlinux%26osVersion%3Dunknown%26topDomain%3Dwww.tf1.fr%26playerVersion%3D5.19.0%26productName%3Dmytf1%26productVersion%3D3.22.0",
         "success": true,
         "delivery_code": 200,
-        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
-        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+        "delivery_url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+        "license_url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
         "has_drm": true,
         "response": {
           "media": {
@@ -6744,20 +6744,20 @@
           },
           "delivery": {
             "code": 200,
-            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuNDUuMTE4IiwiY21jZCI6IiIsImV4cCI6MTc1ODkwNDUwNiwiZ2lkIjoiZTBmMzVmY2Y4NTg3NDcxOGI1YjEzZjBkNjE2NWNhZjIiLCJpYXQiOjE3NTg4OTAxMDYsImlzcyI6ImRlbGl2ZXJ5IiwibWF4YiI6MjgwMDAwMCwic3RlbSI6Ii8yL1VTUC0weDAvMDgvNzQvMTQzMzA4NzQvc3NtLzg0YjQzYzcxNmE4MDIyOWRiNzg3NWJlMDBiMzRiNGRkNjljNTUyZjAxMWQxMWI0ZGZkM2MxYTliYzNkMzlmNjQuaXNtLzE0MzMwODc0Lm1wZCIsInN1YiI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIn0.R16GNvOE7Qq-AAqqivdy0jpAH1tfCKPYWiXxkBiMc7w/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
+            "url": "https://vod-das.cdn-0.diff.tf1.fr/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaXAiOiIxNS4yMzcuMTA2LjIxOCIsImNtY2QiOiIiLCJleHAiOjE3NTg5MDY0MDEsImdpZCI6ImUwZjM1ZmNmODU4NzQ3MThiNWIxM2YwZDYxNjVjYWYyIiwiaWF0IjoxNzU4ODkyMDAxLCJpc3MiOiJkZWxpdmVyeSIsIm1heGIiOjI4MDAwMDAsInN0ZW0iOiIvMi9VU1AtMHgwLzA4Lzc0LzE0MzMwODc0L3NzbS84NGI0M2M3MTZhODAyMjlkYjc4NzViZTAwYjM0YjRkZDY5YzU1MmYwMTFkMTFiNGRmZDNjMWE5YmMzZDM5ZjY0LmlzbS8xNDMzMDg3NC5tcGQiLCJzdWIiOiJlMGYzNWZjZjg1ODc0NzE4YjViMTNmMGQ2MTY1Y2FmMiJ9.kD_eDrcuYLWjGn8zHnsXz1XXdoNVEHBplySp3SvdaDM/2/USP-0x0/08/74/14330874/ssm/84b43c716a80229db7875be00b34b4dd69c552f011d11b4dfd3c1a9bc3d39f64.ism/14330874.mpd",
             "country": "FR",
             "format": "dash",
             "drm": "widevine",
-            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+            "drm-server": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
             "drms": [
               {
                 "name": "widevine",
-                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmw.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               },
               {
                 "name": "playready",
-                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758904506&id=14330874&pla=86400&rn=1&si=9c1a212a5a7a3f49df5477b677624b386a5c8b49eb2ad01467932586d4504622&ssc=ec816f15-3eac-4f92-b9b2-cb9887c9d419&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
+                "url": "https://dgmp.prod.p.tf1.fr/acquire?e=1758906401&id=14330874&pla=86400&rn=1&si=d3260033bb742fbff312262006efa01031a9765744162e9e92d5b8cc8b7bd227&ssc=5f5ef967-4515-4a69-b7bb-14e3d76128d6&ti=gigya&tl=1&ts=e0f35fcf85874718b5b13f0d6165caf2&video_id=450dd43d-04ed-4d6e-8b4b-42f21188c76e",
                 "playbackDuration": 86400
               }
             ],

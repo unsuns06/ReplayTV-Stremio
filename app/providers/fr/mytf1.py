@@ -441,11 +441,22 @@ class MyTF1Provider:
             return []
         
         try:
+            # Lazy authentication - only authenticate when needed
+            safe_print("✅ [MyTF1Provider] Checking authentication for episodes...")
+            if not self._authenticated and not self._authenticate():
+                safe_print("❌ [MyTF1Provider] MyTF1 authentication failed")
+                return []
+
             # Use the TF1+ GraphQL API to get episodes with error handling
             # Based on the reference plugin implementation
             headers = {
                 'content-type': 'application/json',
-                'referer': 'https://www.tf1.fr/programmes-tv'
+                'referer': 'https://www.tf1.fr/programmes-tv',
+                'User-Agent': get_random_windows_ua(),
+                'origin': self.base_url,
+                'accept-language': 'fr-FR,fr;q=0.9',
+                'accept': 'application/json, text/plain, */*',
+                'authorization': f'Bearer {self.auth_token}'
             }
 
             
@@ -549,13 +560,12 @@ class MyTF1Provider:
             
             # TF1 GraphQL REPLAY episodes - Try proxy first, fallback to direct if 500 errors
             dest_with_params = self.api_url + ("?" + urlencode(params) if params else "")
-            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
-            
-            # FORCE URL DECODING FOR ALL TF1 PROXY REQUESTS - Critical to avoid double-encoding issues
-            decoded_url = force_decode_tf1_replay_url(dest_with_params)
-            proxied_url = proxy_base + quote(decoded_url, safe="")
-            
-            safe_print(f"✅ [MyTF1Provider] Trying GraphQL TF1 REPLAY episodes through French proxy with FORCE URL DECODING: {proxied_url}")
+            proxy_base = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
+
+            # Use simple URL encoding (Variant 2) - proven to work best and get successful responses
+            proxied_url = proxy_base + quote(dest_with_params, safe="")
+
+            safe_print(f"✅ [MyTF1Provider] Trying GraphQL TF1 REPLAY episodes through French proxy with SIMPLE URL ENCODING: {proxied_url}")
             data = self._safe_api_call(proxied_url, headers=headers, max_retries=1)  # Reduce retries for proxy
             
             # If proxy fails with 500 errors, try direct API call
@@ -708,7 +718,7 @@ class MyTF1Provider:
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
 
             # Use primary French proxy service
-            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxy_base = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
 
             json_parser = None
 
@@ -924,7 +934,7 @@ class MyTF1Provider:
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
 
             # Use primary French proxy service for replay content
-            proxy_base = "https://tvff3tyk1e.execute-api.eu-west-3.amazonaws.com/api/router?url="
+            proxy_base = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
 
             json_parser = None
 
