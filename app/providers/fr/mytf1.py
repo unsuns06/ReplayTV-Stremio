@@ -65,54 +65,6 @@ def get_random_windows_ua():
         safe_print(f"✅ [TF1 URL Decoder] Force-decoded URL: {decoded_url}")
         return decoded_url
 
-    def _encode_url_base64(self, url: str) -> str:
-        """
-        Base64 encode a URL for the DASH DRM proxy.
-
-        Args:
-            url (str): The URL to encode
-
-        Returns:
-            str: The base64 encoded URL
-        """
-        try:
-            # Convert URL to bytes and encode with base64
-            encoded_bytes = base64.b64encode(url.encode('utf-8'))
-            encoded_url = encoded_bytes.decode('utf-8')
-            safe_print(f"✅ [MyTF1Provider] URL encoded: {url[:50]}... -> {encoded_url}")
-            return encoded_url
-        except Exception as e:
-            safe_print(f"❌ [MyTF1Provider] Error encoding URL: {e}")
-            return url  # Fallback to original URL if encoding fails
-
-    def _build_drm_proxy_url(self, manifest_url: str, license_url: str) -> str:
-        """
-        Build the DASH DRM proxy URL for MyTF1 replays.
-
-        Args:
-            manifest_url (str): The MPD manifest URL
-            license_url (str): The license server URL
-
-        Returns:
-            str: The complete proxy URL with encoded parameters
-        """
-        try:
-            # Base64 encode the URLs
-            encoded_manifest = self._encode_url_base64(manifest_url)
-            encoded_license = self._encode_url_base64(license_url)
-
-            # Build the proxy URL according to the API specification
-            proxy_base = "https://alphanet06-dash-proxy-server.hf.space/proxy"
-            proxy_url = f"{proxy_base}?mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}"
-
-            safe_print(f"✅ [MyTF1Provider] DRM proxy URL built successfully")
-            safe_print(f"✅ *** FINAL DRM PROXY URL (REPLAY): {proxy_url}")
-            return proxy_url
-
-        except Exception as e:
-            safe_print(f"❌ [MyTF1Provider] Error building DRM proxy URL: {e}")
-            return manifest_url  # Fallback to direct manifest URL
-
 class MyTF1Provider:
     """MyTF1 provider implementation with robust error handling and fallbacks"""
     
@@ -164,6 +116,54 @@ class MyTF1Provider:
 
         # Initialize IP forwarding headers (critical for geo-restricted content)
         self.viewer_ip_headers = make_ip_headers(None, getattr(request, 'headers', {}) if request else {})
+
+    def _encode_url_base64(self, url: str) -> str:
+        """
+        Base64 encode a URL for the DASH DRM proxy.
+
+        Args:
+            url (str): The URL to encode
+
+        Returns:
+            str: The base64 encoded URL
+        """
+        try:
+            # Convert URL to bytes and encode with base64
+            encoded_bytes = base64.b64encode(url.encode('utf-8'))
+            encoded_url = encoded_bytes.decode('utf-8')
+            safe_print(f"✅ [MyTF1Provider] URL encoded: {url[:50]}... -> {encoded_url}")
+            return encoded_url
+        except Exception as e:
+            safe_print(f"❌ [MyTF1Provider] Error encoding URL: {e}")
+            return url  # Fallback to original URL if encoding fails
+
+    def _build_drm_proxy_url(self, manifest_url: str, license_url: str) -> str:
+        """
+        Build the DASH DRM proxy URL for MyTF1 replays.
+
+        Args:
+            manifest_url (str): The MPD manifest URL
+            license_url (str): The license server URL
+
+        Returns:
+            str: The complete proxy URL with encoded parameters
+        """
+        try:
+            # Base64 encode the URLs
+            encoded_manifest = self._encode_url_base64(manifest_url)
+            encoded_license = self._encode_url_base64(license_url)
+
+            # Build the proxy URL according to the API specification
+            proxy_base = "https://alphanet06-dash-proxy-server.hf.space/proxy"
+            proxy_url = f"{proxy_base}?mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}"
+
+            safe_print(f"✅ [MyTF1Provider] DRM proxy URL built successfully")
+            safe_print(f"✅ *** FINAL DRM PROXY URL (REPLAY): {proxy_url}")
+            return proxy_url
+
+        except Exception as e:
+            safe_print(f"❌ [MyTF1Provider] Error building DRM proxy URL: {e}")
+            return manifest_url  # Fallback to direct manifest URL
 
     # TF1+ shows configuration based on reference plugin
         self.shows = {
