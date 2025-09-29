@@ -516,6 +516,16 @@ class SixPlayProvider:
                                     stream_response["pssh_system_id"] = pssh_record.system_id
                                     stream_response["pssh_source"] = pssh_record.source
                                     print(f"✅ PSSH data included in stream response")
+                                    
+                                    # Extract Widevine decryption key if we have both PSSH and DRM token
+                                    if drm_token:
+                                        decryption_key = self._extract_widevine_key(pssh_record.base64_text, drm_token)
+                                        if decryption_key:
+                                            stream_response["decryption_key"] = decryption_key
+                                            print(f"✅ Widevine decryption key included in stream response")
+                                            
+                                            # Print N_m3u8DL-RE command format
+                                            self._print_download_command(final_video_url, decryption_key, actual_episode_id)
                                 
                                 # Direct DRM approach (MediaFlow removed for replay streams)
                                 if drm_token:
@@ -678,6 +688,16 @@ class SixPlayProvider:
                                     # Get DRM token for live content (following Kodi addon approach)
                                     if self.account_id and self.login_token:
                                         try:
+                                            # Extract Widevine decryption key for live content if we have both PSSH and token
+                                            if pssh_record:
+                                                decryption_key = self._extract_widevine_key(pssh_record.base64_text, token)
+                                                if decryption_key:
+                                                    stream_response["decryption_key"] = decryption_key
+                                                    print(f"✅ Live Widevine decryption key included in stream response")
+                                                    
+                                                    # Print N_m3u8DL-RE command format for live content
+                                                    self._print_download_command(final_video_url, decryption_key, f"live_{channel_name}")
+                                            
                                             # Build license URL for live content using the live token
                                             license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={token}|R{{SSM}}|JBlicense"
                                             
@@ -804,6 +824,90 @@ class SixPlayProvider:
         except Exception as e:
             print(f"[SixPlayProvider] Error extracting PSSH from MPD: {e}")
             return None
+
+    def _extract_widevine_key(self, pssh_value: str, drm_token: str) -> Optional[str]:
+        """Extract Widevine decryption key using CDRM API.
+        
+        Args:
+            pssh_value: Base64-encoded PSSH box
+            drm_token: DRM authentication token
+            
+        Returns:
+            Decryption key or None if extraction fails
+        """
+        try:
+            print(f"[SixPlayProvider] Extracting Widevine decryption key...")
+            
+            # Prepare headers for CDRM API
+            headers_data = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36',
+                'x-dt-auth-token': drm_token
+            }
+            
+            # Prepare request payload
+            payload = {
+                'pssh': pssh_value,
+                'licurl': 'https://lic.drmtoday.com/license-proxy-widevine/cenc/?specConform=true',
+                'headers': str(headers_data)
+            }
+            
+            print(f"[SixPlayProvider] CDRM API request payload:")
+            print(f"  PSSH: {pssh_value[:50]}...")
+            print(f"  License URL: {payload['licurl']}")
+            print(f"  Headers: {headers_data}")
+            
+            # Make request to CDRM API
+            response = requests.post(
+                url='https://cdrm-project.com/api/decrypt',
+                headers={
+                    'Content-Type': 'application/json',
+                },
+                json=payload,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if 'message' in result:
+                    decryption_key = result['message']
+                    print(f"[SixPlayProvider] ✅ Widevine decryption key extracted successfully:")
+                    print(f"  Key: {decryption_key}")
+                    return decryption_key
+                else:
+                    print(f"[SixPlayProvider] ❌ No decryption key in CDRM response: {result}")
+                    return None
+            else:
+                print(f"[SixPlayProvider] ❌ CDRM API error: {response.status_code}")
+                print(f"  Response: {response.text[:500]}...")
+                return None
+                
+        except Exception as e:
+            print(f"[SixPlayProvider] Error extracting Widevine key: {e}")
+            return None
+
+    def _print_download_command(self, video_url: str, decryption_key: str, content_id: str):
+        """Print N_m3u8DL-RE download command with decryption key.
+        
+        Args:
+            video_url: URL to the MPD manifest
+            decryption_key: Widevine decryption key
+            content_id: Content identifier for save name
+        """
+        try:
+            # Clean content ID for filename
+            clean_name = content_id.replace(":", "_").replace("/", "_").replace("\\", "_")
+            
+            # Truncate URL for display (keep first 100 chars)
+            display_url = video_url[:100] + "..." if len(video_url) > 100 else video_url
+            
+            print(f"\n📥 N_m3u8DL-RE Download Command:")
+            print(f"N_m3u8DL-RE \"{video_url}\" --save-name \"{clean_name}\" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --key {decryption_key}")
+            print(f"\n🔗 URL: {display_url}")
+            print(f"🔑 Key: {decryption_key}")
+            print(f"💾 Save as: {clean_name}")
+            
+        except Exception as e:
+            print(f"[SixPlayProvider] Error printing download command: {e}")
 
     def _analyze_available_formats(self, video_assets: List[Dict]) -> Dict:
         """Analyze available video formats from assets and return format information"""
