@@ -19,6 +19,7 @@ from app.utils.client_ip import merge_ip_headers
 from app.utils.sixplay_mpd_processor import create_mediaflow_compatible_mpd
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
+from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -453,6 +454,9 @@ class SixPlayProvider:
                             
                             # Handle MPD/DASH streams (DRM required)
                             elif best_format['format_type'] == 'mpd':
+                                # Extract PSSH from MPD manifest
+                                pssh_record = self._extract_pssh_from_mpd(final_video_url)
+                                
                                 # Get DRM token for this video (following Kodi addon approach)
                                 drm_token = None
                                 if self.account_id and self.login_token:
@@ -499,7 +503,20 @@ class SixPlayProvider:
                                             
                                     except Exception as e:
                                         print(f"❌ DRM setup failed: {e}")
-                            
+                                
+                                # Build stream response with PSSH data
+                                stream_response = {
+                                    "url": final_video_url,
+                                    "manifest_type": "mpd"
+                                }
+                                
+                                # Add PSSH data if extracted
+                                if pssh_record:
+                                    stream_response["pssh"] = pssh_record.base64_text
+                                    stream_response["pssh_system_id"] = pssh_record.system_id
+                                    stream_response["pssh_source"] = pssh_record.source
+                                    print(f"✅ PSSH data included in stream response")
+                                
                                 # Direct DRM approach (MediaFlow removed for replay streams)
                                 if drm_token:
                                     # Build license URL exactly like Kodi addon
@@ -518,20 +535,17 @@ class SixPlayProvider:
                                     
                                     print(f"✅ Using direct DRM approach with license")
                                     
-                                    return {
-                                        "url": final_video_url,
-                                        "manifest_type": "mpd",
+                                    stream_response.update({
                                         "licenseUrl": license_url,
                                         "licenseHeaders": license_headers,
                                         "drm_token": drm_token,  # Expose token for debugging
                                         "drm_protected": True
-                                    }
+                                    })
+                                    
+                                    return stream_response
                                 else:
-                                    print(f"❌ No DRM token available - returning basic MPD")
-                                    return {
-                                        "url": final_video_url,
-                                        "manifest_type": "mpd"
-                                    }
+                                    print(f"❌ No DRM token available - returning basic MPD with PSSH")
+                                    return stream_response
                             else:
                                 print(f"❌ No {best_format['format_name']} streams found")
                         else:
@@ -645,6 +659,22 @@ class SixPlayProvider:
                                 
                                 # Handle MPD/DASH live streams (DRM required)
                                 elif best_format['format_type'] == 'mpd':
+                                    # Extract PSSH from live MPD manifest
+                                    pssh_record = self._extract_pssh_from_mpd(final_video_url)
+                                    
+                                    # Build base stream response with PSSH data
+                                    stream_response = {
+                                        "url": final_video_url,
+                                        "manifest_type": "mpd"
+                                    }
+                                    
+                                    # Add PSSH data if extracted
+                                    if pssh_record:
+                                        stream_response["pssh"] = pssh_record.base64_text
+                                        stream_response["pssh_system_id"] = pssh_record.system_id
+                                        stream_response["pssh_source"] = pssh_record.source
+                                        print(f"✅ Live PSSH data included in stream response")
+                                    
                                     # Get DRM token for live content (following Kodi addon approach)
                                     if self.account_id and self.login_token:
                                         try:
@@ -665,25 +695,22 @@ class SixPlayProvider:
                                             
                                             print(f"✅ Live DRM stream configured")
                                             
-                                            return {
-                                                "url": final_video_url,
-                                                "manifest_type": "mpd",
+                                            stream_response.update({
                                                 "licenseUrl": license_url,
                                                 "licenseHeaders": license_headers,
                                                 "live_token": token,  # Expose token for debugging
                                                 "drm_protected": True
-                                            }
+                                            })
+                                            
+                                            return stream_response
                                             
                                         except Exception as e:
                                             print(f"❌ [SixPlayProvider] Live DRM setup failed: {e}")
                                             # Continue with fallback approach below
                                     
-                                    # Fallback: return raw MPD stream (might not work without proper DRM)
+                                    # Fallback: return raw MPD stream with PSSH (might not work without proper DRM)
                                     print(f"⚠️  No authentication for live DRM content")
-                                    return {
-                                        "url": final_video_url,
-                                        "manifest_type": "mpd"
-                                    }
+                                    return stream_response
                                 else:
                                     print(f"❌ No {best_format['format_name']} live streams found")
                             else:
@@ -748,6 +775,35 @@ class SixPlayProvider:
                 pass  # Use original URL if redirect check fails
         
         return final_video_url
+
+    def _extract_pssh_from_mpd(self, mpd_url: str) -> Optional[PsshRecord]:
+        """Extract PSSH box from MPD manifest URL.
+        
+        Args:
+            mpd_url: URL to the MPD manifest
+            
+        Returns:
+            PsshRecord containing PSSH data or None if extraction fails
+        """
+        try:
+            #print(f"[SixPlayProvider] Extracting PSSH from MPD: {mpd_url}")
+            pssh_record = extract_first_pssh(mpd_url)
+            
+            if pssh_record:
+                print(f"[SixPlayProvider] PSSH extracted successfully:")
+                #print(f"  Source: {pssh_record.source}")
+                #print(f"  Parent: {pssh_record.parent}")
+                #print(f"  System ID: {pssh_record.system_id}")
+                #print(f"  Raw Length: {pssh_record.raw_length}")
+                print(f"  Base64 PSSH: {pssh_record.base64_text}")
+                return pssh_record
+            else:
+                print(f"[SixPlayProvider] No PSSH found in MPD manifest")
+                return None
+                
+        except Exception as e:
+            print(f"[SixPlayProvider] Error extracting PSSH from MPD: {e}")
+            return None
 
     def _analyze_available_formats(self, video_assets: List[Dict]) -> Dict:
         """Analyze available video formats from assets and return format information"""
