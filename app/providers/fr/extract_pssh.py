@@ -10,8 +10,10 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from typing import Iterable, Optional
 from urllib.request import Request, urlopen
+from urllib.parse import quote
 
 DEFAULT_URL = "https://par5-edge-02.cdn.bedrock.tech/m6web/output/d/5/3/d53727ced0e827d7bb94cc06de7538b47d63c5e1/static/13141002_be86cce5bac3ab6950c2fa69da7a3d48_android_mobile_dash_upTo1080p_720p_vbr_cae_drm_software.mpd?st=p8V_S420xaTpa0KLXa2wDQ&e=1759214048"
+PROXY_URL = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
 REQUEST_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
     "Accept": "application/dash+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -29,7 +31,10 @@ class PsshRecord:
 
 
 def fetch_mpd(url: str) -> bytes:
-    request = Request(url, headers=REQUEST_HEADERS)
+    """Fetch MPD document using proxy to bypass geoblocking."""
+    # Use proxy to bypass geoblocking
+    proxy_url = PROXY_URL + quote(url, safe='')
+    request = Request(proxy_url, headers=REQUEST_HEADERS)
     with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
         return response.read()
 
