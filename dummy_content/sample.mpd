@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" mediaPresentationDuration="PT10M" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011">
+  <Period>
+    <AdaptationSet mimeType="video/mp4" codecs="avc1.4d401e" width="1280" height="720" frameRate="25" segmentAlignment="true">
+      <ContentProtection schemeIdUri="urn:mpeg:dash:mp4protection:2011" value="cenc" xmlns:cenc="urn:mpeg:cenc:2013" cenc:default_KID="1d83a873-b4d3-4f77-b5f6-8424a0efc8c1" />
+      <ContentProtection schemeIdUri="urn:uuid:EDEF8BA9-79D6-4ACE-A3C8-27DCD51D21ED">
+        <cenc:pssh xmlns:cenc="urn:mpeg:cenc:2013">AAAAXHBzc2gAAAAAmgRSQAAAAAAAEgAQA4OnNLTTT3e19oQkoO/IwQAAAArQAAAAEAAQABAAAAAAAAYWJjZGVmZ2hpamtsbW5vcA==</cenc:pssh>
+      </ContentProtection>
+      <BaseURL>https://example.com/video/</BaseURL>
+      <SegmentTemplate initialization="$RepresentationID$/init.mp4" media="$RepresentationID$/seg$Number$.m4s" startNumber="1" timescale="1" duration="6" />
+      <Representation id="video" bandwidth="1500000" />
+    </AdaptationSet>
+    <AdaptationSet mimeType="audio/mp4" codecs="mp4a.40.2" lang="en" segmentAlignment="true">
+      <ContentProtection schemeIdUri="urn:uuid:EDEF8BA9-79D6-4ACE-A3C8-27DCD51D21ED">
+        <cenc:pssh xmlns:cenc="urn:mpeg:cenc:2013">AAAAXHBzc2gAAAAAmgRSQAAAAAAAEgAQb2RnZWhpamtsbW5vcHFycwAAAAJAAAAAQABAAEAAAAAAABhYmNkZWZnaGlqa2xtbm9w</cenc:pssh>
+      </ContentProtection>
+      <BaseURL>https://example.com/audio/</BaseURL>
+      <SegmentTemplate initialization="$RepresentationID$/init.mp4" media="$RepresentationID$/seg$Number$.m4s" startNumber="1" timescale="1" duration="6" />
+      <Representation id="audio" bandwidth="192000" />
+    </AdaptationSet>
+  </Period>
+</MPD>

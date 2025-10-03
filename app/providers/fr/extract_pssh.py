@@ -8,7 +8,7 @@ import sys
 import uuid
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple, Union
 from urllib.request import Request, urlopen
 from urllib.parse import quote
 
@@ -95,12 +95,16 @@ def iter_pssh(root: ET.Element) -> Iterable[PsshRecord]:
                     yield record
 
 
-def extract_first_pssh(url: str) -> Optional[PsshRecord]:
+def extract_first_pssh(
+    url: str, include_mpd: bool = False
+) -> Union[Optional[PsshRecord], Tuple[Optional[PsshRecord], Optional[bytes]]]:
     xml_bytes = fetch_mpd(url)
     root = parse_mpd(xml_bytes)
     for record in iter_pssh(root):
+        if include_mpd:
+            return record, xml_bytes
         return record
-    return None
+    return (None, xml_bytes) if include_mpd else None
 
 
 def main(url: str) -> int:

@@ -10,6 +10,7 @@ def build_mediaflow_url(
     request_headers: Optional[Dict[str, str]] = None,
     license_url: Optional[str] = None,
     license_headers: Optional[Dict[str, str]] = None,
+    extra_params: Optional[Dict[str, str]] = None,
 ) -> str:
     """Build a MediaFlow proxy URL with h_ header params and optional DRM license support.
 
@@ -24,6 +25,7 @@ def build_mediaflow_url(
         request_headers: Headers to pass through to destination
         license_url: DRM license server URL (for Widevine/FairPlay)
         license_headers: Headers to pass to license server
+        extra_params: Additional query parameters (e.g., DRM keys) to append
     """
     path = (endpoint or "/proxy/hls/manifest.m3u8").lstrip("/")
     base = base_url.rstrip("/")
@@ -44,6 +46,12 @@ def build_mediaflow_url(
     if license_url:
         q["license_url"] = license_url
     
+    if extra_params:
+        for k, v in extra_params.items():
+            if v is None:
+                continue
+            q[str(k)] = v
+
     if license_headers:
         for k, v in license_headers.items():
             if v is None:

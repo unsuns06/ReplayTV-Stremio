@@ -11,12 +11,13 @@ import re
 import random
 import uuid
 import os
+import base64
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials
 from app.auth.sixplay_auth import SixPlayAuth
 from app.utils.metadata import metadata_processor
 from app.utils.client_ip import merge_ip_headers
-from app.utils.sixplay_mpd_processor import create_mediaflow_compatible_mpd
+from app.utils.sixplay_mpd_processor import create_mediaflow_compatible_mpd, extract_drm_info_from_mpd
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
 from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
@@ -454,10 +455,13 @@ class SixPlayProvider:
                             
                             # Handle MPD/DASH streams (DRM required)
                             elif best_format['format_type'] == 'mpd':
-                                # Extract PSSH from MPD manifest
-                                pssh_record = self._extract_pssh_from_mpd(final_video_url)
-                                
-                                # Get DRM token for this video (following Kodi addon approach)
+                                # Extract DRM metadata from the MPD manifest
+                                pssh_record, mpd_text, drm_info = self._extract_pssh_from_mpd(final_video_url)
+
+                                key_id_hex = self._normalize_key_id((drm_info or {}).get('key_id'))
+                                if key_id_hex:
+                                    print(f"? [SixPlayProvider] MPD default_KID: {key_id_hex}")
+
                                 drm_token = None
                                 if self.account_id and self.login_token:
                                     try:
@@ -466,275 +470,109 @@ class SixPlayProvider:
                                             'X-Client-Release': '5.103.3',
                                             'Authorization': f'Bearer {self.login_token}',
                                         }
-                                        
-                                        # Merge with IP headers for complete header set
+
                                         complete_headers = merge_ip_headers(payload_headers)
-                                        
-                                        # Expose all token headers and their values for debugging
-                                        print(f"🔍 [SixPlay] DRM Token Request Headers:")
+
+                                        print(f"?? [SixPlay] DRM Token Request Headers:")
                                         for header_name, header_value in complete_headers.items():
-                                            # Mask sensitive values for security
                                             if header_name.lower() in ['authorization', 'x-auth-token', 'token']:
                                                 masked_value = f"{header_value[:20]}..." if len(str(header_value)) > 20 else "***"
                                                 print(f"   {header_name}: {masked_value}")
                                             else:
                                                 print(f"   {header_name}: {header_value}")
-                                        
-                                        # Use the exact URL from Kodi addon
+
                                         token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
-                                        print(f"🔍 [SixPlay] DRM Token URL: {token_url}")
-                                        
+                                        print(f"?? [SixPlay] DRM Token URL: {token_url}")
+
                                         token_response = self.session.get(token_url, headers=complete_headers, timeout=10)
-                                        
-                                        # Expose response details
-                                        print(f"🔍 [SixPlay] DRM Token Response:")
+
+                                        print(f"?? [SixPlay] DRM Token Response:")
                                         print(f"   Status Code: {token_response.status_code}")
                                         print(f"   Response Headers: {dict(token_response.headers)}")
-                                        
+
                                         if token_response.status_code == 200:
                                             token_data = token_response.json()
                                             drm_token = token_data["token"]
-                                            print(f"✅ DRM token obtained successfully")
-                                            print(f"🔍 [SixPlay] DRM Token Value: {drm_token}")
+                                            print(f"? DRM token obtained successfully")
+                                            print(f"?? [SixPlay] DRM Token Value: {drm_token}")
                                         else:
-                                            print(f"❌ DRM token request failed: {token_response.status_code}")
+                                            print(f"? DRM token request failed: {token_response.status_code}")
                                             print(f"   Response content: {token_response.text[:500]}...")
                                             print(f"   Check your 6play credentials and authentication")
-                                            
+
                                     except Exception as e:
-                                        print(f"❌ DRM setup failed: {e}")
-                                
-                                # Build stream response with PSSH data
+                                        print(f"? DRM setup failed: {e}")
+
                                 stream_response = {
                                     "url": final_video_url,
                                     "manifest_type": "mpd"
                                 }
-                                
-                                # Add PSSH data if extracted
+                                if key_id_hex:
+                                    stream_response["default_kid"] = key_id_hex
+
                                 if pssh_record:
                                     stream_response["pssh"] = pssh_record.base64_text
                                     stream_response["pssh_system_id"] = pssh_record.system_id
                                     stream_response["pssh_source"] = pssh_record.source
-                                    print(f"✅ PSSH data included in stream response")
-                                    
-                                    # Extract Widevine decryption key if we have both PSSH and DRM token
+                                    print(f"? PSSH data included in stream response")
+
                                     if drm_token:
-                                        decryption_key = self._extract_widevine_key(pssh_record.base64_text, drm_token)
-                                        if decryption_key:
-                                            stream_response["decryption_key"] = decryption_key
-                                            print(f"✅ Widevine decryption key included in stream response")
-                                            
-                                            # Print N_m3u8DL-RE command format
-                                            self._print_download_command(final_video_url, decryption_key, actual_episode_id)
-                                
-                                # Direct DRM approach (MediaFlow removed for replay streams)
+                                        raw_key = self._extract_widevine_key(pssh_record.base64_text, drm_token)
+                                        if raw_key:
+                                            normalized_key = self._normalize_decryption_key(raw_key, key_id_hex)
+                                            if normalized_key:
+                                                stream_response["decryption_key"] = normalized_key
+                                                print(f"? Widevine decryption key included in stream response")
+
+                                                self._print_download_command(final_video_url, normalized_key, actual_episode_id)
+
+                                                if key_id_hex:
+                                                    mediaflow_stream = self._build_mediaflow_clearkey_stream(
+                                                        original_mpd_url=final_video_url,
+                                                        base_headers=headers_video_stream,
+                                                        key_id_hex=key_id_hex,
+                                                        key_hex=normalized_key,
+                                                        is_live=False,
+                                                    )
+                                                    if mediaflow_stream:
+                                                        print("? Serving stream via MediaFlow ClearKey proxy")
+                                                        return mediaflow_stream
+                                            else:
+                                                print("? Unable to normalize Widevine key for MediaFlow usage")
+                                        else:
+                                            print("? CDRM did not return a Widevine key")
+                                else:
+                                    print(f"[SixPlayProvider] No PSSH found in MPD manifest")
+
                                 if drm_token:
-                                    # Build license URL exactly like Kodi addon
                                     license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={drm_token}|R{{SSM}}|JBlicense"
-                                    
-                                    # Build license headers
+
                                     license_headers = {
                                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
                                     }
-                                    
-                                    # Expose all DRM information for debugging
-                                    print(f"🔍 [SixPlay] DRM License Information:")
+
+                                    print(f"?? [SixPlay] DRM License Information:")
                                     print(f"   License URL: {license_url}")
                                     print(f"   License Headers: {license_headers}")
                                     print(f"   Video URL: {final_video_url}")
-                                    
-                                    print(f"✅ Using direct DRM approach with license")
-                                    
+
+                                    print(f"? Using direct DRM approach with license")
+
                                     stream_response.update({
                                         "licenseUrl": license_url,
                                         "licenseHeaders": license_headers,
-                                        "drm_token": drm_token,  # Expose token for debugging
+                                        "drm_token": drm_token,
                                         "drm_protected": True
                                     })
-                                    
+
                                     return stream_response
                                 else:
-                                    print(f"❌ No DRM token available - returning basic MPD with PSSH")
+                                    print(f"? No DRM token available - returning basic MPD with PSSH")
                                     return stream_response
                             else:
-                                print(f"❌ No {best_format['format_name']} streams found")
+                                print(f"? No {best_format['format_name']} streams found")
                         else:
-                            print("❌ No MPD streams found either")
-                else:
-                    print(f"[SixPlayProvider] No clips found in video response")
-            else:
-                print(f"[SixPlayProvider] Video API error: {response.status_code}")
-                
-        except Exception as e:
-            print(f"[SixPlayProvider] Error getting stream for episode {episode_id}: {e}")
-        
-        return None
-    
-    def get_channel_stream_url(self, channel_id: str) -> Optional[Dict]:
-        """Get stream URL for a specific channel"""
-        # Extract the actual channel name from our ID format
-        channel_name = channel_id.split(":")[-1]  # e.g., "m6"
-        
-        try:
-            # Lazy authentication - only authenticate when needed
-            if not self._authenticated and not self._authenticate():
-                print("6play authentication failed")
-                return None
-                
-            # Get live token
-            payload_headers = {
-                'X-Customer-Name': 'm6web',
-                'X-Client-Release': '5.103.3',
-                'Authorization': f'Bearer {self.login_token}',
-            }
-            
-            # Merge with IP headers for complete header set
-            complete_headers = merge_ip_headers(payload_headers)
-            
-            # Expose all live token headers and their values for debugging
-            print(f"🔍 [SixPlay] Live Token Request Headers:")
-            for header_name, header_value in complete_headers.items():
-                # Mask sensitive values for security
-                if header_name.lower() in ['authorization', 'x-auth-token', 'token']:
-                    masked_value = f"{header_value[:20]}..." if len(str(header_value)) > 20 else "***"
-                    print(f"   {header_name}: {masked_value}")
-                else:
-                    print(f"   {header_name}: {header_value}")
-            
-            live_item_id = channel_name.upper()
-            if channel_name == '6ter':
-                live_item_id = '6T'
-            elif channel_name in {'fun_radio', 'rtl2', 'gulli'}:
-                live_item_id = channel_name
-            
-            # Get token for live stream using correct URL pattern
-            token_url = f"https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users/{self.account_id}/live/dashcenc_{live_item_id}/upfront-token"
-            print(f"🔍 [SixPlay] Live Token URL: {token_url}")
-            
-            token_response = self.session.get(token_url, headers=complete_headers, timeout=10)
-            
-            # Expose response details
-            print(f"🔍 [SixPlay] Live Token Response:")
-            print(f"   Status Code: {token_response.status_code}")
-            print(f"   Response Headers: {dict(token_response.headers)}")
-            
-            if token_response.status_code == 200:
-                token_jsonparser = token_response.json()
-                token = token_jsonparser["token"]
-                print(f"✅ Live token obtained successfully")
-                print(f"🔍 [SixPlay] Live Token Value: {token[:50]}...")
-                
-                # Get live stream information using correct URL
-                params = {
-                    'channel': live_item_id,
-                    'with': 'service_display_images,nextdiffusion,extra_data'
-                }
-                
-                video_response = self.session.get(
-                    "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live", 
-                    params=params, 
-                    headers=merge_ip_headers({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}),
-                    timeout=10
-                )
-                
-                if video_response.status_code == 200:
-                    json_parser = video_response.json()
-                    if live_item_id in json_parser and len(json_parser[live_item_id]) > 0:
-                        video_assets = json_parser[live_item_id][0]['live']['assets']
-                        
-                        if video_assets:
-                            # Dynamic format detection for live streams
-                            print(f"🔍 Analyzing {len(video_assets)} live assets for optimal format...")
-                            
-                            # Analyze available asset types for live content
-                            available_formats = self._analyze_available_formats(video_assets)
-                            print(f"📊 Available live formats: {available_formats}")
-                            
-                            # Determine best format for live content
-                            best_format = self._determine_best_format(available_formats, is_live=True)
-                            print(f"🎯 Selected live format: {best_format}")
-                            
-                            # Get the stream URL for the selected format
-                            final_video_url = self._get_final_video_url(video_assets, best_format['asset_type'])
-                            
-                            if final_video_url:
-                                print(f"✅ {best_format['format_name']} live stream found: {final_video_url}")
-                                
-                                # Handle HLS live streams (no DRM required)
-                                if best_format['format_type'] == 'hls':
-                                    return {
-                                        "url": final_video_url,
-                                        "manifest_type": "hls"
-                                    }
-                                
-                                # Handle MPD/DASH live streams (DRM required)
-                                elif best_format['format_type'] == 'mpd':
-                                    # Extract PSSH from live MPD manifest
-                                    pssh_record = self._extract_pssh_from_mpd(final_video_url)
-                                    
-                                    # Build base stream response with PSSH data
-                                    stream_response = {
-                                        "url": final_video_url,
-                                        "manifest_type": "mpd"
-                                    }
-                                    
-                                    # Add PSSH data if extracted
-                                    if pssh_record:
-                                        stream_response["pssh"] = pssh_record.base64_text
-                                        stream_response["pssh_system_id"] = pssh_record.system_id
-                                        stream_response["pssh_source"] = pssh_record.source
-                                        print(f"✅ Live PSSH data included in stream response")
-                                    
-                                    # Get DRM token for live content (following Kodi addon approach)
-                                    if self.account_id and self.login_token:
-                                        try:
-                                            # Extract Widevine decryption key for live content if we have both PSSH and token
-                                            if pssh_record:
-                                                decryption_key = self._extract_widevine_key(pssh_record.base64_text, token)
-                                                if decryption_key:
-                                                    stream_response["decryption_key"] = decryption_key
-                                                    print(f"✅ Live Widevine decryption key included in stream response")
-                                                    
-                                                    # Print N_m3u8DL-RE command format for live content
-                                                    self._print_download_command(final_video_url, decryption_key, f"live_{channel_name}")
-                                            
-                                            # Build license URL for live content using the live token
-                                            license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={token}|R{{SSM}}|JBlicense"
-                                            
-                                            # Build license headers
-                                            license_headers = {
-                                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
-                                            }
-                                            
-                                            # Expose all live DRM information for debugging
-                                            print(f"🔍 [SixPlay] Live DRM License Information:")
-                                            print(f"   License URL: {license_url}")
-                                            print(f"   License Headers: {license_headers}")
-                                            print(f"   Live Token: {token[:50]}...")
-                                            print(f"   Video URL: {final_video_url}")
-                                            
-                                            print(f"✅ Live DRM stream configured")
-                                            
-                                            stream_response.update({
-                                                "licenseUrl": license_url,
-                                                "licenseHeaders": license_headers,
-                                                "live_token": token,  # Expose token for debugging
-                                                "drm_protected": True
-                                            })
-                                            
-                                            return stream_response
-                                            
-                                        except Exception as e:
-                                            print(f"❌ [SixPlayProvider] Live DRM setup failed: {e}")
-                                            # Continue with fallback approach below
-                                    
-                                    # Fallback: return raw MPD stream with PSSH (might not work without proper DRM)
-                                    print(f"⚠️  No authentication for live DRM content")
-                                    return stream_response
-                                else:
-                                    print(f"❌ No {best_format['format_name']} live streams found")
-                            else:
-                                print("❌ No MPD streams found either")
+                            print("? No MPD streams found either")
                 else:
                     print(f"6play live API error: {video_response.status_code}")
             else:
@@ -746,6 +584,181 @@ class SixPlayProvider:
         except Exception as e:
             print(f"Error getting stream for {channel_name}: {e}")
         
+        return None
+    
+    def get_channel_stream_url(self, channel_id: str) -> Optional[Dict]:
+        """Get stream URL for a specific channel"""
+        channel_name = channel_id.split(":")[-1]
+    
+        try:
+            if not self._authenticated and not self._authenticate():
+                print("6play authentication failed")
+                return None
+    
+            payload_headers = {
+                'X-Customer-Name': 'm6web',
+                'X-Client-Release': '5.103.3',
+                'Authorization': f'Bearer {self.login_token}',
+            }
+    
+            complete_headers = merge_ip_headers(payload_headers)
+    
+            print(f"?? [SixPlay] Live Token Request Headers:")
+            for header_name, header_value in complete_headers.items():
+                if header_name.lower() in ['authorization', 'x-auth-token', 'token']:
+                    masked_value = f"{header_value[:20]}..." if len(str(header_value)) > 20 else "***"
+                    print(f"   {header_name}: {masked_value}")
+                else:
+                    print(f"   {header_name}: {header_value}")
+    
+            live_item_id = channel_name.upper()
+            if channel_name == '6ter':
+                live_item_id = '6T'
+            elif channel_name in {'fun_radio', 'rtl2', 'gulli'}:
+                live_item_id = channel_name
+    
+            token_url = f"https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users/{self.account_id}/live/dashcenc_{live_item_id}/upfront-token"
+            print(f"?? [SixPlay] Live Token URL: {token_url}")
+    
+            token_response = self.session.get(token_url, headers=complete_headers, timeout=10)
+    
+            print(f"?? [SixPlay] Live Token Response:")
+            print(f"   Status Code: {token_response.status_code}")
+            print(f"   Response Headers: {dict(token_response.headers)}")
+    
+            if token_response.status_code != 200:
+                print(f"6play token error: {token_response.status_code}")
+                return None
+    
+            token_json = token_response.json()
+            token = token_json["token"]
+            print(f"? Live token obtained successfully")
+            print(f"?? [SixPlay] Live Token Value: {token[:50]}...")
+    
+            params = {
+                'channel': live_item_id,
+                'with': 'service_display_images,nextdiffusion,extra_data'
+            }
+    
+            headers_video_stream = merge_ip_headers({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+    
+            video_response = self.session.get(
+                "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live",
+                params=params,
+                headers=headers_video_stream,
+                timeout=10
+            )
+    
+            if video_response.status_code != 200:
+                print(f"6play live API error: {video_response.status_code}")
+                return None
+    
+            json_parser = video_response.json()
+            if live_item_id not in json_parser or len(json_parser[live_item_id]) == 0:
+                print(f"? No live data returned for {live_item_id}")
+                return None
+    
+            video_assets = json_parser[live_item_id][0]['live']['assets']
+            if not video_assets:
+                print("? No MPD streams found either")
+                return None
+    
+            print(f"?? Analyzing {len(video_assets)} live assets for optimal format...")
+            available_formats = self._analyze_available_formats(video_assets)
+            print(f"?? Available live formats: {available_formats}")
+    
+            best_format = self._determine_best_format(available_formats, is_live=True)
+            print(f"?? Selected live format: {best_format}")
+    
+            final_video_url = self._get_final_video_url(video_assets, best_format['asset_type'])
+            if not final_video_url:
+                print("? No MPD streams found either")
+                return None
+    
+            print(f"? {best_format['format_name']} live stream found: {final_video_url}")
+    
+            if best_format['format_type'] == 'hls':
+                return {
+                    "url": final_video_url,
+                    "manifest_type": "hls"
+                }
+    
+            if best_format['format_type'] != 'mpd':
+                print(f"? No {best_format['format_name']} live streams found")
+                return None
+    
+            pssh_record, mpd_text, drm_info = self._extract_pssh_from_mpd(final_video_url)
+            key_id_hex = self._normalize_key_id((drm_info or {}).get('key_id'))
+            if key_id_hex:
+                print(f"? [SixPlayProvider] Live MPD default_KID: {key_id_hex}")
+    
+            stream_response = {
+                "url": final_video_url,
+                "manifest_type": "mpd"
+            }
+            if key_id_hex:
+                stream_response["default_kid"] = key_id_hex
+    
+            if pssh_record:
+                stream_response["pssh"] = pssh_record.base64_text
+                stream_response["pssh_system_id"] = pssh_record.system_id
+                stream_response["pssh_source"] = pssh_record.source
+                print(f"? Live PSSH data included in stream response")
+    
+                raw_key = self._extract_widevine_key(pssh_record.base64_text, token)
+                if raw_key:
+                    normalized_key = self._normalize_decryption_key(raw_key, key_id_hex)
+                    if normalized_key:
+                        stream_response["decryption_key"] = normalized_key
+                        print(f"? Live Widevine decryption key included in stream response")
+    
+                        self._print_download_command(final_video_url, normalized_key, f"live_{channel_name}")
+    
+                        if key_id_hex:
+                            mediaflow_stream = self._build_mediaflow_clearkey_stream(
+                                original_mpd_url=final_video_url,
+                                base_headers=headers_video_stream,
+                                key_id_hex=key_id_hex,
+                                key_hex=normalized_key,
+                                is_live=True,
+                            )
+                            if mediaflow_stream:
+                                print("? Serving live stream via MediaFlow ClearKey proxy")
+                                return mediaflow_stream
+                    else:
+                        print("? Unable to normalize Widevine key for MediaFlow usage")
+                else:
+                    print("? CDRM did not return a Widevine key")
+    
+            if token:
+                license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={token}|R{{SSM}}|JBlicense"
+                license_headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
+                }
+    
+                print(f"?? [SixPlay] Live DRM License Information:")
+                print(f"   License URL: {license_url}")
+                print(f"   License Headers: {license_headers}")
+                print(f"   Live Token: {token[:50]}...")
+                print(f"   Video URL: {final_video_url}")
+    
+                print(f"? Live DRM stream configured")
+    
+                stream_response.update({
+                    "licenseUrl": license_url,
+                    "licenseHeaders": license_headers,
+                    "live_token": token,
+                    "drm_protected": True
+                })
+    
+                return stream_response
+    
+            print(f"??  No authentication for live DRM content")
+            return stream_response
+    
+        except Exception as e:
+            print(f"Error getting stream for {channel_name}: {e}")
+    
         return None
     
     def _get_final_video_url(self, video_assets, asset_type=None):
@@ -796,34 +809,64 @@ class SixPlayProvider:
         
         return final_video_url
 
-    def _extract_pssh_from_mpd(self, mpd_url: str) -> Optional[PsshRecord]:
-        """Extract PSSH box from MPD manifest URL.
-        
+    def _extract_pssh_from_mpd(self, mpd_url: str) -> Tuple[Optional[PsshRecord], Optional[str], Dict]:
+        """Extract PSSH data and DRM metadata from an MPD manifest.
+
         Args:
             mpd_url: URL to the MPD manifest
-            
+
         Returns:
-            PsshRecord containing PSSH data or None if extraction fails
+            Tuple containing the PSSH record (if any), raw MPD text, and extracted DRM info
         """
+        mpd_text: Optional[str] = None
+        drm_info: Dict = {}
         try:
-            #print(f"[SixPlayProvider] Extracting PSSH from MPD: {mpd_url}")
-            pssh_record = extract_first_pssh(mpd_url)
-            
+            result = extract_first_pssh(mpd_url, include_mpd=True)
+            pssh_record: Optional[PsshRecord]
+            mpd_bytes: Optional[bytes]
+
+            if isinstance(result, tuple):
+                pssh_record, mpd_bytes = result
+            else:
+                pssh_record, mpd_bytes = result, None
+
+            if mpd_bytes:
+                try:
+                    mpd_text = mpd_bytes.decode('utf-8')
+                except Exception:
+                    mpd_text = mpd_bytes.decode('utf-8', errors='ignore')
+
+            if mpd_text:
+                try:
+                    drm_info = extract_drm_info_from_mpd(mpd_text) or {}
+                except Exception as drm_error:
+                    drm_info = {}
+                    print(f"[SixPlayProvider] Failed to parse DRM info: {drm_error}")
+
+            if not pssh_record and drm_info.get('widevine_pssh'):
+                try:
+                    raw = base64.b64decode(drm_info['widevine_pssh'])
+                    pssh_record = PsshRecord(
+                        source='drm_info',
+                        parent='ContentProtection',
+                        base64_text=drm_info['widevine_pssh'],
+                        raw_length=len(raw),
+                        system_id='edef8ba9-79d6-4ace-a3c8-27dcd51d21ed'
+                    )
+                except Exception:
+                    pass
+
             if pssh_record:
                 print(f"[SixPlayProvider] PSSH extracted successfully:")
-                #print(f"  Source: {pssh_record.source}")
-                #print(f"  Parent: {pssh_record.parent}")
-                #print(f"  System ID: {pssh_record.system_id}")
-                #print(f"  Raw Length: {pssh_record.raw_length}")
                 print(f"  Base64 PSSH: {pssh_record.base64_text}")
-                return pssh_record
             else:
                 print(f"[SixPlayProvider] No PSSH found in MPD manifest")
-                return None
-                
+
+            return pssh_record, mpd_text, drm_info
+
         except Exception as e:
             print(f"[SixPlayProvider] Error extracting PSSH from MPD: {e}")
-            return None
+            return None, None, {}
 
     def _extract_widevine_key(self, pssh_value: str, drm_token: str) -> Optional[str]:
         """Extract Widevine decryption key using CDRM API.
@@ -901,7 +944,7 @@ class SixPlayProvider:
             display_url = video_url[:100] + "..." if len(video_url) > 100 else video_url
             
             print(f"\n📥 N_m3u8DL-RE Download Command:")
-            print(f"N_m3u8DL-RE \"{video_url}\" --save-name \"{clean_name}\" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --key {decryption_key}")
+            print(f".\N_m3u8DL-RE \"{video_url}\" --save-name \"{clean_name}\" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --key {decryption_key}")
             print(f"\n🔗 URL: {display_url}")
             print(f"🔑 Key: {decryption_key}")
             print(f"💾 Save as: {clean_name}")
@@ -909,6 +952,190 @@ class SixPlayProvider:
         except Exception as e:
             print(f"[SixPlayProvider] Error printing download command: {e}")
 
+
+    @staticmethod
+    def _pad_base64(value: str) -> str:
+        """Pad base64 strings to a valid length."""
+        if value is None:
+            return ''
+        padding = (4 - len(value) % 4) % 4
+        return value + ('=' * padding)
+
+    def _normalize_key_id(self, key_id: Optional[str]) -> Optional[str]:
+        """Return the key ID as 32-char lowercase hex if possible."""
+        if not key_id:
+            return None
+        candidate = key_id.strip()
+        if not candidate:
+            return None
+        try:
+            return uuid.UUID(candidate).hex
+        except Exception:
+            pass
+        candidate = candidate.replace('-', '').replace(' ', '')
+        if re.fullmatch(r'[0-9a-fA-F]{32}', candidate):
+            return candidate.lower()
+        try:
+            decoded = base64.urlsafe_b64decode(self._pad_base64(candidate))
+            if len(decoded) == 16:
+                return decoded.hex()
+        except Exception:
+            pass
+        return None
+
+    def _ensure_hex_key(self, key_value: Optional[str]) -> Optional[str]:
+        """Coerce provided key data into a 32-character hex string."""
+        if not key_value:
+            return None
+        candidate = key_value.strip().replace(' ', '')
+        if not candidate:
+            return None
+        if re.fullmatch(r'[0-9a-fA-F]{32}', candidate):
+            return candidate.lower()
+        try:
+            decoded = base64.urlsafe_b64decode(self._pad_base64(candidate))
+            hex_value = decoded.hex()
+            if len(hex_value) == 32:
+                return hex_value
+        except Exception:
+            pass
+        return None
+
+    def _normalize_decryption_key(self, raw_key: Optional[str], key_id_hex: Optional[str]) -> Optional[str]:
+        """Extract the matching hex key from various key string formats."""
+        if not raw_key:
+            return None
+        value = raw_key.strip()
+        if not value:
+            return None
+
+        target_kid = key_id_hex.lower() if key_id_hex else None
+
+        def match_candidate(kid_candidate: Optional[str], key_candidate: Optional[str]) -> Optional[str]:
+            key_hex = self._ensure_hex_key(key_candidate)
+            if not key_hex:
+                return None
+            if not target_kid:
+                return key_hex
+            kid_hex = self._normalize_key_id(kid_candidate)
+            if kid_hex and kid_hex.lower() == target_kid:
+                return key_hex
+            return None
+
+        # Try JSON payloads first
+        try:
+            data = json.loads(value)
+            keys = []
+            if isinstance(data, dict):
+                keys = data.get('keys') or []
+            elif isinstance(data, list):
+                keys = data
+            if isinstance(keys, list):
+                for item in keys:
+                    if not isinstance(item, dict):
+                        continue
+                    key_hex = match_candidate(item.get('kid') or item.get('keyid'), item.get('k') or item.get('key'))
+                    if key_hex:
+                        return key_hex
+                if len(keys) == 1:
+                    key_hex = self._ensure_hex_key(keys[0].get('k') or keys[0].get('key'))
+                    if key_hex:
+                        return key_hex
+        except json.JSONDecodeError:
+            pass
+
+        normalized = (
+            value.replace('\r\n', ',')
+            .replace('\n', ',')
+            .replace('\r', ',')
+            .replace(';', ',')
+            .replace('|', ',')
+        )
+        fallback_key = None
+
+        for segment in normalized.split(','):
+            piece = segment.strip()
+            if not piece:
+                continue
+            if ':' in piece:
+                kid_part, key_part = piece.split(':', 1)
+                key_hex = match_candidate(kid_part, key_part)
+                if key_hex:
+                    return key_hex
+            else:
+                candidate = self._ensure_hex_key(piece)
+                if candidate and not fallback_key:
+                    fallback_key = candidate
+
+        return fallback_key
+
+    @staticmethod
+    def _hex_to_base64url(hex_value: Optional[str]) -> Optional[str]:
+        """Convert hex strings to base64url without padding."""
+        if not hex_value:
+            return None
+        try:
+            raw = bytes.fromhex(hex_value)
+            return base64.urlsafe_b64encode(raw).decode('utf-8').rstrip('=')
+        except Exception:
+            return None
+
+    def _build_mediaflow_clearkey_stream(
+        self,
+        original_mpd_url: str,
+        base_headers: Dict[str, str],
+        key_id_hex: Optional[str],
+        key_hex: Optional[str],
+        is_live: bool = False,
+    ) -> Optional[Dict]:
+        """Create a MediaFlow ClearKey MPD stream if configuration allows."""
+        if not key_id_hex or not key_hex:
+            return None
+        if not self.mediaflow_url or not self.mediaflow_password:
+            print('[SixPlayProvider] MediaFlow configuration missing for ClearKey streaming')
+            return None
+        try:
+            processed_mpd_url = get_processed_mpd_url_for_mediaflow(
+                original_mpd_url,
+                auth_token=self.login_token if self.login_token else None,
+            )
+
+            mediaflow_headers = {
+                'user-agent': base_headers.get('User-Agent', get_random_windows_ua()),
+                'origin': self.base_url,
+                'referer': self.base_url,
+            }
+            if self.login_token:
+                mediaflow_headers['authorization'] = f'Bearer {self.login_token}'
+
+            key_id_param = self._hex_to_base64url(key_id_hex) or key_id_hex
+            key_param = self._hex_to_base64url(key_hex) or key_hex
+
+            extra_params = {
+                'key_id': key_id_param,
+                'key': key_param,
+            }
+
+            mediaflow_url = build_mediaflow_url(
+                base_url=self.mediaflow_url,
+                password=self.mediaflow_password,
+                destination_url=processed_mpd_url,
+                endpoint='/proxy/mpd/manifest.m3u8',
+                request_headers=mediaflow_headers,
+                extra_params=extra_params,
+            )
+
+            print(f"[SixPlayProvider] MediaFlow ClearKey URL prepared: {mediaflow_url}")
+
+            return {
+                'url': mediaflow_url,
+                'manifest_type': 'mpd',
+                'externalUrl': original_mpd_url,
+                'is_live': is_live,
+            }
+        except Exception as e:
+            print(f"[SixPlayProvider] MediaFlow ClearKey setup failed: {e}")
+            return None
     def _analyze_available_formats(self, video_assets: List[Dict]) -> Dict:
         """Analyze available video formats from assets and return format information"""
         formats = {
