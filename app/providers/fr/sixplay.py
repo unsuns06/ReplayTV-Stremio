@@ -418,8 +418,8 @@ class SixPlayProvider:
 
             # Check if processed file already exists before authentication
             api_url = "https://alphanet06-processor.hf.space"
-            processed_filename = f"{actual_episode_id}.mp4"
-            processed_url = f"{api_url}/stream/{processed_filename}"
+            processed_filename = f"{actual_episode_id}.mkv"
+            processed_url = f"{api_url}/download/{processed_filename}"
 
             try:
                 check_response = requests.head(processed_url, timeout=5)
@@ -565,7 +565,7 @@ class SixPlayProvider:
                                                     save_name=f"{actual_episode_id}",
                                                     key=normalized_key,
                                                     quality="best",
-                                                    format="mp4"
+                                                    format="mkv"
                                                 )
 
                                                 if online_result.get("success"):
@@ -993,7 +993,7 @@ class SixPlayProvider:
             display_url = video_url[:100] + "..." if len(video_url) > 100 else video_url
             
             print(f"\n📥 N_m3u8DL-RE Download Command:")
-            print(f'./N_m3u8DL-RE "{video_url}" --save-name "{clean_name}" --select-video best --select-audio all --select-subtitle all -mt -M format=mp4 --log-level OFF --key {decryption_key}')
+            print(f'./N_m3u8DL-RE "{video_url}" --save-name "{clean_name}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --key {decryption_key}')
             print(f"\n🔗 URL: {display_url}")
             print(f"🔑 Key: {decryption_key}")
             print(f"💾 Save as: {clean_name}")
