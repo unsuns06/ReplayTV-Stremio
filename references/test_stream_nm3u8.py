@@ -50,7 +50,7 @@ class N_m3u8DLTester:
                           select_video: str = "best",
                           select_audio: str = "all",
                           select_subtitle: str = "all",
-                          format: str = "mkv",
+                          format: str = "mp4",
                           log_level: str = "OFF",
                           additional_args: Optional[list] = None) -> Optional[str]:
         """Trigger file processing and return job ID."""
@@ -288,7 +288,7 @@ def main():
         "select_video": "best",
         "select_audio": "all",
         "select_subtitle": "all",
-        "format": "mkv",
+        "format": "mp4",
         "log_level": "OFF"
     }
 
