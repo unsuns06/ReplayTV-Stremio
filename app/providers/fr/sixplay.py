@@ -419,7 +419,7 @@ class SixPlayProvider:
             # Check if processed file already exists before authentication
             api_url = "https://alphanet06-processor.hf.space"
             processed_filename = f"{actual_episode_id}.mkv"
-            processed_url = f"{api_url}/download/{processed_filename}"
+            processed_url = f"{api_url}/stream/{processed_filename}"
 
             try:
                 check_response = requests.head(processed_url, timeout=5)
