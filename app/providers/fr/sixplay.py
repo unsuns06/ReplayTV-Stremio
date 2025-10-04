@@ -21,6 +21,7 @@ from app.utils.sixplay_mpd_processor import create_mediaflow_compatible_mpd, ext
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
 from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
+from app.utils.nm3u8_drm_processor import process_drm_simple
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -276,6 +277,17 @@ class SixPlayProvider:
                 "year": 2025,
                 "rating": "Tout public"
             },
+            "66-minutes-le-doc": {
+                "id": "66-minutes-le-doc",
+                "name": "66 minutes le Doc",
+                "description": "Magazine d'investigation de M6",
+                "channel": "M6",
+                "logo": "https://images.6play.fr/v1/images/4248692/raw",
+                "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
+                "genres": ["Investigation", "Magazine", "Documentaire"],
+                "year": 2024,
+                "rating": "Tous publics"
+            },
             "66-minutes": {
                 "id": "66-minutes",
                 "name": "66 minutes",
@@ -403,7 +415,26 @@ class SixPlayProvider:
         
         try:
             print(f"[SixPlayProvider] Getting replay stream for 6play episode: {actual_episode_id}")
-            
+
+            # Check if processed file already exists before authentication
+            api_url = "https://alphanet06-processor.hf.space"
+            processed_filename = f"{actual_episode_id}.mkv"
+            processed_url = f"{api_url}/stream/{processed_filename}"
+
+            try:
+                check_response = requests.head(processed_url, timeout=5)
+                if check_response.status_code == 200:
+                    # File exists - return immediately
+                    return {
+                        "url": processed_url,
+                        "manifest_type": "video",
+                        "title": "Processed Version (No DRM)",
+                        "filename": processed_filename
+                    }
+            except Exception:
+                # Error checking file - proceed with normal flow
+                pass
+
             # Lazy authentication - only authenticate when needed
             if not self._authenticated and not self._authenticate():
                 print("[SixPlayProvider] 6play authentication failed")
@@ -417,8 +448,9 @@ class SixPlayProvider:
             
             # Get video info using the same API call as the reference plugin
             url_json = f"https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/videos/{actual_episode_id}?csa=6&with=clips,freemiumpacks"
-            
+
             response = self.session.get(url_json, headers=headers_video_stream, timeout=10)
+            token_response = None
             
             if response.status_code == 200:
                 json_parser = response.json()
@@ -448,10 +480,10 @@ class SixPlayProvider:
                             
                             # Handle HLS streams (no DRM required)
                             if best_format['format_type'] == 'hls':
-                                return {
+                                return [{
                                     "url": final_video_url,
                                     "manifest_type": "hls"
-                                }
+                                }]
                             
                             # Handle MPD/DASH streams (DRM required)
                             elif best_format['format_type'] == 'mpd':
@@ -503,17 +535,18 @@ class SixPlayProvider:
                                     except Exception as e:
                                         print(f"? DRM setup failed: {e}")
 
-                                stream_response = {
+                                # Build the original DRM stream
+                                original_stream = {
                                     "url": final_video_url,
                                     "manifest_type": "mpd"
                                 }
                                 if key_id_hex:
-                                    stream_response["default_kid"] = key_id_hex
+                                    original_stream["default_kid"] = key_id_hex
 
                                 if pssh_record:
-                                    stream_response["pssh"] = pssh_record.base64_text
-                                    stream_response["pssh_system_id"] = pssh_record.system_id
-                                    stream_response["pssh_source"] = pssh_record.source
+                                    original_stream["pssh"] = pssh_record.base64_text
+                                    original_stream["pssh_system_id"] = pssh_record.system_id
+                                    original_stream["pssh_source"] = pssh_record.source
                                     print(f"? PSSH data included in stream response")
 
                                     if drm_token:
@@ -521,10 +554,26 @@ class SixPlayProvider:
                                         if raw_key:
                                             normalized_key = self._normalize_decryption_key(raw_key, key_id_hex)
                                             if normalized_key:
-                                                stream_response["decryption_key"] = normalized_key
+                                                original_stream["decryption_key"] = normalized_key
                                                 print(f"? Widevine decryption key included in stream response")
 
                                                 self._print_download_command(final_video_url, normalized_key, actual_episode_id)
+
+                                                # Trigger online DRM processing since file doesn't exist
+                                                online_result = process_drm_simple(
+                                                    url=final_video_url,
+                                                    save_name=f"{actual_episode_id}",
+                                                    key=normalized_key,
+                                                    quality="best",
+                                                    format="mkv"
+                                                )
+
+                                                if online_result.get("success"):
+                                                    # Return the processed stream as the primary result
+                                                    return processed_stream
+                                                else:
+                                                    # Processing failed - continue with DRM approach
+                                                    pass
 
                                                 if key_id_hex:
                                                     mediaflow_stream = self._build_mediaflow_clearkey_stream(
@@ -558,17 +607,17 @@ class SixPlayProvider:
 
                                     print(f"? Using direct DRM approach with license")
 
-                                    stream_response.update({
+                                    original_stream.update({
                                         "licenseUrl": license_url,
                                         "licenseHeaders": license_headers,
                                         "drm_token": drm_token,
                                         "drm_protected": True
                                     })
 
-                                    return stream_response
+                                    return original_stream
                                 else:
                                     print(f"? No DRM token available - returning basic MPD with PSSH")
-                                    return stream_response
+                                    return original_stream
                             else:
                                 print(f"? No {best_format['format_name']} streams found")
                         else:
@@ -580,12 +629,12 @@ class SixPlayProvider:
             
             # Fallback - return None to indicate failure
             return None
-            
+
         except Exception as e:
-            print(f"Error getting stream for {channel_name}: {e}")
-        
+            print(f"Error getting stream for {actual_episode_id}: {e}")
+
         return None
-    
+
     def get_channel_stream_url(self, channel_id: str) -> Optional[Dict]:
         """Get stream URL for a specific channel"""
         channel_name = channel_id.split(":")[-1]
@@ -1334,6 +1383,7 @@ class SixPlayProvider:
             show_search_mapping = {
                 'capital': 'Capital',
                 '66-minutes': '66 minutes',
+                '66-minutes-le-doc': '66 minutes : le doc',
                 'zone-interdite': 'Zone interdite',
                 'enquete-exclusive': 'Enquête exclusive'
             }

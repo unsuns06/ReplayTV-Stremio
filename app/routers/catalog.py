@@ -227,6 +227,16 @@ async def get_catalog(type: str, id: str, request: Request):
                     "channel": "M6"
                 },
                 {
+                    "id": "cutam:fr:6play:66-minutes-le-doc",
+                    "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
+                    "logo": "https://images.6play.fr/v1/images/4248692/raw",
+                    "description": "Magazine d'investigation de M6",
+                    "genres": ["Investigation", "Magazine", "Documentaire"],
+                    "year": 2024,
+                    "rating": "Tous publics",
+                    "channel": "M6"
+                },
+                {
                     "id": "cutam:fr:6play:66-minutes",
                     "poster": "https://images-fio.6play.fr/v2/images/4654325/raw",
                     "logo": "https://images.6play.fr/v1/images/4654324/raw",

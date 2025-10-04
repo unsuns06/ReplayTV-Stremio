@@ -335,6 +335,13 @@ async def get_meta(type: str, id: str, request: Request):
                 show_logo = "https://images.6play.fr/v1/images/4242438/raw"
                 show_channel = "M6"
                 show_genres = ["Économie", "Finance", "Magazine"]
+            elif "66-minutes-le-doc" in id:
+                show_id = "66-minutes-le-doc"
+                show_name = "66 minutes le Doc"
+                show_description = "Magazine d'investigation de M6"
+                show_logo = "https://images.6play.fr/v1/images/4248692/raw"
+                show_channel = "M6"
+                show_genres = ["Investigation", "Magazine", "Documentaire"]
             elif "66-minutes" in id:
                 show_id = "66-minutes"
                 show_name = "66 minutes"
@@ -414,6 +421,22 @@ async def get_meta(type: str, id: str, request: Request):
                         "description": "Magazine économique et financier de M6",
                         "channel": "M6",
                         "genres": ["Économie", "Finance", "Magazine"],
+                        "year": 2024,
+                        "rating": "Tous publics",
+                        "videos": []
+                    }
+                )
+            elif "66-minutes-le-doc" in id:
+                return MetaResponse(
+                    meta={
+                        "id": "cutam:fr:6play:66-minutes-le-doc",
+                        "type": "series",
+                        "name": "66 minutes le Doc",
+                        "poster": f"{static_base}/static/logos/fr/m6.png",
+                        "logo": "https://images.6play.fr/v1/images/4248692/raw",
+                        "description": "Magazine d'investigation de M6",
+                        "channel": "M6",
+                        "genres": ["Investigation", "Magazine", "Documentaire"],
                         "year": 2024,
                         "rating": "Tous publics",
                         "videos": []

@@ -36,32 +36,66 @@ async def get_stream(type: str, id: str, request: Request):
         try:
             # Get the stream URL
             stream_info = provider.get_channel_stream_url(id)
-            
+
             if stream_info:
-                logger.info(f"✅ {provider_name} returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-                
-                # Merge any provider-specified headers with viewer IP headers
-                merged_headers = {}
-                if stream_info.get('headers'):
-                    merged_headers.update(stream_info.get('headers'))
-                merged_headers.update(make_ip_headers())
+                logger.info(f"✅ {provider_name} returned stream info")
 
-                # Merge license headers too, if provided
-                merged_license_headers = None
-                if stream_info.get('licenseHeaders'):
-                    merged_license_headers = dict(stream_info.get('licenseHeaders'))
-                    merged_license_headers.update(make_ip_headers())
+                # Handle both single stream objects and arrays of streams
+                if isinstance(stream_info, list):
+                    # Provider returned multiple streams
+                    streams = []
+                    for i, info in enumerate(stream_info):
+                        # Merge any provider-specified headers with viewer IP headers
+                        merged_headers = {}
+                        if info.get('headers'):
+                            merged_headers.update(info.get('headers'))
+                        merged_headers.update(make_ip_headers())
 
-                stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                    headers= merged_headers if merged_headers else None,
-                    manifest_type=stream_info.get('manifest_type'),
-                    licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=merged_license_headers,
-                    externalUrl=stream_info.get('externalUrl')
-                )
-                return StreamResponse(streams=[stream])
+                        # Merge license headers too, if provided
+                        merged_license_headers = None
+                        if info.get('licenseHeaders'):
+                            merged_license_headers = dict(info.get('licenseHeaders'))
+                            merged_license_headers.update(make_ip_headers())
+
+                        stream = Stream(
+                            url=info["url"],
+                            title=info.get('title', f"{info.get('manifest_type', 'stream').upper()} Stream"),
+                            headers= merged_headers if merged_headers else None,
+                            manifest_type=info.get('manifest_type'),
+                            licenseUrl=info.get('licenseUrl'),
+                            licenseHeaders=merged_license_headers,
+                            externalUrl=info.get('externalUrl')
+                        )
+                        streams.append(stream)
+
+                    logger.info(f"✅ {provider_name} returned {len(streams)} streams")
+                    return StreamResponse(streams=streams)
+                else:
+                    # Provider returned a single stream object (legacy format)
+                    logger.info(f"✅ {provider_name} returned single stream: {stream_info.get('manifest_type', 'unknown')}")
+
+                    # Merge any provider-specified headers with viewer IP headers
+                    merged_headers = {}
+                    if stream_info.get('headers'):
+                        merged_headers.update(stream_info.get('headers'))
+                    merged_headers.update(make_ip_headers())
+
+                    # Merge license headers too, if provided
+                    merged_license_headers = None
+                    if stream_info.get('licenseHeaders'):
+                        merged_license_headers = dict(stream_info.get('licenseHeaders'))
+                        merged_license_headers.update(make_ip_headers())
+
+                    stream = Stream(
+                        url=stream_info["url"],
+                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        headers= merged_headers if merged_headers else None,
+                        manifest_type=stream_info.get('manifest_type'),
+                        licenseUrl=stream_info.get('licenseUrl'),
+                        licenseHeaders=merged_license_headers,
+                        externalUrl=stream_info.get('externalUrl')
+                    )
+                    return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ {provider_name} returned no stream info for channel: {id}")
                 # Return fallback stream
@@ -101,17 +135,35 @@ async def get_stream(type: str, id: str, request: Request):
             
             # Get stream URL for the episode
             stream_info = provider.get_episode_stream_url(episode_id)
-            
+
             if stream_info:
-                logger.info(f"✅ France TV returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-                stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                    externalUrl=stream_info.get('externalUrl')
-                )
-                return StreamResponse(streams=[stream])
+                logger.info(f"✅ Provider returned stream info")
+
+                # Handle both single stream objects and arrays of streams
+                if isinstance(stream_info, list):
+                    # Provider returned multiple streams
+                    streams = []
+                    for i, info in enumerate(stream_info):
+                        stream = Stream(
+                            url=info["url"],
+                            title=info.get('title', f"{info.get('manifest_type', 'stream').upper()} Stream"),
+                            externalUrl=info.get('externalUrl')
+                        )
+                        streams.append(stream)
+
+                    logger.info(f"✅ Provider returned {len(streams)} streams")
+                    return StreamResponse(streams=streams)
+                else:
+                    # Provider returned a single stream object (legacy format)
+                    logger.info(f"✅ Provider returned single stream: {stream_info.get('manifest_type', 'unknown')}")
+                    stream = Stream(
+                        url=stream_info["url"],
+                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        externalUrl=stream_info.get('externalUrl')
+                    )
+                    return StreamResponse(streams=[stream])
             else:
-                logger.warning(f"⚠️ France TV returned no stream info for episode: {episode_id}")
+                logger.warning(f"⚠️ Provider returned no stream info for episode: {episode_id}")
                 # Failed to get stream info
                 return StreamResponse(streams=[{
                     "url": "https://example.com/stream-not-available.mp4",
@@ -147,32 +199,66 @@ async def get_stream(type: str, id: str, request: Request):
             
             # Get stream URL for the episode
             stream_info = provider.get_episode_stream_url(episode_id)
-            
+
             if stream_info:
-                logger.info(f"✅ TF1+ returned stream info: {stream_info.get('manifest_type', 'unknown')}")
+                logger.info(f"✅ TF1+ returned stream info")
 
-                # Merge any provider-specified headers with viewer IP headers
-                merged_headers = {}
-                if stream_info.get('headers'):
-                    merged_headers.update(stream_info.get('headers'))
-                merged_headers.update(make_ip_headers())
+                # Handle both single stream objects and arrays of streams
+                if isinstance(stream_info, list):
+                    # Provider returned multiple streams
+                    streams = []
+                    for i, info in enumerate(stream_info):
+                        # Merge any provider-specified headers with viewer IP headers
+                        merged_headers = {}
+                        if info.get('headers'):
+                            merged_headers.update(info.get('headers'))
+                        merged_headers.update(make_ip_headers())
 
-                # Merge license headers too, if provided
-                merged_license_headers = None
-                if stream_info.get('licenseHeaders'):
-                    merged_license_headers = dict(stream_info.get('licenseHeaders'))
-                    merged_license_headers.update(make_ip_headers())
+                        # Merge license headers too, if provided
+                        merged_license_headers = None
+                        if info.get('licenseHeaders'):
+                            merged_license_headers = dict(info.get('licenseHeaders'))
+                            merged_license_headers.update(make_ip_headers())
 
-                stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                    headers= merged_headers if merged_headers else None,
-                    manifest_type=stream_info.get('manifest_type'),
-                    licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=merged_license_headers,
-                    externalUrl=stream_info.get('externalUrl')
-                )
-                return StreamResponse(streams=[stream])
+                        stream = Stream(
+                            url=info["url"],
+                            title=info.get('title', f"{info.get('manifest_type', 'stream').upper()} Stream"),
+                            headers= merged_headers if merged_headers else None,
+                            manifest_type=info.get('manifest_type'),
+                            licenseUrl=info.get('licenseUrl'),
+                            licenseHeaders=merged_license_headers,
+                            externalUrl=info.get('externalUrl')
+                        )
+                        streams.append(stream)
+
+                    logger.info(f"✅ TF1+ returned {len(streams)} streams")
+                    return StreamResponse(streams=streams)
+                else:
+                    # Provider returned a single stream object (legacy format)
+                    logger.info(f"✅ TF1+ returned single stream: {stream_info.get('manifest_type', 'unknown')}")
+
+                    # Merge any provider-specified headers with viewer IP headers
+                    merged_headers = {}
+                    if stream_info.get('headers'):
+                        merged_headers.update(stream_info.get('headers'))
+                    merged_headers.update(make_ip_headers())
+
+                    # Merge license headers too, if provided
+                    merged_license_headers = None
+                    if stream_info.get('licenseHeaders'):
+                        merged_license_headers = dict(stream_info.get('licenseHeaders'))
+                        merged_license_headers.update(make_ip_headers())
+
+                    stream = Stream(
+                        url=stream_info["url"],
+                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        headers= merged_headers if merged_headers else None,
+                        manifest_type=stream_info.get('manifest_type'),
+                        licenseUrl=stream_info.get('licenseUrl'),
+                        licenseHeaders=merged_license_headers,
+                        externalUrl=stream_info.get('externalUrl')
+                    )
+                    return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ TF1+ returned no stream info for episode: {episode_id}")
                 # Failed to get stream info
@@ -210,19 +296,41 @@ async def get_stream(type: str, id: str, request: Request):
             
             # Get stream URL for the episode
             stream_info = provider.get_episode_stream_url(episode_id)
-            
+
             if stream_info:
-                logger.info(f"✅ 6play returned stream info: {stream_info.get('manifest_type', 'unknown')}")
-                stream = Stream(
-                    url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
-                    headers=stream_info.get('headers'),
-                    manifest_type=stream_info.get('manifest_type'),
-                    licenseUrl=stream_info.get('licenseUrl'),
-                    licenseHeaders=stream_info.get('licenseHeaders'),
-                    externalUrl=stream_info.get('externalUrl')
-                )
-                return StreamResponse(streams=[stream])
+                logger.info(f"✅ 6play returned stream info")
+
+                # Handle both single stream objects and arrays of streams
+                if isinstance(stream_info, list):
+                    # Provider returned multiple streams
+                    streams = []
+                    for i, info in enumerate(stream_info):
+                        stream = Stream(
+                            url=info["url"],
+                            title=info.get('title', f"{info.get('manifest_type', 'stream').upper()} Stream"),
+                            headers=info.get('headers'),
+                            manifest_type=info.get('manifest_type'),
+                            licenseUrl=info.get('licenseUrl'),
+                            licenseHeaders=info.get('licenseHeaders'),
+                            externalUrl=info.get('externalUrl')
+                        )
+                        streams.append(stream)
+
+                    logger.info(f"✅ 6play returned {len(streams)} streams")
+                    return StreamResponse(streams=streams)
+                else:
+                    # Provider returned a single stream object (legacy format)
+                    logger.info(f"✅ 6play returned single stream: {stream_info.get('manifest_type', 'unknown')}")
+                    stream = Stream(
+                        url=stream_info["url"],
+                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        headers=stream_info.get('headers'),
+                        manifest_type=stream_info.get('manifest_type'),
+                        licenseUrl=stream_info.get('licenseUrl'),
+                        licenseHeaders=stream_info.get('licenseHeaders'),
+                        externalUrl=stream_info.get('externalUrl')
+                    )
+                    return StreamResponse(streams=[stream])
             else:
                 logger.warning(f"⚠️ 6play returned no stream info for episode: {episode_id}")
                 # Failed to get stream info
