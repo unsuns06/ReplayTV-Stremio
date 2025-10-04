@@ -565,7 +565,8 @@ class SixPlayProvider:
                                                     save_name=f"{actual_episode_id}",
                                                     key=normalized_key,
                                                     quality="best",
-                                                    format="mkv"
+                                                    format="mkv",
+                                                    binary_merge=True
                                                 )
 
                                                 if online_result.get("success"):

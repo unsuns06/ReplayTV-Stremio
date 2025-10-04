@@ -23,7 +23,7 @@ class SimpleDRMProcessor:
                            save_name: str,
                            key: str,
                            quality: str = "best",
-                           format: str = "mp4",
+                           format: str = "mkv",
                            timeout: int = 1800) -> Dict[str, Any]:
         """
         Process DRM-protected content
@@ -33,7 +33,7 @@ class SimpleDRMProcessor:
             save_name: Name for the output file
             key: DRM decryption key
             quality: Video quality selection
-            format: Output format (mp4, mp4, etc.)
+            format: Output format (mkv, mp4, etc.)
             timeout: Processing timeout in seconds
 
         Returns:
@@ -48,7 +48,8 @@ class SimpleDRMProcessor:
             "select_audio": "all",
             "select_subtitle": "all",
             "format": format,
-            "log_level": "OFF"
+            "log_level": "OFF",
+            "binary_merge": True
         }
 
         try:
