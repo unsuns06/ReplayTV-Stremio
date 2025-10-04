@@ -993,7 +993,7 @@ class SixPlayProvider:
             display_url = video_url[:100] + "..." if len(video_url) > 100 else video_url
             
             print(f"\n📥 N_m3u8DL-RE Download Command:")
-            print(f'./N_m3u8DL-RE "{video_url}" --save-name "{clean_name}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --key {decryption_key}')
+            print(f'./N_m3u8DL-RE "{video_url}" --save-name "{clean_name}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --binary-merge --key {decryption_key}')
             print(f"\n🔗 URL: {display_url}")
             print(f"🔑 Key: {decryption_key}")
             print(f"💾 Save as: {clean_name}")
