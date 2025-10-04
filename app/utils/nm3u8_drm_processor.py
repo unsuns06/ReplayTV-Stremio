@@ -23,7 +23,7 @@ class SimpleDRMProcessor:
                            save_name: str,
                            key: str,
                            quality: str = "best",
-                           format: str = "mkv",
+                           format: str = "mp4",
                            timeout: int = 1800) -> Dict[str, Any]:
         """
         Process DRM-protected content
@@ -33,7 +33,7 @@ class SimpleDRMProcessor:
             save_name: Name for the output file
             key: DRM decryption key
             quality: Video quality selection
-            format: Output format (mkv, mp4, etc.)
+            format: Output format (mp4, mp4, etc.)
             timeout: Processing timeout in seconds
 
         Returns:
@@ -145,7 +145,7 @@ def process_drm_simple(url: str, save_name: str, key: str, **kwargs) -> Dict[str
         save_name=save_name,
         key=key,
         quality=kwargs.get('quality', 'best'),
-        format=kwargs.get('format', 'mkv'),
+        format=kwargs.get('format', 'mp4'),
         timeout=kwargs.get('timeout', 1800)
     )
 
@@ -157,7 +157,7 @@ def process_drm_simple(url: str, save_name: str, key: str, **kwargs) -> Dict[str
 #         save_name="my_video",
 #         key="your_drm_key_here",
 #         quality="best",
-#         format="mkv"
+#         format="mp4"
 #     )
 #
 #     if result["success"]:
