@@ -418,7 +418,7 @@ class SixPlayProvider:
 
             # Check if processed file already exists before authentication
             api_url = "https://alphanet06-processor.hf.space"
-            processed_filename = f"{actual_episode_id}.mkv"
+            processed_filename = f"{actual_episode_id}.mp4"
             processed_url = f"{api_url}/stream/{processed_filename}"
 
             try:
