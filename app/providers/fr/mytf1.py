@@ -887,6 +887,26 @@ class MyTF1Provider:
         try:
             safe_print(f"✅ [MyTF1Provider] Getting replay stream for MyTF1 episode: {actual_episode_id}")
 
+            # Check if processed file already exists before authentication (same as sixplay.py)
+            api_url = "https://alphanet06-processor.hf.space"
+            processed_filename = f"{actual_episode_id}.mp4"
+            processed_url = f"{api_url}/stream/{processed_filename}"
+
+            try:
+                check_response = requests.head(processed_url, timeout=5)
+                if check_response.status_code == 200:
+                    # File exists - return immediately
+                    safe_print(f"✅ [MyTF1Provider] Processed file already exists: {processed_url}")
+                    return {
+                        "url": processed_url,
+                        "manifest_type": "video",
+                        "title": "Processed Version (No DRM)",
+                        "filename": processed_filename
+                    }
+            except Exception:
+                # Error checking file - proceed with normal flow
+                pass
+
             # Lazy authentication - only authenticate when needed
             safe_print("✅ [MyTF1Provider] Checking authentication...")
             if not self._authenticated and not self._authenticate():
@@ -1001,26 +1021,6 @@ class MyTF1Provider:
                 video_url = json_parser['delivery']['url']
                 safe_print(f"✅ [MyTF1Provider] Stream URL obtained: {video_url}")
 
-                # Check if processed file already exists before authentication
-                api_url = "https://alphanet06-processor.hf.space"
-                processed_filename = f"{actual_episode_id}.mp4"
-                processed_url = f"{api_url}/stream/{processed_filename}"
-
-                try:
-                    check_response = requests.head(processed_url, timeout=5)
-                    if check_response.status_code == 200:
-                        # File exists - return immediately as second stream option
-                        safe_print(f"✅ [MyTF1Provider] Processed file already exists: {processed_url}")
-                        return {
-                            "url": processed_url,
-                            "manifest_type": "video",
-                            "title": "Processed Version (No DRM)",
-                            "filename": processed_filename
-                        }
-                except Exception:
-                    # Error checking file - proceed with normal flow
-                    pass
-
                 license_url = None
                 license_headers = {}
 
@@ -1069,46 +1069,6 @@ class MyTF1Provider:
                         manifest_type = 'mpd'
 
                         safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
-
-                        # Extract DRM keys for DASH proxy streams too
-                        decryption_keys = []
-                        if license_url and video_url:
-                            try:
-                                safe_print(f"✅ [MyTF1Provider] Extracting DRM keys for DASH proxy nm3u8 processing...")
-                                extractor = TF1DRMExtractor()
-                                keys_dict = extractor.get_keys(video_url, license_url, verbose=False)
-
-                                if keys_dict:
-                                    decryption_keys = list(keys_dict.values())
-                                    safe_print(f"✅ [MyTF1Provider] Extracted {len(decryption_keys)} DRM key(s) for DASH proxy")
-                                    for i, key in enumerate(decryption_keys):
-                                        safe_print(f"  Key {i+1}: {key[:20]}...")
-
-                                    # Trigger online DRM processing for DASH proxy streams
-                                    if decryption_keys:
-                                        safe_print(f"✅ [MyTF1Provider] Triggering DASH proxy nm3u8 processing for {actual_episode_id}")
-                                        dash_online_result = process_drm_simple(
-                                            url=video_url,
-                                            save_name=f"{actual_episode_id}",
-                                            keys=decryption_keys,
-                                            quality="best",
-                                            format="mkv",
-                                            timeout=1800
-                                        )
-
-                                        if dash_online_result.get("success"):
-                                            safe_print(f"✅ [MyTF1Provider] DASH proxy nm3u8 processing completed successfully")
-                                            # Return the processed stream as the primary result
-                                            return {
-                                                "url": f"{api_url}/stream/{actual_episode_id}.mp4",
-                                                "manifest_type": "video",
-                                                "title": "Processed DASH Version (No DRM)",
-                                                "filename": f"{actual_episode_id}.mp4"
-                                            }
-                                        else:
-                                            safe_print(f"❌ [MyTF1Provider] DASH proxy nm3u8 processing failed: {dash_online_result.get('error', 'Unknown error')}")
-                            except Exception as e:
-                                safe_print(f"❌ [MyTF1Provider] Error during DASH proxy DRM key extraction/processing: {e}")
 
                         # For DASH proxy streams, set externalUrl to open in browser
                         stream_info = {
@@ -1182,6 +1142,19 @@ class MyTF1Provider:
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
 
+                # For non-DASH proxy streams, construct stream_info normally
+                stream_info = {
+                    "url": final_url,
+                    "manifest_type": manifest_type,
+                    "headers": headers_video_stream
+                }
+
+                # Add license info to stream_info if available
+                if license_url:
+                    stream_info["licenseUrl"] = license_url
+                    if license_headers:
+                        stream_info["licenseHeaders"] = license_headers
+
                 # Extract DRM keys using TF1DRMExtractor for nm3u8 processing
                 decryption_keys = []
                 if license_url and video_url:
@@ -1226,19 +1199,6 @@ class MyTF1Provider:
 
                     except Exception as e:
                         safe_print(f"❌ [MyTF1Provider] Error during DRM key extraction/processing: {e}")
-
-                # For non-DASH proxy streams, construct stream_info normally
-                stream_info = {
-                    "url": final_url,
-                    "manifest_type": manifest_type,
-                    "headers": headers_video_stream
-                }
-
-                # Add license info to stream_info if available
-                if license_url:
-                    stream_info["licenseUrl"] = license_url
-                    if license_headers:
-                        stream_info["licenseHeaders"] = license_headers
 
                 safe_print(f"✅ [MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
                 return stream_info
