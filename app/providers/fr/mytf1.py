@@ -32,8 +32,6 @@ from app.utils.safe_print import safe_print
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.base_url import get_base_url, get_logo_url
 from app.utils.client_ip import merge_ip_headers, make_ip_headers
-from app.providers.fr.tf1_drm_key_extractor import TF1DRMExtractor
-from app.utils.nm3u8_drm_processor import process_drm_simple
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -887,26 +885,6 @@ class MyTF1Provider:
         try:
             safe_print(f"✅ [MyTF1Provider] Getting replay stream for MyTF1 episode: {actual_episode_id}")
 
-            # Check if processed file already exists before authentication (same as sixplay.py)
-            api_url = "https://alphanet06-processor.hf.space"
-            processed_filename = f"{actual_episode_id}.mp4"
-            processed_url = f"{api_url}/stream/{processed_filename}"
-
-            try:
-                check_response = requests.head(processed_url, timeout=5)
-                if check_response.status_code == 200:
-                    # File exists - return immediately
-                    safe_print(f"✅ [MyTF1Provider] Processed file already exists: {processed_url}")
-                    return {
-                        "url": processed_url,
-                        "manifest_type": "video",
-                        "title": "Processed Version (No DRM)",
-                        "filename": processed_filename
-                    }
-            except Exception:
-                # Error checking file - proceed with normal flow
-                pass
-
             # Lazy authentication - only authenticate when needed
             safe_print("✅ [MyTF1Provider] Checking authentication...")
             if not self._authenticated and not self._authenticate():
@@ -1052,10 +1030,76 @@ class MyTF1Provider:
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
 
+                # Check if processed file already exists (for TF1 replays only)
+                api_url = "https://alphanet06-processor.hf.space"
+                processed_filename = f"{actual_episode_id}.mp4"
+                processed_url = f"{api_url}/stream/{processed_filename}"
+
+                try:
+                    check_response = requests.head(processed_url, timeout=5)
+                    if check_response.status_code == 200:
+                        # File exists - return immediately
+                        safe_print(f"✅ [MyTF1Provider] Processed file already exists: {processed_url}")
+                        return {
+                            "url": processed_url,
+                            "manifest_type": "video",
+                            "title": "Processed Version (No DRM)",
+                            "filename": processed_filename
+                        }
+                except Exception:
+                    # Error checking file - proceed with normal flow
+                    pass
+
                 # For DRM-protected MPD streams (replays only), use external DASH proxy
                 if is_mpd and license_url:
                     try:
                         safe_print(f"✅ [MyTF1Provider] Using DASH proxy for DRM-protected MPD replay stream")
+
+                        # Extract DRM keys using TF1 DRM extractor
+                        drm_keys_dict = {}
+                        try:
+                            from app.providers.fr.tf1_drm_key_extractor import TF1DRMExtractor
+                            safe_print(f"✅ [MyTF1Provider] Extracting DRM keys for TF1 replay...")
+                            
+                            extractor = TF1DRMExtractor(wvd_path="app/providers/fr/device.wvd")
+                            drm_keys_dict = extractor.get_keys(
+                                video_url=video_url,
+                                license_url=license_url,
+                                verbose=False
+                            )
+                            
+                            if drm_keys_dict:
+                                safe_print(f"✅ [MyTF1Provider] Extracted {len(drm_keys_dict)} DRM key(s)")
+                                for kid, key in drm_keys_dict.items():
+                                    safe_print(f"   KID: {kid} -> KEY: {key}")
+                                    
+                                # Format keys for N_m3u8DL-RE (kid:key format)
+                                formatted_keys = [f"{kid}:{key}" for kid, key in drm_keys_dict.items()]
+                                
+                                # Trigger background processing with multiple keys
+                                from app.utils.nm3u8_drm_processor import process_drm_simple
+                                safe_print(f"✅ [MyTF1Provider] Triggering background DRM processing...")
+                                
+                                online_result = process_drm_simple(
+                                    url=video_url,
+                                    save_name=f"{actual_episode_id}",
+                                    keys=formatted_keys,
+                                    quality="best",
+                                    format="mp4",
+                                    binary_merge=True
+                                )
+                                
+                                if online_result.get("success"):
+                                    safe_print(f"✅ [MyTF1Provider] Background processing started successfully")
+                                else:
+                                    safe_print(f"⚠️ [MyTF1Provider] Background processing failed to start: {online_result.get('error')}")
+                            else:
+                                safe_print(f"⚠️ [MyTF1Provider] No DRM keys extracted")
+                                
+                        except ImportError:
+                            safe_print(f"⚠️ [MyTF1Provider] TF1 DRM extractor not available (pywidevine not installed)")
+                        except Exception as drm_error:
+                            safe_print(f"⚠️ [MyTF1Provider] DRM key extraction failed: {drm_error}")
 
                         # URL encode the manifest and license URLs (NOT base64)
                         encoded_manifest = quote(video_url, safe='')
@@ -1082,6 +1126,10 @@ class MyTF1Provider:
                             stream_info["licenseUrl"] = license_url
                             if license_headers:
                                 stream_info["licenseHeaders"] = license_headers
+                        
+                        # Add DRM keys to stream info if extracted
+                        if drm_keys_dict:
+                            stream_info["drm_keys"] = drm_keys_dict
 
                         safe_print(f"✅ [MyTF1Provider] MyTF1 DASH proxy stream info prepared: manifest_type={stream_info['manifest_type']}")
                         return stream_info
@@ -1154,51 +1202,6 @@ class MyTF1Provider:
                     stream_info["licenseUrl"] = license_url
                     if license_headers:
                         stream_info["licenseHeaders"] = license_headers
-
-                # Extract DRM keys using TF1DRMExtractor for nm3u8 processing
-                decryption_keys = []
-                if license_url and video_url:
-                    try:
-                        safe_print(f"✅ [MyTF1Provider] Extracting DRM keys for nm3u8 processing...")
-                        extractor = TF1DRMExtractor()
-                        keys_dict = extractor.get_keys(video_url, license_url, verbose=False)
-
-                        if keys_dict:
-                            decryption_keys = list(keys_dict.values())
-                            safe_print(f"✅ [MyTF1Provider] Extracted {len(decryption_keys)} DRM key(s)")
-                            for i, key in enumerate(decryption_keys):
-                                safe_print(f"  Key {i+1}: {key[:20]}...")
-                        else:
-                            safe_print(f"❌ [MyTF1Provider] No DRM keys extracted")
-
-                        # Trigger online DRM processing since file doesn't exist
-                        if decryption_keys:
-                            safe_print(f"✅ [MyTF1Provider] Triggering nm3u8 processing for {actual_episode_id}")
-                            online_result = process_drm_simple(
-                                url=video_url,
-                                save_name=f"{actual_episode_id}",
-                                keys=decryption_keys,
-                                quality="best",
-                                format="mkv",
-                                timeout=1800
-                            )
-
-                            if online_result.get("success"):
-                                safe_print(f"✅ [MyTF1Provider] nm3u8 processing completed successfully")
-                                # Return the processed stream as the primary result
-                                return {
-                                    "url": f"{api_url}/stream/{processed_filename}",
-                                    "manifest_type": "video",
-                                    "title": "Processed Version (No DRM)",
-                                    "filename": processed_filename
-                                }
-                            else:
-                                safe_print(f"❌ [MyTF1Provider] nm3u8 processing failed: {online_result.get('error', 'Unknown error')}")
-                                # Processing failed - continue with DRM approach
-                                pass
-
-                    except Exception as e:
-                        safe_print(f"❌ [MyTF1Provider] Error during DRM key extraction/processing: {e}")
 
                 safe_print(f"✅ [MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
                 return stream_info

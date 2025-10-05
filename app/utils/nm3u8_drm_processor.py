@@ -21,7 +21,8 @@ class SimpleDRMProcessor:
     def process_drm_content(self,
                            url: str,
                            save_name: str,
-                           key: str,
+                           key: str = None,
+                           keys: list = None,
                            quality: str = "best",
                            format: str = "mkv",
                            timeout: int = 1800) -> Dict[str, Any]:
@@ -31,7 +32,8 @@ class SimpleDRMProcessor:
         Args:
             url: DRM-protected content URL
             save_name: Name for the output file
-            key: DRM decryption key
+            key: Single DRM decryption key (deprecated, use keys instead)
+            keys: List of DRM decryption keys for multi-key content
             quality: Video quality selection
             format: Output format (mkv, mp4, etc.)
             timeout: Processing timeout in seconds
@@ -43,7 +45,6 @@ class SimpleDRMProcessor:
         payload = {
             "url": url,
             "save_name": save_name,
-            "key": key,
             "select_video": quality,
             "select_audio": "all",
             "select_subtitle": "all",
@@ -51,6 +52,17 @@ class SimpleDRMProcessor:
             "log_level": "OFF",
             "binary_merge": True
         }
+        
+        # Handle both single key and multiple keys
+        if keys:
+            payload["keys"] = keys
+        elif key:
+            payload["key"] = key
+        else:
+            return {
+                "success": False,
+                "error": "No decryption key(s) provided"
+            }
 
         try:
             # Start processing
@@ -133,48 +145,24 @@ def process_drm_simple(url: str, save_name: str, key: str = None, keys: list = N
     Args:
         url: DRM-protected content URL
         save_name: Name for the output file
-        key: DRM decryption key (single key)
-        keys: List of DRM decryption keys (multiple keys)
+        key: Single DRM decryption key (deprecated, use keys instead)
+        keys: List of DRM decryption keys for multi-key content
         **kwargs: Additional arguments (quality, format, timeout, api_url)
 
     Returns:
         Dict with processing results
     """
-    # Handle multiple keys for TF1
-    if keys and len(keys) > 0:
-        # For multiple keys, we'll process with the first key and add the rest as additional keys
-        primary_key = keys[0]
-        # Create a combined key string with all keys
-        combined_key = keys[0]
-        for additional_key in keys[1:]:
-            combined_key += f" --key {additional_key}"
+    processor = SimpleDRMProcessor(kwargs.get('api_url', 'https://alphanet06-processor.hf.space'))
 
-        # Update the save_name to indicate multiple keys
-        save_name = f"{save_name}_multi_key"
-
-        processor = SimpleDRMProcessor(kwargs.get('api_url', 'https://alphanet06-processor.hf.space'))
-
-        return processor.process_drm_content(
-            url=url,
-            save_name=save_name,
-            key=combined_key,
-            quality=kwargs.get('quality', 'best'),
-            format=kwargs.get('format', 'mkv'),
-            timeout=kwargs.get('timeout', 1800)
-        )
-    elif key:
-        processor = SimpleDRMProcessor(kwargs.get('api_url', 'https://alphanet06-processor.hf.space'))
-
-        return processor.process_drm_content(
-            url=url,
-            save_name=save_name,
-            key=key,
-            quality=kwargs.get('quality', 'best'),
-            format=kwargs.get('format', 'mp4'),
-            timeout=kwargs.get('timeout', 1800)
-        )
-    else:
-        return {"success": False, "error": "No decryption key provided"}
+    return processor.process_drm_content(
+        url=url,
+        save_name=save_name,
+        key=key,
+        keys=keys,
+        quality=kwargs.get('quality', 'best'),
+        format=kwargs.get('format', 'mp4'),
+        timeout=kwargs.get('timeout', 1800)
+    )
 
 
 # Example usage (for testing)
