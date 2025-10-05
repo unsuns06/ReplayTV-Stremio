@@ -32,6 +32,8 @@ from app.utils.safe_print import safe_print
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.base_url import get_base_url, get_logo_url
 from app.utils.client_ip import merge_ip_headers, make_ip_headers
+from app.providers.fr.tf1_drm_key_extractor import TF1DRMExtractor
+from app.utils.nm3u8_drm_processor import process_drm_simple
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -999,6 +1001,26 @@ class MyTF1Provider:
                 video_url = json_parser['delivery']['url']
                 safe_print(f"✅ [MyTF1Provider] Stream URL obtained: {video_url}")
 
+                # Check if processed file already exists before authentication
+                api_url = "https://alphanet06-processor.hf.space"
+                processed_filename = f"{actual_episode_id}.mp4"
+                processed_url = f"{api_url}/stream/{processed_filename}"
+
+                try:
+                    check_response = requests.head(processed_url, timeout=5)
+                    if check_response.status_code == 200:
+                        # File exists - return immediately as second stream option
+                        safe_print(f"✅ [MyTF1Provider] Processed file already exists: {processed_url}")
+                        return {
+                            "url": processed_url,
+                            "manifest_type": "video",
+                            "title": "Processed Version (No DRM)",
+                            "filename": processed_filename
+                        }
+                except Exception:
+                    # Error checking file - proceed with normal flow
+                    pass
+
                 license_url = None
                 license_headers = {}
 
@@ -1047,6 +1069,46 @@ class MyTF1Provider:
                         manifest_type = 'mpd'
 
                         safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
+
+                        # Extract DRM keys for DASH proxy streams too
+                        decryption_keys = []
+                        if license_url and video_url:
+                            try:
+                                safe_print(f"✅ [MyTF1Provider] Extracting DRM keys for DASH proxy nm3u8 processing...")
+                                extractor = TF1DRMExtractor()
+                                keys_dict = extractor.get_keys(video_url, license_url, verbose=False)
+
+                                if keys_dict:
+                                    decryption_keys = list(keys_dict.values())
+                                    safe_print(f"✅ [MyTF1Provider] Extracted {len(decryption_keys)} DRM key(s) for DASH proxy")
+                                    for i, key in enumerate(decryption_keys):
+                                        safe_print(f"  Key {i+1}: {key[:20]}...")
+
+                                    # Trigger online DRM processing for DASH proxy streams
+                                    if decryption_keys:
+                                        safe_print(f"✅ [MyTF1Provider] Triggering DASH proxy nm3u8 processing for {actual_episode_id}")
+                                        dash_online_result = process_drm_simple(
+                                            url=video_url,
+                                            save_name=f"{actual_episode_id}",
+                                            keys=decryption_keys,
+                                            quality="best",
+                                            format="mkv",
+                                            timeout=1800
+                                        )
+
+                                        if dash_online_result.get("success"):
+                                            safe_print(f"✅ [MyTF1Provider] DASH proxy nm3u8 processing completed successfully")
+                                            # Return the processed stream as the primary result
+                                            return {
+                                                "url": f"{api_url}/stream/{actual_episode_id}.mp4",
+                                                "manifest_type": "video",
+                                                "title": "Processed DASH Version (No DRM)",
+                                                "filename": f"{actual_episode_id}.mp4"
+                                            }
+                                        else:
+                                            safe_print(f"❌ [MyTF1Provider] DASH proxy nm3u8 processing failed: {dash_online_result.get('error', 'Unknown error')}")
+                            except Exception as e:
+                                safe_print(f"❌ [MyTF1Provider] Error during DASH proxy DRM key extraction/processing: {e}")
 
                         # For DASH proxy streams, set externalUrl to open in browser
                         stream_info = {
@@ -1119,6 +1181,51 @@ class MyTF1Provider:
                         # No MediaFlow, use direct URL
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else ('mpd' if is_mpd else 'hls')
+
+                # Extract DRM keys using TF1DRMExtractor for nm3u8 processing
+                decryption_keys = []
+                if license_url and video_url:
+                    try:
+                        safe_print(f"✅ [MyTF1Provider] Extracting DRM keys for nm3u8 processing...")
+                        extractor = TF1DRMExtractor()
+                        keys_dict = extractor.get_keys(video_url, license_url, verbose=False)
+
+                        if keys_dict:
+                            decryption_keys = list(keys_dict.values())
+                            safe_print(f"✅ [MyTF1Provider] Extracted {len(decryption_keys)} DRM key(s)")
+                            for i, key in enumerate(decryption_keys):
+                                safe_print(f"  Key {i+1}: {key[:20]}...")
+                        else:
+                            safe_print(f"❌ [MyTF1Provider] No DRM keys extracted")
+
+                        # Trigger online DRM processing since file doesn't exist
+                        if decryption_keys:
+                            safe_print(f"✅ [MyTF1Provider] Triggering nm3u8 processing for {actual_episode_id}")
+                            online_result = process_drm_simple(
+                                url=video_url,
+                                save_name=f"{actual_episode_id}",
+                                keys=decryption_keys,
+                                quality="best",
+                                format="mkv",
+                                timeout=1800
+                            )
+
+                            if online_result.get("success"):
+                                safe_print(f"✅ [MyTF1Provider] nm3u8 processing completed successfully")
+                                # Return the processed stream as the primary result
+                                return {
+                                    "url": f"{api_url}/stream/{processed_filename}",
+                                    "manifest_type": "video",
+                                    "title": "Processed Version (No DRM)",
+                                    "filename": processed_filename
+                                }
+                            else:
+                                safe_print(f"❌ [MyTF1Provider] nm3u8 processing failed: {online_result.get('error', 'Unknown error')}")
+                                # Processing failed - continue with DRM approach
+                                pass
+
+                    except Exception as e:
+                        safe_print(f"❌ [MyTF1Provider] Error during DRM key extraction/processing: {e}")
 
                 # For non-DASH proxy streams, construct stream_info normally
                 stream_info = {

@@ -126,29 +126,55 @@ class SimpleDRMProcessor:
         }
 
 
-def process_drm_simple(url: str, save_name: str, key: str, **kwargs) -> Dict[str, Any]:
+def process_drm_simple(url: str, save_name: str, key: str = None, keys: list = None, **kwargs) -> Dict[str, Any]:
     """
     Simple function to process DRM content
 
     Args:
         url: DRM-protected content URL
         save_name: Name for the output file
-        key: DRM decryption key
+        key: DRM decryption key (single key)
+        keys: List of DRM decryption keys (multiple keys)
         **kwargs: Additional arguments (quality, format, timeout, api_url)
 
     Returns:
         Dict with processing results
     """
-    processor = SimpleDRMProcessor(kwargs.get('api_url', 'https://alphanet06-processor.hf.space'))
+    # Handle multiple keys for TF1
+    if keys and len(keys) > 0:
+        # For multiple keys, we'll process with the first key and add the rest as additional keys
+        primary_key = keys[0]
+        # Create a combined key string with all keys
+        combined_key = keys[0]
+        for additional_key in keys[1:]:
+            combined_key += f" --key {additional_key}"
 
-    return processor.process_drm_content(
-        url=url,
-        save_name=save_name,
-        key=key,
-        quality=kwargs.get('quality', 'best'),
-        format=kwargs.get('format', 'mp4'),
-        timeout=kwargs.get('timeout', 1800)
-    )
+        # Update the save_name to indicate multiple keys
+        save_name = f"{save_name}_multi_key"
+
+        processor = SimpleDRMProcessor(kwargs.get('api_url', 'https://alphanet06-processor.hf.space'))
+
+        return processor.process_drm_content(
+            url=url,
+            save_name=save_name,
+            key=combined_key,
+            quality=kwargs.get('quality', 'best'),
+            format=kwargs.get('format', 'mkv'),
+            timeout=kwargs.get('timeout', 1800)
+        )
+    elif key:
+        processor = SimpleDRMProcessor(kwargs.get('api_url', 'https://alphanet06-processor.hf.space'))
+
+        return processor.process_drm_content(
+            url=url,
+            save_name=save_name,
+            key=key,
+            quality=kwargs.get('quality', 'best'),
+            format=kwargs.get('format', 'mp4'),
+            timeout=kwargs.get('timeout', 1800)
+        )
+    else:
+        return {"success": False, "error": "No decryption key provided"}
 
 
 # Example usage (for testing)
