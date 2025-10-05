@@ -1034,12 +1034,14 @@ class MyTF1Provider:
                 api_url = "https://alphanet06-processor.hf.space"
                 processed_filename = f"{actual_episode_id}.mp4"
                 processed_url = f"{api_url}/stream/{processed_filename}"
-
+                
+                processed_file_exists = False
                 try:
                     check_response = requests.head(processed_url, timeout=5)
                     if check_response.status_code == 200:
                         # File exists - return immediately
                         safe_print(f"✅ [MyTF1Provider] Processed file already exists: {processed_url}")
+                        processed_file_exists = True
                         return {
                             "url": processed_url,
                             "manifest_type": "video",
@@ -1137,13 +1139,24 @@ class MyTF1Provider:
                         
                         if drm_keys_dict:
                             # Add a second stream pointing to the processed file
-                            # This will be available after background processing completes
-                            processed_stream = {
-                                "url": processed_url,
-                                "manifest_type": "video",
-                                "title": "Processed Version (No DRM) - Processing in background...",
-                                "filename": processed_filename
-                            }
+                            # Show "Stream not available" if file doesn't exist yet
+                            if processed_file_exists:
+                                # File exists - direct link
+                                processed_stream = {
+                                    "url": processed_url,
+                                    "manifest_type": "video",
+                                    "title": "Processed Version (No DRM)",
+                                    "filename": processed_filename
+                                }
+                            else:
+                                # File doesn't exist yet - show "Stream not available"
+                                processed_stream = {
+                                    "url": "https://stream-not-available",
+                                    "manifest_type": "video",
+                                    "title": "⏳ Processed Version (Processing in background...)",
+                                    "description": "Stream not available - Processing in progress. Please check back in a few minutes."
+                                }
+                            
                             streams.append(processed_stream)
                             safe_print(f"✅ [MyTF1Provider] Returning 2 streams: DASH proxy + processed file")
                         else:

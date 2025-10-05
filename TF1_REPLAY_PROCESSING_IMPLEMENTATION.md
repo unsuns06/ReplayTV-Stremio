@@ -60,13 +60,16 @@ Added comprehensive DRM processing for TF1 replay streams:
     --key {kid3}:{key3}
   ```
 
-#### D. Stream Response (Lines 1117-1153)
+#### D. Stream Response (Lines 1137-1166)
 - **Returns array of 2 streams** (not single stream):
   1. **Primary Stream**: DASH proxy URL for immediate playback (with DRM)
-  2. **Secondary Stream**: Processed file URL (no DRM, processing in background)
+  2. **Secondary Stream**: 
+     - If processed file exists: Direct video URL (no DRM)
+     - If not exists: "Stream not available" placeholder with processing message
 - Includes DRM keys in primary stream for debugging
 - User can choose between streams in Stremio
 - Processing happens in parallel while user watches via DASH proxy
+- Second stream shows clear status: ready or processing
 
 ### 3. Updated `requirements.txt`
 Added required dependencies:
@@ -79,8 +82,8 @@ Added required dependencies:
 
 1. **Check Processed File**
    - HEAD request to `https://alphanet06-processor.hf.space/stream/{episode_id}.mp4`
-   - If 200 OK → Return direct video URL ✅
-   - If 404 → Continue to processing ⬇️
+   - If 200 OK → Return single stream with direct video URL ✅ (DONE)
+   - If 404 → Set `processed_file_exists = False` and continue ⬇️
 
 2. **Extract DRM Keys**
    - Load Widevine device from `app/providers/fr/device.wvd`
@@ -103,10 +106,13 @@ Added required dependencies:
 
 4. **Return Multiple Streams**
    - Returns **array of 2 streams**:
-     - Stream 1: DASH proxy URL (immediate playback with DRM)
-     - Stream 2: Processed file URL (no DRM, processing in background)
+     - **Stream 1**: DASH proxy URL (immediate playback with DRM)
+     - **Stream 2**: 
+       - If `processed_file_exists = True`: Direct video URL (ready to play)
+       - If `processed_file_exists = False`: "Stream not available" placeholder
    - User can choose which stream to play in Stremio
-   - Next time user requests same episode → processed file is ready and plays instantly
+   - Second stream clearly indicates if it's ready or still processing
+   - Next time user requests same episode → processed file is ready (stream 2 shows direct URL)
 
 ## Key Features
 
@@ -159,14 +165,16 @@ To test the implementation:
    - Should extract DRM keys
    - Trigger background processing
    - Return **2 streams**:
-     - Stream 1: "DASH Proxy Stream (DRM)"
-     - Stream 2: "Processed Version (No DRM) - Processing in background..."
+     - Stream 1: "DASH Proxy Stream (DRM)" ✅ Works immediately
+     - Stream 2: "⏳ Processed Version (Processing in background...)" ⚠️ Stream not available
    - Check logs for key extraction
+   - User can play Stream 1 immediately
 
 3. **Second Request (After Processing)**
-   - Should find processed file
-   - Return **1 stream**: Direct video URL (processed file ready)
+   - Should find processed file (200 OK)
+   - Return **1 stream**: "Processed Version (No DRM)" ✅ Direct video URL
    - No DRM processing needed
+   - Instant playback
 
 4. **Check Logs**
    ```
@@ -202,5 +210,8 @@ To test the implementation:
 - **Processing is optional**: If it fails, user can still watch via DASH proxy (stream 1)
 - **Device file required**: Must have valid `device.wvd` file for key extraction
 - **Stream selection**: User can choose in Stremio which stream to play
-  - Stream 1: Immediate playback with DRM (DASH proxy)
-  - Stream 2: No DRM, but may be processing (check back later if not ready)
+  - **Stream 1**: Immediate playback with DRM (DASH proxy) - Always works
+  - **Stream 2**: 
+    - First request: "Stream not available" (processing in background)
+    - Second request: Direct video URL (no DRM, instant playback)
+- **Clear status indication**: Second stream shows if it's ready or still processing
