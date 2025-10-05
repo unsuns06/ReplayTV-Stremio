@@ -1078,6 +1078,10 @@ class MyTF1Provider:
                                 # Format keys for N_m3u8DL-RE (kid:key format)
                                 formatted_keys = [f"{kid}:{key}" for kid, key in drm_keys_dict.items()]
                                 
+                                # Print full N_m3u8DL-RE command with all keys
+                                keys_param = " ".join([f"--key {key}" for key in formatted_keys])
+                                print(f'./N_m3u8DL-RE "{video_url}" --save-name "{actual_episode_id}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --binary-merge {keys_param}')
+                                
                                 # Trigger background processing with multiple keys
                                 from app.utils.nm3u8_drm_processor import process_drm_simple
                                 safe_print(f"✅ [MyTF1Provider] Triggering background DRM processing...")
@@ -1087,7 +1091,7 @@ class MyTF1Provider:
                                     save_name=f"{actual_episode_id}",
                                     keys=formatted_keys,
                                     quality="best",
-                                    format="mp4",
+                                    format="mkv",
                                     binary_merge=True
                                 )
                                 
