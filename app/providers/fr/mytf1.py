@@ -1114,25 +1114,43 @@ class MyTF1Provider:
 
                         safe_print(f"✅ [MyTF1Provider] DASH proxy URL generated: {final_url}")
 
-                        # For DASH proxy streams, set externalUrl to open in browser
-                        stream_info = {
+                        # Build primary DASH proxy stream
+                        primary_stream = {
                             "url": final_url,  # This will be opened externally
                             "manifest_type": manifest_type,
+                            "title": "DASH Proxy Stream (DRM)",
                             "headers": headers_video_stream
                         }
 
                         # Add license info if available
                         if license_url:
-                            stream_info["licenseUrl"] = license_url
+                            primary_stream["licenseUrl"] = license_url
                             if license_headers:
-                                stream_info["licenseHeaders"] = license_headers
+                                primary_stream["licenseHeaders"] = license_headers
                         
                         # Add DRM keys to stream info if extracted
                         if drm_keys_dict:
-                            stream_info["drm_keys"] = drm_keys_dict
+                            primary_stream["drm_keys"] = drm_keys_dict
 
-                        safe_print(f"✅ [MyTF1Provider] MyTF1 DASH proxy stream info prepared: manifest_type={stream_info['manifest_type']}")
-                        return stream_info
+                        # Build secondary processed stream (if processing was triggered)
+                        streams = [primary_stream]
+                        
+                        if drm_keys_dict:
+                            # Add a second stream pointing to the processed file
+                            # This will be available after background processing completes
+                            processed_stream = {
+                                "url": processed_url,
+                                "manifest_type": "video",
+                                "title": "Processed Version (No DRM) - Processing in background...",
+                                "filename": processed_filename
+                            }
+                            streams.append(processed_stream)
+                            safe_print(f"✅ [MyTF1Provider] Returning 2 streams: DASH proxy + processed file")
+                        else:
+                            safe_print(f"✅ [MyTF1Provider] Returning 1 stream: DASH proxy only")
+
+                        safe_print(f"✅ [MyTF1Provider] MyTF1 stream(s) prepared")
+                        return streams
 
                     except Exception as e:
                         safe_print(f"❌ [MyTF1Provider] DASH proxy URL generation failed: {e}")
