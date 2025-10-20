@@ -52,7 +52,7 @@ async def get_catalog(type: str, id: str, request: Request):
             logger.error(f"❌ Error getting France.tv channels: {e}")
             _log_json_decode_details("France.tv channels:", e)
             logger.error(f"   Error type: {type(e).__name__}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             # Continue with other providers
         
@@ -67,7 +67,7 @@ async def get_catalog(type: str, id: str, request: Request):
             logger.error(f"❌ Error getting TF1 channels: {e}")
             _log_json_decode_details("TF1 channels:", e)
             logger.error(f"   Error type: {type(e).__name__}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             # Continue with other providers
         
@@ -104,7 +104,7 @@ async def get_catalog(type: str, id: str, request: Request):
         except Exception as e:
             logger.error(f"❌ Error getting France TV replay shows: {e}")
             _log_json_decode_details("France TV replay:", e)
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
             # Fallback to basic show list with enhanced metadata
@@ -163,7 +163,7 @@ async def get_catalog(type: str, id: str, request: Request):
         except Exception as e:
             logger.error(f"❌ Error getting TF1+ replay shows: {e}")
             _log_json_decode_details("TF1+ replay:", e)
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
             # Fallback to basic show list with enhanced metadata
@@ -210,7 +210,7 @@ async def get_catalog(type: str, id: str, request: Request):
         except Exception as e:
             logger.error(f"❌ Error getting 6play replay shows: {e}")
             _log_json_decode_details("6play replay:", e)
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
             # Fallback to basic show list with enhanced metadata
@@ -283,7 +283,7 @@ async def get_catalog(type: str, id: str, request: Request):
         except Exception as e:
             logger.error(f"❌ Error getting CBC Dragon's Den: {e}")
             _log_json_decode_details("CBC Dragon's Den:", e)
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
             # Fallback to basic show list with enhanced metadata

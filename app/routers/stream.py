@@ -88,7 +88,7 @@ async def get_stream(type: str, id: str, request: Request):
 
                     stream = Stream(
                         url=stream_info["url"],
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        title=stream_info.get('title', f"{stream_info.get('manifest_type', 'hls').upper()} Stream"),
                         headers= merged_headers if merged_headers else None,
                         manifest_type=stream_info.get('manifest_type'),
                         licenseUrl=stream_info.get('licenseUrl'),
@@ -106,7 +106,7 @@ async def get_stream(type: str, id: str, request: Request):
                 
         except Exception as e:
             logger.error(f"❌ Error getting {provider_name} stream for channel {id}: {e}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
             # Return fallback stream
@@ -137,7 +137,7 @@ async def get_stream(type: str, id: str, request: Request):
             stream_info = provider.get_episode_stream_url(episode_id)
 
             if stream_info:
-                logger.info(f"✅ Provider returned stream info")
+                logger.info("✅ Provider returned stream info")
 
                 # Handle both single stream objects and arrays of streams
                 if isinstance(stream_info, list):
@@ -158,7 +158,7 @@ async def get_stream(type: str, id: str, request: Request):
                     logger.info(f"✅ Provider returned single stream: {stream_info.get('manifest_type', 'unknown')}")
                     stream = Stream(
                         url=stream_info["url"],
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        title=stream_info.get('title', f"{stream_info.get('manifest_type', 'hls').upper()} Stream"),
                         externalUrl=stream_info.get('externalUrl')
                     )
                     return StreamResponse(streams=[stream])
@@ -172,7 +172,7 @@ async def get_stream(type: str, id: str, request: Request):
                 
         except Exception as e:
             logger.error(f"❌ Error getting France TV stream: {e}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             return StreamResponse(streams=[{
                 "url": "https://example.com/error-stream.mp4",
@@ -201,7 +201,7 @@ async def get_stream(type: str, id: str, request: Request):
             stream_info = provider.get_episode_stream_url(episode_id)
 
             if stream_info:
-                logger.info(f"✅ TF1+ returned stream info")
+                logger.info("✅ TF1+ returned stream info")
 
                 # Handle both single stream objects and arrays of streams
                 if isinstance(stream_info, list):
@@ -251,7 +251,7 @@ async def get_stream(type: str, id: str, request: Request):
 
                     stream = Stream(
                         url=stream_info["url"],
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        title=stream_info.get('title', f"{stream_info.get('manifest_type', 'hls').upper()} Stream"),
                         headers= merged_headers if merged_headers else None,
                         manifest_type=stream_info.get('manifest_type'),
                         licenseUrl=stream_info.get('licenseUrl'),
@@ -269,7 +269,7 @@ async def get_stream(type: str, id: str, request: Request):
                 
         except Exception as e:
             logger.error(f"❌ Error getting TF1+ stream: {e}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             return StreamResponse(streams=[{
                 "url": "https://example.com/error-stream.mp4",
@@ -298,7 +298,7 @@ async def get_stream(type: str, id: str, request: Request):
             stream_info = provider.get_episode_stream_url(episode_id)
 
             if stream_info:
-                logger.info(f"✅ 6play returned stream info")
+                logger.info("✅ 6play returned stream info")
 
                 # Handle both single stream objects and arrays of streams
                 if isinstance(stream_info, list):
@@ -323,7 +323,7 @@ async def get_stream(type: str, id: str, request: Request):
                     logger.info(f"✅ 6play returned single stream: {stream_info.get('manifest_type', 'unknown')}")
                     stream = Stream(
                         url=stream_info["url"],
-                        title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                        title=stream_info.get('title', f"{stream_info.get('manifest_type', 'hls').upper()} Stream"),
                         headers=stream_info.get('headers'),
                         manifest_type=stream_info.get('manifest_type'),
                         licenseUrl=stream_info.get('licenseUrl'),
@@ -341,7 +341,7 @@ async def get_stream(type: str, id: str, request: Request):
                 
         except Exception as e:
             logger.error(f"❌ Error getting 6play stream: {e}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             return StreamResponse(streams=[{
                 "url": "https://example.com/error-stream.mp4",
@@ -393,7 +393,7 @@ async def get_stream(type: str, id: str, request: Request):
 
                 stream = Stream(
                     url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    title=stream_info.get('title', f"{stream_info.get('manifest_type', 'hls').upper()} Stream"),
                     headers=merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
@@ -410,7 +410,7 @@ async def get_stream(type: str, id: str, request: Request):
                 
         except Exception as e:
             logger.error(f"❌ Error getting CBC Dragon's Den stream: {e}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             return StreamResponse(streams=[{
                 "url": "https://example.com/error-stream.mp4",
@@ -462,7 +462,7 @@ async def get_stream(type: str, id: str, request: Request):
 
                 stream = Stream(
                     url=stream_info["url"],
-                    title=f"{stream_info.get('manifest_type', 'hls').upper()} Stream",
+                    title=stream_info.get('title', f"{stream_info.get('manifest_type', 'hls').upper()} Stream"),
                     headers=merged_headers if merged_headers else None,
                     manifest_type=stream_info.get('manifest_type'),
                     licenseUrl=stream_info.get('licenseUrl'),
@@ -479,7 +479,7 @@ async def get_stream(type: str, id: str, request: Request):
                 
         except Exception as e:
             logger.error(f"❌ Error getting CBC Dragon's Den stream: {e}")
-            logger.error(f"   Full traceback:")
+            logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             return StreamResponse(streams=[{
                 "url": "https://example.com/error-stream.mp4",

@@ -45,7 +45,7 @@ def get_processed_mpd_content(original_mpd_url: str, auth_token: Optional[str] =
         print(f"[DirectMPDProcessor] MSPR nested elements: {mspr_count}")
         
         if mspr_count == 0:
-            print(f"[DirectMPDProcessor] ✅ PlayReady elements successfully removed")
+            print("[DirectMPDProcessor] ✅ PlayReady elements successfully removed")
         
         return processed_mpd
         

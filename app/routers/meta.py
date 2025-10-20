@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 import os
-from app.schemas.stremio import MetaResponse, Video
+from app.schemas.stremio import MetaResponse
 from app.providers.common import ProviderFactory
 
 router = APIRouter()

@@ -6,15 +6,18 @@ Processes DRM-protected content using N_m3u8DL-RE API
 
 import requests
 import time
-import json
-from typing import Optional, Dict, Any
+from typing import Dict, Any
+from app.utils.proxy_config import get_proxy_config
 
 
 class SimpleDRMProcessor:
     """Simple DRM content processor"""
 
-    def __init__(self, api_url: str = "https://alphanet06-processor.hf.space"):
+    def __init__(self, api_url: str = None):
         """Initialize with API URL"""
+        if api_url is None:
+            proxy_config = get_proxy_config()
+            api_url = proxy_config.get_proxy('nm3u8_processor')
         self.api_url = api_url.rstrip('/')
         self.session = requests.Session()
 
@@ -128,7 +131,7 @@ class SimpleDRMProcessor:
                 # Still processing - wait silently
                 time.sleep(5)
 
-            except requests.RequestException as e:
+            except requests.RequestException:
                 # Silent failure handling - don't print progress
                 pass
 
@@ -152,7 +155,9 @@ def process_drm_simple(url: str, save_name: str, key: str = None, keys: list = N
     Returns:
         Dict with processing results
     """
-    processor = SimpleDRMProcessor(kwargs.get('api_url', 'https://alphanet06-processor.hf.space'))
+    proxy_config = get_proxy_config()
+    default_api_url = proxy_config.get_proxy('nm3u8_processor')
+    processor = SimpleDRMProcessor(kwargs.get('api_url', default_api_url))
 
     return processor.process_drm_content(
         url=url,

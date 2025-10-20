@@ -3,14 +3,11 @@ Local MPD server to serve processed 6play MPD files to MediaFlow.
 This bypasses the MediaFlow parsing issue by pre-processing the MPD.
 """
 
-import asyncio
 import threading
-import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-import json
 import requests
-from typing import Dict, Optional
+from typing import Optional
 from .sixplay_mpd_processor import create_mediaflow_compatible_mpd
 
 
@@ -101,7 +98,7 @@ class MPDServer:
             self.server.shutdown()
             self.server.server_close()
             self.running = False
-            print(f"[MPDServer] Stopped")
+            print("[MPDServer] Stopped")
     
     def get_processed_mpd_url(self, original_mpd_url: str, auth_token: Optional[str] = None) -> str:
         """Get URL for processed MPD that MediaFlow can handle"""

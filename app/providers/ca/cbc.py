@@ -4,18 +4,16 @@ CBC (Canadian Broadcasting Corporation) provider for Stremio addon
 Based on the catchuptv plugin reference implementation
 """
 
-import json
 import re
 import logging
 from typing import List, Dict, Optional, Any
-from urllib.parse import urljoin, urlparse
-import requests
 from fastapi import Request
 from app.auth.cbc_auth import CBCAuthenticator
 from app.utils.credentials import load_credentials
 from app.utils.cache import cache
 from app.utils.client_ip import get_client_ip, merge_ip_headers
 from app.utils.base_url import  get_logo_url
+from app.utils.http_utils import http_client
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +26,6 @@ class CBCProvider:
         self.api_base = "https://services.radio-canada.ca"
         self.catalog_api = f"{self.api_base}/ott/catalog/v2/gem"
         self.media_api = f"{self.api_base}/media/validation/v2"
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
-        
-        # Add viewer IP headers to session by default for geo-sensitive requests
-        self._update_session_with_viewer_ip()
         
         # Initialize CBC authenticator with cache handler
         self.authenticator = CBCAuthenticator(cache_handler=cache)
@@ -70,7 +61,9 @@ class CBCProvider:
                 logger.warning("⚠️ No viewer IP available for CBC requests - using server IP")
             
             # Start with base headers
-            headers = dict(self.session.headers)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
             
             # Add IP forwarding headers
             ip_headers = merge_ip_headers(ip=viewer_ip)
@@ -84,22 +77,9 @@ class CBCProvider:
         except Exception as e:
             logger.error(f"❌ Error getting headers with viewer IP: {e}")
             # Fallback to base headers
-            return dict(self.session.headers)
-    
-    def _update_session_with_viewer_ip(self):
-        """Update session headers with viewer IP for geo-sensitive requests"""
-        try:
-            viewer_ip = get_client_ip()
-            if viewer_ip:
-                logger.info(f"🌍 Setting up CBC session with viewer IP: {viewer_ip}")
-                logger.info(f"🌍 Session IP forwarding headers: X-Forwarded-For={viewer_ip}, X-Real-IP={viewer_ip}, CF-Connecting-IP={viewer_ip}")
-                # Add IP forwarding headers to session
-                ip_headers = merge_ip_headers(ip=viewer_ip)
-                self.session.headers.update(ip_headers)
-            else:
-                logger.warning("⚠️ No viewer IP available for CBC session setup - using server IP")
-        except Exception as e:
-            logger.error(f"❌ Error updating session with viewer IP: {e}")
+            return {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
     
     def _authenticate_if_needed(self):
         """Authenticate with CBC if credentials are available with caching"""
@@ -189,11 +169,12 @@ class CBCProvider:
             # Get live stream info from CBC
             live_info_url = f"{self.base_url}/public/js/main.js"
             logger.info(f"🌍 CBC Live Stream Info request using viewer IP: {get_client_ip()}")
-            response = self.session.get(live_info_url, headers=self._get_headers_with_viewer_ip())
-            response.raise_for_status()
+            response = http_client.safe_request("GET", live_info_url, headers=self._get_headers_with_viewer_ip())
+            if not response:
+                return []
             
             # Extract live stream URL from JavaScript
-            url_match = re.search(r'LLC_URL=r\+"(.*?)\?', response.text)
+            url_match = re.search(r'LLC_URL=r\\+"(.*?)\\?', response.text)
             if not url_match:
                 logger.error("Could not find live stream URL in CBC JavaScript")
                 return []
@@ -202,9 +183,9 @@ class CBCProvider:
             
             # Get live stream data
             logger.info(f"🌍 CBC Live Stream Data request using viewer IP: {get_client_ip()}")
-            live_response = self.session.get(live_stream_url, headers=self._get_headers_with_viewer_ip())
-            live_response.raise_for_status()
-            live_data = live_response.json()
+            live_data = http_client.get_json(live_stream_url, headers=self._get_headers_with_viewer_ip())
+            if not live_data:
+                return []
             
             channels = []
             for entry in live_data.get("entries", []):
@@ -221,8 +202,8 @@ class CBCProvider:
                         channel = {
                             "id": f"cutam:ca:cbc:live:{call_sign.lower()}",
                             "name": f"CBC {region_name}",
-                            "logo": f"https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/canada/cbc-ca.png",
-                            "poster": f"https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/canada/cbc-ca.png",
+                            "logo": "https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/canada/cbc-ca.png",
+                            "poster": "https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/canada/cbc-ca.png",
                             "description": f"CBC live stream for {region_name}",
                             "channel": "CBC",
                             "type": "channel",
@@ -294,11 +275,11 @@ class CBCProvider:
             
             # Try to get Dragon's Den from GEM website directly
             gem_url = "https://gem.cbc.ca/dragons-den"
-            response = self.session.get(gem_url, headers=self._get_headers_with_viewer_ip())
-            response.raise_for_status()
+            response = http_client.safe_request("GET", gem_url, headers=self._get_headers_with_viewer_ip())
+            if not response:
+                return None
             
             # Parse the GEM page to extract show information
-            import re
             from bs4 import BeautifulSoup
             
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -312,13 +293,11 @@ class CBCProvider:
             description = description_element.get_text().strip() if description_element else "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists"
             
             # Extract poster image
-            poster_element = soup.find('img', class_='poster') or soup.find('img', {'alt': lambda x: x and 'dragon' in x.lower()})
-            poster_url = poster_element.get('src') if poster_element else get_logo_url("ca", "dragonsden", self.request)
             
             logger.info(f"✅ Found Dragon's Den on GEM: {show_title}")
             
             result = {
-                "id": f"cutam:ca:cbc:dragons-den",
+                "id": "cutam:ca:cbc:dragons-den",
                 "type": "series",
                 "name": show_title,
                 "poster": get_logo_url("ca", "dragonsden", self.request),
@@ -463,7 +442,7 @@ class CBCProvider:
         try:
             logger.info(f"🔍 Getting details for S{season_num}E{episode_num}: {episode_url}")
             
-            response = self.session.get(episode_url, headers=self._get_headers_with_viewer_ip({
+            response = http_client.safe_request("GET", episode_url, headers=self._get_headers_with_viewer_ip({
                 'Referer': 'https://gem.cbc.ca/dragons-den',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
@@ -472,7 +451,8 @@ class CBCProvider:
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1'
             }))
-            response.raise_for_status()
+            if not response:
+                return None
             
             from bs4 import BeautifulSoup
             import re
@@ -981,7 +961,7 @@ class CBCProvider:
             api_url = f"https://services.radio-canada.ca/ott/catalog/v2/gem/show/dragons-den/s{season_num:02d}e01?device=web&tier=Member"
             
             logger.info(f"🌍 CBC Season API request using viewer IP: {get_client_ip()}")
-            response = self.session.get(api_url, headers=self._get_headers_with_viewer_ip({
+            data = http_client.get_json(api_url, headers=self._get_headers_with_viewer_ip({
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'en-US,en;q=0.5',
                 'Accept-Encoding': 'gzip, deflate, br',
@@ -991,8 +971,7 @@ class CBCProvider:
                 'Connection': 'keep-alive'
             }))
             
-            if response.status_code == 200:
-                data = response.json()
+            if data:
                 content = data.get('content', [])
                 
                 if content:
@@ -1124,7 +1103,7 @@ class CBCProvider:
             # Use the CBC API endpoint format
             api_url = f"https://services.radio-canada.ca/ott/catalog/v2/gem/show/dragons-den/s{season_num:02d}e{episode_num:02d}?device=web&tier=Member"
             
-            response = self.session.get(api_url, headers=self._get_headers_with_viewer_ip({
+            data = http_client.get_json(api_url, headers=self._get_headers_with_viewer_ip({
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'en-US,en;q=0.5',
                 'Accept-Encoding': 'gzip, deflate, br',
@@ -1134,14 +1113,10 @@ class CBCProvider:
                 'Connection': 'keep-alive'
             }))
             
-            if response.status_code == 200:
-                data = response.json()
+            if data:
                 return self._parse_episode_from_api(data, season_num, episode_num)
-            elif response.status_code == 404:
-                # Episode doesn't exist
-                return None
             else:
-                logger.warning(f"⚠️ API returned status {response.status_code} for S{season_num:02d}E{episode_num:02d}")
+                logger.warning(f"⚠️ API returned no data for S{season_num:02d}E{episode_num:02d}")
                 return None
                 
         except Exception as e:
@@ -1274,8 +1249,9 @@ class CBCProvider:
     def _get_episode_details_from_gem(self, episode_url: str) -> Dict[str, str]:
         """Get detailed information for a specific episode from GEM"""
         try:
-            response = self.session.get(episode_url, headers=self._get_headers_with_viewer_ip())
-            response.raise_for_status()
+            response = http_client.safe_request("GET", episode_url, headers=self._get_headers_with_viewer_ip())
+            if not response:
+                return {}
             
             from bs4 import BeautifulSoup
             import re
@@ -1365,10 +1341,10 @@ class CBCProvider:
             season_api_url = f"{self.catalog_api}/{season_url}"
             params = {'device': 'web'}
             
-            response = self.session.get(season_api_url, params=params, headers=self._get_headers_with_viewer_ip())
-            response.raise_for_status()
+            data = http_client.get_json(season_api_url, params=params, headers=self._get_headers_with_viewer_ip())
+            if not data:
+                return []
             
-            data = response.json()
             episodes = []
             episode_counter = start_counter
             
@@ -1419,7 +1395,7 @@ class CBCProvider:
             
             # Default to 1 if no season number found
             return 1
-        except:
+        except Exception:
             return 1
     
     def get_channel_stream_url(self, channel_id: str) -> Optional[Dict[str, Any]]:
@@ -1432,11 +1408,12 @@ class CBCProvider:
             
             # Get live stream info
             live_info_url = f"{self.base_url}/public/js/main.js"
-            response = self.session.get(live_info_url, headers=self._get_headers_with_viewer_ip())
-            response.raise_for_status()
+            response = http_client.safe_request("GET", live_info_url, headers=self._get_headers_with_viewer_ip())
+            if not response:
+                return None
             
             # Extract live stream URL
-            url_match = re.search(r'LLC_URL=r\+"(.*?)\?', response.text)
+            url_match = re.search(r'LLC_URL=r\\+"(.*?)\\?', response.text)
             if not url_match:
                 logger.error("Could not find live stream URL")
                 return None
@@ -1444,9 +1421,9 @@ class CBCProvider:
             live_stream_url = f"https:{url_match.group(1)}"
             
             # Get live stream data
-            live_response = self.session.get(live_stream_url, headers=self._get_headers_with_viewer_ip())
-            live_response.raise_for_status()
-            live_data = live_response.json()
+            live_data = http_client.get_json(live_stream_url, headers=self._get_headers_with_viewer_ip())
+            if not live_data:
+                return None
             
             # Find the specific channel
             for entry in live_data.get("entries", []):
@@ -1454,8 +1431,9 @@ class CBCProvider:
                     content_url = entry.get("content", [{}])[0].get("url")
                     if content_url:
                         # Get the actual stream URL
-                        stream_response = self.session.get(content_url, headers=self._get_headers_with_viewer_ip())
-                        stream_response.raise_for_status()
+                        stream_response = http_client.safe_request("GET", content_url, headers=self._get_headers_with_viewer_ip())
+                        if not stream_response:
+                            return None
                         
                         # Extract video source URL
                         video_match = re.search(r'video src="(.*?)"', stream_response.text)
@@ -1466,7 +1444,7 @@ class CBCProvider:
                                 "url": stream_url,
                                 "manifest_type": "mp4",
                                 "headers": {
-                                    "User-Agent": self.session.headers["User-Agent"]
+                                    "User-Agent": self._get_headers_with_viewer_ip().get('User-Agent')
                                 }
                             }
             
@@ -1537,7 +1515,7 @@ class CBCProvider:
             
             # Prepare headers
             headers = {
-                'User-Agent': self.session.headers['User-Agent'],
+                'User-Agent': self._get_headers_with_viewer_ip().get('User-Agent'),
                 'Referer': 'https://gem.cbc.ca/',
                 'Origin': 'https://gem.cbc.ca'
             }
@@ -1545,7 +1523,7 @@ class CBCProvider:
             stream_info = {
                 "url": stream_url,
                 "manifest_type": manifest_type,
-                "title": f"Dragon's Den Episode Stream",
+                "title": "Dragon's Den Episode Stream",
                 "headers": headers
             }
             
@@ -1576,10 +1554,11 @@ class CBCProvider:
     def _extract_stream_from_gem(self, gem_url: str) -> Optional[str]:
         """Extract actual stream URL from GEM page"""
         try:
-            response = self.session.get(gem_url, headers=self._get_headers_with_viewer_ip({
+            response = http_client.safe_request("GET", gem_url, headers=self._get_headers_with_viewer_ip({
                 'Referer': 'https://gem.cbc.ca/'
             }))
-            response.raise_for_status()
+            if not response:
+                return None
             
             import re
             
@@ -1632,12 +1611,11 @@ class CBCProvider:
     def _get_stream_from_api(self, api_url: str) -> Optional[str]:
         """Try to get stream URL from an API endpoint"""
         try:
-            response = self.session.get(api_url, headers=self._get_headers_with_viewer_ip({
+            data = http_client.get_json(api_url, headers=self._get_headers_with_viewer_ip({
                 'Referer': 'https://gem.cbc.ca/'
             }))
-            response.raise_for_status()
-            
-            data = response.json()
+            if not data:
+                return None
             
             # Look for stream URL in API response
             if 'url' in data:
@@ -1732,22 +1710,14 @@ class CBCProvider:
             else:
                 logger.warning("⚠️ CBC Media API request using server IP (no viewer IP available)")
             
-            response = self.session.get(
+            data = http_client.get_json(
                 self.media_api,
                 params=params,
-                headers=final_headers,
-                timeout=30
+                headers=final_headers
             )
-            logger.info(f"📡 CBC API status: {response.status_code}")
-            if response.status_code != 200:
-                logger.error(f"❌ CBC API returned {response.status_code}")
-                try:
-                    logger.error(response.text[:500])
-                except Exception:
-                    pass
+            if not data:
                 return None
             
-            data = response.json()
             error_code = data.get('errorCode', 0)
             if error_code == 1:
                 logger.error("❌ Content is geo-restricted to Canada")
@@ -1783,7 +1753,7 @@ class CBCProvider:
             
             # Only return safe playback headers
             playback_headers = {
-                'User-Agent': headers.get('User-Agent', self.session.headers.get('User-Agent', '')),
+                'User-Agent': headers.get('User-Agent', self._get_headers_with_viewer_ip().get('User-Agent', '')),
                 'Referer': headers.get('Referer', 'https://gem.cbc.ca/'),
                 'Origin': headers.get('Origin', 'https://gem.cbc.ca')
             }

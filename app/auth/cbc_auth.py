@@ -4,13 +4,9 @@ CBC Gem Authentication Module
 Based on the yt-dlp CBC extractor implementation
 """
 
-import os
-import json
 import time
 import logging
-import base64
 from typing import Optional, Dict, Any
-from urllib.parse import urlencode
 try:
     import jwt
 except ImportError:

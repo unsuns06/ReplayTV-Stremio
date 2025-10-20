@@ -1,7 +1,6 @@
 from typing import Dict, Optional
 from contextvars import ContextVar
 import ipaddress
-import re
 
 # Context variable to track the current request's client IP
 _client_ip_ctx: ContextVar[Optional[str]] = ContextVar("client_ip", default=None)

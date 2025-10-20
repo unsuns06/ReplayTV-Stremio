@@ -6,12 +6,9 @@ License: Educational purposes only
 """
 
 import requests
-import base64
-import json
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 import xml.etree.ElementTree as ET
-from urllib.parse import urlparse, parse_qs
 
 try:
     from pywidevine.cdm import Cdm
@@ -72,11 +69,6 @@ class TF1DRMExtractor:
             # Method 1: Parse XML with namespaces
             try:
                 root = ET.fromstring(response.content)
-                namespaces = {
-                    'mpd': 'urn:mpeg:dash:schema:mpd:2011',
-                    'cenc': 'urn:mpeg:cenc:2013',
-                    'mas': 'urn:marlin:mas:1-0:services:schemas:mpd'
-                }
 
                 # Search all ContentProtection elements
                 for cp in root.findall('.//{*}ContentProtection'):
@@ -101,7 +93,7 @@ class TF1DRMExtractor:
                                     # print(f"[PSSH] Found via XML attribute (Method 1b)")
                                     pass
                                 return value.strip()
-            except Exception as e:
+            except Exception:
                 if verbose:
                     # print(f"[PSSH] XML parsing failed: {e}")
                     pass
@@ -151,7 +143,7 @@ class TF1DRMExtractor:
 
             return None
 
-        except Exception as e:
+        except Exception:
             if verbose:
                 # print(f"[PSSH] ERROR: {str(e)}")
                 pass
@@ -191,7 +183,7 @@ class TF1DRMExtractor:
                         # print(f"[CDM] Loaded device from: {path}")
                         pass
                     return device
-                except Exception as e:
+                except Exception:
                     if verbose:
                         # print(f"[CDM] Failed to load {path}: {e}")
                         pass
@@ -255,7 +247,7 @@ class TF1DRMExtractor:
                 if verbose and hasattr(pssh, 'key_ids') and pssh.key_ids:
                     # print(f"[PSSH] Key IDs found: {len(pssh.key_ids)}")
                     pass
-            except Exception as e:
+            except Exception:
                 # print(f"[PSSH] ERROR: Invalid PSSH - {e}")
                 return {}
 
@@ -366,9 +358,8 @@ class TF1DRMExtractor:
 
             return keys_dict
 
-        except Exception as e:
+        except Exception:
             # print(f"\n[ERROR] Extraction failed: {str(e)}")
-            import traceback
             if verbose:
                 # traceback.print_exc()
                 pass
@@ -381,7 +372,7 @@ class TF1DRMExtractor:
                     if verbose:
                         # print(f"\n[CDM] Session closed")
                         pass
-                except:
+                except Exception:
                     pass
 
 

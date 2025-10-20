@@ -4,9 +4,8 @@ HTTP utilities for robust API calls with comprehensive error handling
 
 import json
 import requests
-import time
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, Optional, Any, Union
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from app.utils.client_ip import merge_ip_headers
@@ -110,22 +109,22 @@ class RobustHTTPClient:
                 
                 # Try to identify common issues
                 if '<html' in text_content.lower():
-                    print(f"   ⚠️  Response appears to be HTML (error page)")
+                    print("   ⚠️  Response appears to be HTML (error page)")
                 elif 'cloudflare' in text_content.lower():
-                    print(f"   ⚠️  Cloudflare protection detected")
+                    print("   ⚠️  Cloudflare protection detected")
                 elif 'access denied' in text_content.lower():
-                    print(f"   ⚠️  Access denied response")
+                    print("   ⚠️  Access denied response")
                 elif 'rate limit' in text_content.lower():
-                    print(f"   ⚠️  Rate limiting detected")
+                    print("   ⚠️  Rate limiting detected")
                 elif 'forbidden' in text_content.lower():
-                    print(f"   ⚠️  Forbidden access")
+                    print("   ⚠️  Forbidden access")
                 elif 'unauthorized' in text_content.lower():
-                    print(f"   ⚠️  Unauthorized access")
+                    print("   ⚠️  Unauthorized access")
                 
                 print(f"   📝 Full response headers: {dict(response.headers)}")
                 
                 # Try lenient parsing strategies
-                print(f"   🔧 Attempting lenient parsing strategies...")
+                print("   🔧 Attempting lenient parsing strategies...")
                 
                 # Strategy 1: Try to fix common JSON issues
                 try:
@@ -135,10 +134,10 @@ class RobustHTTPClient:
                     import re
                     fixed_content = re.sub(r'(\w+):', r'"\1":', fixed_content)
                     data = json.loads(fixed_content)
-                    print(f"   ✅ Successfully parsed with quote fixing")
+                    print("   ✅ Successfully parsed with quote fixing")
                     logger.info(f"{context} - JSON parsed successfully with quote fixing")
                     return data
-                except:
+                except Exception:
                     pass
                 
                 # Strategy 2: Try to extract JSON from a larger response
@@ -149,10 +148,10 @@ class RobustHTTPClient:
                     if json_match:
                         potential_json = json_match.group(0)
                         data = json.loads(potential_json)
-                        print(f"   ✅ Successfully extracted and parsed JSON from response")
+                        print("   ✅ Successfully extracted and parsed JSON from response")
                         logger.info(f"{context} - JSON extracted and parsed successfully")
                         return data
-                except:
+                except Exception:
                     pass
                 
                 # Strategy 3: Try to handle JSONP-like responses
@@ -164,13 +163,13 @@ class RobustHTTPClient:
                         if start != -1 and end > start:
                             potential_json = text_content[start:end]
                             data = json.loads(potential_json)
-                            print(f"   ✅ Successfully parsed JSON after removing wrapper")
+                            print("   ✅ Successfully parsed JSON after removing wrapper")
                             logger.info(f"{context} - JSON parsed successfully after removing wrapper")
                             return data
-                except:
+                except Exception:
                     pass
                 
-                print(f"   ❌ All lenient parsing strategies failed")
+                print("   ❌ All lenient parsing strategies failed")
                 print("🚨 END JSON DECODE ERROR\n")
                 
                 # Also log to logger for file logging
@@ -270,7 +269,7 @@ class RobustHTTPClient:
             print(f"   Error Type: {type(e).__name__}")
             print(f"   Error: {str(e)}")
             import traceback
-            print(f"   Traceback:")
+            print("   Traceback:")
             traceback.print_exc()
             print("❌ END UNEXPECTED HTTP ERROR\n")
             logger.error(f"{context} - Unexpected error for {url}: {e}")
@@ -376,7 +375,7 @@ def safe_api_call(func, context: str = "", default_return=None):
         
         # Print traceback for more detailed debugging
         import traceback
-        print(f"   Traceback:")
+        print("   Traceback:")
         traceback.print_exc()
         print("💥 END API CALL ERROR\n")
         

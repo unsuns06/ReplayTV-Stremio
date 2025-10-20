@@ -6,8 +6,7 @@ Based on the reference plugin.video.catchuptvandmore implementation
 
 import re
 import time
-from typing import Dict, List, Optional, Any
-from urllib.parse import urljoin
+from typing import Dict, List, Any
 
 class FranceTVMetadataProcessor:
     """Process and enhance metadata for FranceTV replays"""
@@ -182,7 +181,6 @@ class FranceTVMetadataProcessor:
         Get enhanced metadata for a show/series
         """
         # Determine provider from show_id
-        provider = 'francetv' if 'francetv' in show_id else '6play' if '6play' in show_id else 'mytf1'
         
         metadata = {
             'id': show_id,

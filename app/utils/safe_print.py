@@ -3,7 +3,6 @@
 Safe printing utility to handle Unicode characters gracefully
 """
 
-import sys
 
 def safe_print(message: str):
     """Safely print messages with Unicode support"""

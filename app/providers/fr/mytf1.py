@@ -20,31 +20,19 @@ PROXY LIMITATIONS DISCOVERED:
 import json
 import requests
 import time
-import logging
 import os
-import urllib.parse
 from urllib.parse import urlencode, quote, unquote
-import random
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from fastapi import Request
 from app.utils.credentials import get_provider_credentials
 from app.utils.safe_print import safe_print
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.base_url import get_base_url, get_logo_url
-from app.utils.client_ip import merge_ip_headers, make_ip_headers
+from app.utils.client_ip import make_ip_headers
+from app.utils.proxy_config import get_proxy_config
+from app.utils.user_agent import get_random_windows_ua
 
-def get_random_windows_ua():
-    """Generates a random Windows User-Agent string."""
-    # A selection of common Windows User-Agent strings
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/109.0.1518.78',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/109.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0'
-    ]
-    return random.choice(user_agents)
+
 
 def force_decode_tf1_replay_url(original_url: str) -> str:
     """
@@ -69,28 +57,32 @@ class MyTF1Provider:
     
     def __init__(self, request: Optional[Request] = None):
         self.credentials = get_provider_credentials('mytf1')
+        self.proxy_config = get_proxy_config()
         self.base_url = "https://www.tf1.fr"
         self.api_key = "3_hWgJdARhz_7l1oOp3a8BDLoR9cuWZpUaKG4aqF7gum9_iK3uTZ2VlDBl8ANf8FVk"
         self.api_url = "https://www.tf1.fr/graphql/web"
         self.video_stream_url = "https://mediainfo.tf1.fr/mediainfocombo"
         # MediaFlow config via env and credentials with deployment-friendly fallbacks
         # First try environment variables (for deployment)
-        self.mediaflow_url = os.getenv('MEDIAFLOW_PROXY_URL')
+        self.mediaflow_url = self.proxy_config.get_proxy('mediaflow')
         self.mediaflow_password = os.getenv('MEDIAFLOW_API_PASSWORD')
-        
+
         # Fallback to credentials file (for local development)
-        if not self.mediaflow_url or not self.mediaflow_password:
+        if not self.mediaflow_password:
             mediaflow_creds = get_provider_credentials('mediaflow')
-            if not self.mediaflow_url:
-                self.mediaflow_url = mediaflow_creds.get('url')
             if not self.mediaflow_password:
                 self.mediaflow_password = mediaflow_creds.get('password')
-        
-        # Final fallback for local development
+
+        # Also try to get MediaFlow URL from mediaflow credentials section if not in proxies
         if not self.mediaflow_url:
-            self.mediaflow_url = 'http://localhost:8888'
+            mediaflow_creds = get_provider_credentials('mediaflow')
+            self.mediaflow_url = mediaflow_creds.get('url')
+        
+        # Use MediaFlow proxy from credentials.json (no localhost fallback)
         
         # Log MediaFlow configuration for debugging
+        if self.mediaflow_url:
+            safe_print(f"✅ [MyTF1Provider] MediaFlow URL loaded from: {'proxies.mediaflow' if self.proxy_config.get_proxy('mediaflow') else 'mediaflow.url in credentials.json'}")
         safe_print(f"✅ [MyTF1Provider] MediaFlow URL: {self.mediaflow_url}")
         safe_print(f"✅ [MyTF1Provider] MediaFlow Password: {'***' if self.mediaflow_password else 'None'}")
         safe_print(f"✅ [MyTF1Provider] MediaFlow configured: {bool(self.mediaflow_url and self.mediaflow_password)}")
@@ -152,8 +144,7 @@ class MyTF1Provider:
                     current_headers[header_name] = header_value
 
                 # Optional per-request proxy support via env
-                proxy_env = os.getenv('MYTF1_HTTP_PROXY')
-                proxies = {'http': proxy_env, 'https': proxy_env} if proxy_env else None
+                proxies = None
 
                 
                 safe_print(f"✅ [MyTF1] API call attempt {attempt + 1}/{max_retries}: {url}")
@@ -207,7 +198,7 @@ class MyTF1Provider:
                             text = text.replace("'", '"')
                             try:
                                 return json.loads(text)
-                            except:
+                            except Exception:
                                 pass
                         
                         # Strategy 2: Try to fix unquoted property names
@@ -216,9 +207,9 @@ class MyTF1Provider:
                             import re
                             fixed_text = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
                             if fixed_text != text:
-                                safe_print(f"✅ [MyTF1] Attempting to fix unquoted property names...")
+                                safe_print("✅ [MyTF1] Attempting to fix unquoted property names...")
                                 return json.loads(fixed_text)
-                        except:
+                        except Exception:
                             pass
                         
                         # Strategy 3: Try to extract JSON from larger response
@@ -239,7 +230,7 @@ class MyTF1Provider:
                     
                     # For 500 errors with max_retries=1, fail fast to enable proxy fallback
                     if response.status_code == 500 and max_retries == 1:
-                        safe_print(f"❌ [MyTF1] HTTP 500 with max_retries=1, failing fast for proxy fallback")
+                        safe_print("❌ [MyTF1] HTTP 500 with max_retries=1, failing fast for proxy fallback")
                         return None
                     
                     if attempt < max_retries - 1:
@@ -337,7 +328,7 @@ class MyTF1Provider:
                     safe_print(f"✅ [MyTF1Provider] Session token generated: {self.auth_token[:20]}...")
                     return True
                 else:
-                    safe_print(f"❌ [MyTF1Provider] Failed to get Gigya token")
+                    safe_print("❌ [MyTF1Provider] Failed to get Gigya token")
             else:
                 safe_print(f"❌ [MyTF1Provider] MyTF1 login failed: {login_data.get('errorMessage', 'Unknown error') if login_data else 'No response'}")
                 
@@ -497,7 +488,7 @@ class MyTF1Provider:
                 else:
                     safe_print(f"❌ [MyTF1Provider] Program not found for show: {actual_show_id} on channel: {channel_filter}")
             else:
-                safe_print(f"❌ [MyTF1Provider] Failed to get TF1+ programs or API failed")
+                safe_print("❌ [MyTF1Provider] Failed to get TF1+ programs or API failed")
             
             # Fallback: return a placeholder episode
             safe_print(f"✅ [MyTF1Provider] Using fallback episode for {actual_show_id}")
@@ -560,7 +551,7 @@ class MyTF1Provider:
             
             # TF1 GraphQL REPLAY episodes - Try proxy first, fallback to direct if 500 errors
             dest_with_params = self.api_url + ("?" + urlencode(params) if params else "")
-            proxy_base = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
+            proxy_base = self.proxy_config.get_proxy('fr_default')
 
             # Use simple URL encoding (Variant 2) - proven to work best and get successful responses
             proxied_url = proxy_base + quote(dest_with_params, safe="")
@@ -570,7 +561,7 @@ class MyTF1Provider:
             
             # If proxy fails with 500 errors, try direct API call
             if not data:
-                safe_print(f"❌ [MyTF1Provider] French proxy failed for GraphQL episodes, trying DIRECT call")
+                safe_print("❌ [MyTF1Provider] French proxy failed for GraphQL episodes, trying DIRECT call")
                 safe_print(f"✅ [MyTF1Provider] Direct GraphQL URL: {self.api_url}")
                 data = self._safe_api_call(self.api_url, headers=headers, params=params, max_retries=2)
             
@@ -590,10 +581,10 @@ class MyTF1Provider:
                     
                     return episodes
                 else:
-                    safe_print(f"❌ [MyTF1Provider] No videos found in programBySlug")
+                    safe_print("❌ [MyTF1Provider] No videos found in programBySlug")
                     safe_print(f"❌ [MyTF1Provider] Available keys: {list(program_data.keys())}")
             else:
-                safe_print(f"❌ [MyTF1Provider] No programBySlug in response or API failed")
+                safe_print("❌ [MyTF1Provider] No programBySlug in response or API failed")
                 safe_print(f"❌ [MyTF1Provider] Response keys: {list(data.keys()) if data else 'No data'}")
             
             return []
@@ -718,7 +709,7 @@ class MyTF1Provider:
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
 
             # Use primary French proxy service
-            proxy_base = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
+            proxy_base = self.proxy_config.get_proxy('fr_default')
 
             json_parser = None
 
@@ -750,14 +741,14 @@ class MyTF1Provider:
                             safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
                             json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
                     else:
-                        safe_print(f"❌ [MyTF1Provider] French proxy returned US country (still geo-blocked)")
+                        safe_print("❌ [MyTF1Provider] French proxy returned US country (still geo-blocked)")
                         # Try direct call as fallback
                         safe_print("❌ French proxy failed; trying direct call as fallback...")
                         safe_print(f"✅ [MyTF1Provider] Making DIRECT request for live feed: {url_json}")
                         safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
                         json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
                 else:
-                    safe_print(f"❌ [MyTF1Provider] French proxy failed or returned error code")
+                    safe_print("❌ [MyTF1Provider] French proxy failed or returned error code")
                     # Try direct call as fallback
                     safe_print("❌ French proxy failed; trying direct call as fallback...")
                     safe_print(f"✅ [MyTF1Provider] Making DIRECT request for live feed: {url_json}")
@@ -797,7 +788,7 @@ class MyTF1Provider:
                         
                         license_url = drm_info.get('url')
                         if not license_url:
-                            safe_print(f"❌ [MyTF1Provider] No license URL in DRM info, using fallback")
+                            safe_print("❌ [MyTF1Provider] No license URL in DRM info, using fallback")
                             license_url = self.license_base_url % video_id
                         else:
                             safe_print(f"✅ [MyTF1Provider] License URL from DRM: {license_url}")
@@ -811,7 +802,7 @@ class MyTF1Provider:
                                 safe_print(f"✅ [MyTF1Provider] DRM Header: {header_key} = {header_value}")
                     else:
                         # Fallback to generic license URL if no DRM info is present
-                        safe_print(f"❌ [MyTF1Provider] No DRM info found, using fallback license URL")
+                        safe_print("❌ [MyTF1Provider] No DRM info found, using fallback license URL")
                         license_url = self.license_base_url % video_id
 
                     # Prefer HLS if present, else MPD
@@ -867,7 +858,7 @@ class MyTF1Provider:
                 else:
                     safe_print(f"❌ [MyTF1Provider] MyTF1 delivery error: {json_parser['delivery']['code']}")
             else:
-                safe_print(f"❌ [MyTF1Provider] MyTF1 API error: No valid JSON from mediainfo (proxy and direct attempts failed)")
+                safe_print("❌ [MyTF1Provider] MyTF1 API error: No valid JSON from mediainfo (proxy and direct attempts failed)")
                 
         except Exception as e:
             safe_print(f"❌ [MyTF1Provider] Error getting stream for {channel_name}: {e}")
@@ -934,7 +925,7 @@ class MyTF1Provider:
             dest_with_params = url_json + ("?" + urlencode(params) if params else "")
 
             # Use primary French proxy service for replay content
-            proxy_base = "https://8cyq9n1ebd.execute-api.eu-west-3.amazonaws.com/prod/?url="
+            proxy_base = self.proxy_config.get_proxy('fr_default')
 
             json_parser = None
 
@@ -966,14 +957,14 @@ class MyTF1Provider:
                             safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
                             json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
                     else:
-                        safe_print(f"❌ [MyTF1Provider] French proxy returned US country (still geo-blocked)")
+                        safe_print("❌ [MyTF1Provider] French proxy returned US country (still geo-blocked)")
                         # Try direct call as fallback
                         safe_print("❌ French proxy failed; trying direct call as fallback...")
                         safe_print(f"✅ [MyTF1Provider] Making DIRECT request for replay feed: {url_json}")
                         safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
                         json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
                 else:
-                    safe_print(f"❌ [MyTF1Provider] French proxy failed or returned error code")
+                    safe_print("❌ [MyTF1Provider] French proxy failed or returned error code")
                     # Try direct call as fallback
                     safe_print("❌ French proxy failed; trying direct call as fallback...")
                     safe_print(f"✅ [MyTF1Provider] Making DIRECT request for replay feed: {url_json}")
@@ -1009,7 +1000,7 @@ class MyTF1Provider:
                     
                     license_url = drm_info.get('url')
                     if not license_url:
-                        safe_print(f"❌ [MyTF1Provider] No license URL in replay DRM info, using fallback")
+                        safe_print("❌ [MyTF1Provider] No license URL in replay DRM info, using fallback")
                         license_url = self.license_base_url % actual_episode_id
                     else:
                         safe_print(f"✅ [MyTF1Provider] Replay License URL from DRM: {license_url}")
@@ -1023,7 +1014,7 @@ class MyTF1Provider:
                             safe_print(f"✅ [MyTF1Provider] Replay DRM Header: {header_key} = {header_value}")
                 else:
                     # Fallback to generic license URL if no DRM info is present
-                    safe_print(f"❌ [MyTF1Provider] No replay DRM info found, using fallback license URL")
+                    safe_print("❌ [MyTF1Provider] No replay DRM info found, using fallback license URL")
                     license_url = self.license_base_url % actual_episode_id
 
                 # Check if the stream URL is MPD or HLS
@@ -1045,7 +1036,7 @@ class MyTF1Provider:
                         return {
                             "url": processed_url,
                             "manifest_type": "video",
-                            "title": "Processed Version (No DRM)",
+                            "title": "✅ DRM-Free Video",
                             "filename": processed_filename
                         }
                 except Exception:
@@ -1055,13 +1046,13 @@ class MyTF1Provider:
                 # For DRM-protected MPD streams (replays only), use external DASH proxy
                 if is_mpd and license_url:
                     try:
-                        safe_print(f"✅ [MyTF1Provider] Using DASH proxy for DRM-protected MPD replay stream")
+                        safe_print("✅ [MyTF1Provider] Using DASH proxy for DRM-protected MPD replay stream")
 
                         # Extract DRM keys using TF1 DRM extractor
                         drm_keys_dict = {}
                         try:
                             from app.providers.fr.tf1_drm_key_extractor import TF1DRMExtractor
-                            safe_print(f"✅ [MyTF1Provider] Extracting DRM keys for TF1 replay...")
+                            safe_print("✅ [MyTF1Provider] Extracting DRM keys for TF1 replay...")
                             
                             extractor = TF1DRMExtractor(wvd_path="app/providers/fr/device.wvd")
                             drm_keys_dict = extractor.get_keys(
@@ -1084,7 +1075,7 @@ class MyTF1Provider:
                                 
                                 # Trigger background processing with multiple keys
                                 from app.utils.nm3u8_drm_processor import process_drm_simple
-                                safe_print(f"✅ [MyTF1Provider] Triggering background DRM processing...")
+                                safe_print("✅ [MyTF1Provider] Triggering background DRM processing...")
                                 
                                 online_result = process_drm_simple(
                                     url=video_url,
@@ -1096,14 +1087,14 @@ class MyTF1Provider:
                                 )
                                 
                                 if online_result.get("success"):
-                                    safe_print(f"✅ [MyTF1Provider] Background processing started successfully")
+                                    safe_print("✅ [MyTF1Provider] Background processing started successfully")
                                 else:
                                     safe_print(f"⚠️ [MyTF1Provider] Background processing failed to start: {online_result.get('error')}")
                             else:
-                                safe_print(f"⚠️ [MyTF1Provider] No DRM keys extracted")
+                                safe_print("⚠️ [MyTF1Provider] No DRM keys extracted")
                                 
                         except ImportError:
-                            safe_print(f"⚠️ [MyTF1Provider] TF1 DRM extractor not available (pywidevine not installed)")
+                            safe_print("⚠️ [MyTF1Provider] TF1 DRM extractor not available (pywidevine not installed)")
                         except Exception as drm_error:
                             safe_print(f"⚠️ [MyTF1Provider] DRM key extraction failed: {drm_error}")
 
@@ -1112,7 +1103,7 @@ class MyTF1Provider:
                         encoded_license = quote(license_url, safe='')
 
                         # Construct the DASH proxy URL
-                        dash_proxy_base = "https://alphanet06-dash-proxy-server.hf.space"
+                        dash_proxy_base = self.proxy_config.get_proxy('dash_proxy')
                         proxy_params = f"mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}"
 
                         final_url = f"{dash_proxy_base}/proxy?{proxy_params}"
@@ -1140,33 +1131,33 @@ class MyTF1Provider:
 
                         # Build secondary processed stream (if processing was triggered)
                         streams = [primary_stream]
-                        
+
                         if drm_keys_dict:
                             # Add a second stream pointing to the processed file
-                            # Show "Stream not available" if file doesn't exist yet
-                            if processed_file_exists:
-                                # File exists - direct link
-                                processed_stream = {
-                                    "url": processed_url,
-                                    "manifest_type": "video",
-                                    "title": "Processed Version (No DRM)",
-                                    "filename": processed_filename
-                                }
-                            else:
-                                # File doesn't exist yet - show "Stream not available"
+                            # Check if processing was successfully triggered
+                            if online_result.get("success"):
+                                # Processing successfully triggered - file doesn't exist yet (checked earlier)
                                 processed_stream = {
                                     "url": "https://stream-not-available",
                                     "manifest_type": "video",
-                                    "title": "⏳ Processed Version (Processing in background...)",
+                                    "title": "⏳ DRM-Free Video (Processing in background...)",
                                     "description": "Stream not available - Processing in progress. Please check back in a few minutes."
+                                }
+                            else:
+                                # Processing failed to start
+                                processed_stream = {
+                                    "url": "https://stream-not-available",
+                                    "manifest_type": "video",
+                                    "title": "❌ DRM Processing Failed",
+                                    "description": "Stream not available - DRM processing could not be started. Please try again later."
                                 }
                             
                             streams.append(processed_stream)
-                            safe_print(f"✅ [MyTF1Provider] Returning 2 streams: DASH proxy + processed file")
+                            safe_print("✅ [MyTF1Provider] Returning 2 streams: DASH proxy + processed file")
                         else:
-                            safe_print(f"✅ [MyTF1Provider] Returning 1 stream: DASH proxy only")
+                            safe_print("✅ [MyTF1Provider] Returning 1 stream: DASH proxy only")
 
-                        safe_print(f"✅ [MyTF1Provider] MyTF1 stream(s) prepared")
+                        safe_print("✅ [MyTF1Provider] MyTF1 stream(s) prepared")
                         return streams
 
                     except Exception as e:
@@ -1182,14 +1173,14 @@ class MyTF1Provider:
                             # Determine the appropriate endpoint based on stream type
                             if is_hls:
                                 endpoint = '/proxy/hls/manifest.m3u8'
-                                safe_print(f"✅ [MyTF1Provider] Using HLS proxy for HLS stream")
+                                safe_print("✅ [MyTF1Provider] Using HLS proxy for HLS stream")
                             elif is_mpd:
                                 endpoint = '/proxy/mpd/manifest.m3u8'
-                                safe_print(f"✅ [MyTF1Provider] Using MPD proxy for MPD stream")
+                                safe_print("✅ [MyTF1Provider] Using MPD proxy for MPD stream")
                             else:
                                 # Default to HLS proxy for unknown formats
                                 endpoint = '/proxy/hls/manifest.m3u8'
-                                safe_print(f"✅ [MyTF1Provider] Using HLS proxy for unknown format")
+                                safe_print("✅ [MyTF1Provider] Using HLS proxy for unknown format")
 
                             # Build request headers for MediaFlow
                             mediaflow_headers = {

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -6,10 +6,10 @@ from app.routers import catalog, meta, stream, configure
 from app.manifest import get_manifest
 import os
 import traceback
-import json
 import logging
 from datetime import datetime
 from app.utils.client_ip import set_client_ip, normalize_ip
+from app.utils.credentials import load_credentials
 
 # Configure comprehensive logging with Unicode support
 import sys
@@ -37,7 +37,7 @@ if LOG_TO_FILE:
         file_handler.setFormatter(formatter)
         handlers.append(file_handler)
         FILE_LOG_ENABLED = True
-    except Exception as e:
+    except Exception:
         # Fall back to console-only if file cannot be opened (e.g., permission denied)
         FILE_LOG_ENABLED = False
 
@@ -69,7 +69,8 @@ def _ip_from_token(token: str):
         parts = token.split('.')
         if len(parts) != 3:
             return None
-        import json as _json, base64
+        import json as _json
+        import base64
         def _b64url_decode(s: str) -> bytes:
             pad = '=' * (-len(s) % 4)
             return base64.urlsafe_b64decode(s + pad)
@@ -156,7 +157,7 @@ async def log_requests_and_responses(request: Request, call_next):
         logger.error(f"❌ ERROR in {request.method} {request.url} after {process_time:.3f}s")
         logger.error(f"   Error Type: {type(e).__name__}")
         logger.error(f"   Error Message: {str(e)}")
-        logger.error(f"   Full Traceback:")
+        logger.error("   Full Traceback:")
         logger.error(traceback.format_exc())
         
         # Return error response
@@ -175,11 +176,11 @@ async def log_requests_and_responses(request: Request, call_next):
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler that logs everything"""
-    logger.error(f"🚨 GLOBAL EXCEPTION HANDLER TRIGGERED")
+    logger.error("🚨 GLOBAL EXCEPTION HANDLER TRIGGERED")
     logger.error(f"   Request: {request.method} {request.url}")
     logger.error(f"   Exception Type: {type(exc).__name__}")
     logger.error(f"   Exception Message: {str(exc)}")
-    logger.error(f"   Full Traceback:")
+    logger.error("   Full Traceback:")
     logger.error(traceback.format_exc())
     
     # Log request details
@@ -187,8 +188,8 @@ async def global_exception_handler(request: Request, exc: Exception):
         body = await request.body()
         if body:
             logger.error(f"   Request Body: {body.decode('utf-8', errors='ignore')[:1000]}...")
-    except:
-        logger.error(f"   Request Body: Could not read")
+    except Exception:
+        logger.error("   Request Body: Could not read")
     
     # Log headers
     logger.error(f"   Request Headers: {dict(request.headers)}")
@@ -219,7 +220,6 @@ app.include_router(stream.router, prefix="", tags=["stream"])
 app.include_router(configure.router, prefix="", tags=["configure"])
 
 # --- Startup diagnostics: validate credentials JSON early ---
-from app.utils.credentials import load_credentials
 
 @app.on_event("startup")
 async def startup_diagnostics():

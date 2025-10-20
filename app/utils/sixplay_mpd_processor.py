@@ -4,9 +4,7 @@ This bypasses MediaFlow parsing issues by creating a simplified, compatible mani
 """
 
 import xml.etree.ElementTree as ET
-import base64
-import re
-from typing import Dict, Optional, List
+from typing import Dict
 from urllib.parse import urljoin, urlparse
 
 
