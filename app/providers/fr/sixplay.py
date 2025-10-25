@@ -428,7 +428,7 @@ class SixPlayProvider:
                     return {
                         "url": processed_url,
                         "manifest_type": "video",
-                        "title": "Processed Version (No DRM)",
+                        "title": "✅ DRM-Free Video",
                         "filename": processed_filename
                     }
             except Exception:
@@ -570,11 +570,21 @@ class SixPlayProvider:
                                                 )
 
                                                 if online_result.get("success"):
-                                                    # Return the processed stream as the primary result
-                                                    return processed_stream
+                                                    # Processing successfully triggered - return processed stream as primary result
+                                                    return {
+                                                        "url": "https://stream-not-available",
+                                                        "manifest_type": "video",
+                                                        "title": "⏳ DRM-Free Video (Processing in background...)",
+                                                        "description": "Stream not available - Processing in progress. Please check back in a few minutes."
+                                                    }
                                                 else:
-                                                    # Processing failed - continue with DRM approach
-                                                    pass
+                                                    # Processing failed - return failure stream
+                                                    return {
+                                                        "url": "https://stream-not-available",
+                                                        "manifest_type": "video",
+                                                        "title": "❌ DRM Processing Failed",
+                                                        "description": "Stream not available - DRM processing could not be started. Please try again later."
+                                                    }
 
                                                 if key_id_hex:
                                                     mediaflow_stream = self._build_mediaflow_clearkey_stream(
@@ -624,7 +634,7 @@ class SixPlayProvider:
                         else:
                             print("? No MPD streams found either")
                 else:
-                    print(f"6play live API error: {video_response.status_code}")
+                    print(f"6play API error: {response.status_code}")
             else:
                 print(f"6play token error: {token_response.status_code}")
             
