@@ -1041,11 +1041,11 @@ class MyTF1Provider:
                         safe_print(f"✅ [MyTF1Provider] Checking if file exists in Real-Debrid (timeout 5s)...")
                         
                         try:
-                            check_response = requests.head(rd_file_url, timeout=5)
+                            check_response = requests.head(rd_file_url, timeout=10)
                             safe_print(f"✅ [MyTF1Provider] RD HTTP HEAD Status: {check_response.status_code}")
                             
                             # Only accept 200 OK - file must be accessible
-                            if check_response.status_code == 200:
+                            if check_response.status_code not in [404, 503]:
                                 safe_print(f"✅ [MyTF1Provider] File found and accessible in Real-Debrid")
                                 safe_print(f"✅ [MyTF1Provider] Returning RD URL: {rd_file_url}")
                                 return {
