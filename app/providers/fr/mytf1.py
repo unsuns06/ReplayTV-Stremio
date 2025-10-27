@@ -1039,8 +1039,21 @@ class MyTF1Provider:
                         safe_print(f"✅ [MyTF1Provider] Checking if '{processed_filename}' is listed in RD folder...")
                         
                         try:
-                            # Fetch the folder listing page
-                            folder_response = requests.get(rd_folder, timeout=10)
+                            # Fetch the folder listing page with browser-like headers
+                            rd_headers = {
+                                'User-Agent': get_random_windows_ua(),
+                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                                'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+                                'Accept-Encoding': 'gzip, deflate, br',
+                                'DNT': '1',
+                                'Connection': 'keep-alive',
+                                'Upgrade-Insecure-Requests': '1',
+                                'Sec-Fetch-Dest': 'document',
+                                'Sec-Fetch-Mode': 'navigate',
+                                'Sec-Fetch-Site': 'none',
+                                'Cache-Control': 'max-age=0'
+                            }
+                            folder_response = requests.get(rd_folder, headers=rd_headers, timeout=10)
                             safe_print(f"✅ [MyTF1Provider] RD Folder HTTP Status: {folder_response.status_code}")
                             
                             if folder_response.status_code == 200:
