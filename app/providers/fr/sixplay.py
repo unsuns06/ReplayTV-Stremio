@@ -425,10 +425,11 @@ class SixPlayProvider:
             rd_folder = self.credentials.get('realdebridfolder')
             if rd_folder:
                 try:
-                    rd_url = rd_folder + processed_filename
+                    rd_url = f"{rd_folder.rstrip('/')}/{processed_filename}"
+                    print(f"✅ [SixPlayProvider] Checking Real-Debrid folder: {rd_url}")
                     check_response = requests.head(rd_url, timeout=5)
                     if check_response.status_code == 200:
-                        safe_print(f"✅ [MyTF1Provider] Processed file exists on Real-Debrid: {rd_url}")
+                        print(f"✅ [SixPlayProvider] Processed file exists on Real-Debrid: {rd_url}")
                         return {
                             "url": rd_url,
                             "manifest_type": "video",
@@ -436,7 +437,7 @@ class SixPlayProvider:
                             "filename": processed_filename
                         }
                 except Exception as e:
-                    safe_print(f"⚠️ [MyTF1Provider] Could not check Real-Debrid folder: {e}")
+                    print(f"⚠️ [SixPlayProvider] Could not check Real-Debrid folder: {e}")
 
             try:
                 check_response = requests.head(processed_url, timeout=5)

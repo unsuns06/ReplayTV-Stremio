@@ -1024,28 +1024,31 @@ class MyTF1Provider:
                 # Check if processed file already exists (for TF1 replays only)
                 api_url = "https://alphanet06-processor.hf.space"
                 processed_filename = f"{actual_episode_id}.mp4"
+                processed_url = f"{api_url}/stream/{processed_filename}"
+
                 
                 processed_file_exists = False
                 
-                # Try Real-Debrid folder first
-                rd_folder = self.credentials.get('realdebridfolder')
-                if rd_folder:
-                    try:
-                        rd_url = rd_folder + processed_filename
+                # Check Real-Debrid folder first
+                try:
+                    mytf1_creds = get_provider_credentials('mytf1')
+                    rd_folder = mytf1_creds.get('realdebridfolder')
+                    if rd_folder:
+                        rd_url = f"{rd_folder.rstrip('/')}/{processed_filename}"
+                        safe_print(f"✅ [MyTF1Provider] Checking Real-Debrid folder: {rd_url}")
                         check_response = requests.head(rd_url, timeout=5)
                         if check_response.status_code == 200:
-                            safe_print(f"✅ [MyTF1Provider] Processed file exists on Real-Debrid: {rd_url}")
+                            safe_print(f"✅ [MyTF1Provider] File found on Real-Debrid: {rd_url}")
                             return {
                                 "url": rd_url,
                                 "manifest_type": "video",
-                                "title": "✅ [RD] DRM-Free Video",
+                                "title": "✅ DRM-Free Video (Real-Debrid)",
                                 "filename": processed_filename
                             }
-                    except Exception as e:
-                        safe_print(f"⚠️ [MyTF1Provider] Could not check Real-Debrid folder: {e}")
+                except Exception as e:
+                    safe_print(f"⚠️ [MyTF1Provider] Could not check Real-Debrid folder: {e}")
                 
-                # Fallback to api_url
-                processed_url = f"{api_url}/stream/{processed_filename}"
+                # Check API URL as fallback
                 try:
                     check_response = requests.head(processed_url, timeout=5)
                     if check_response.status_code == 200:
