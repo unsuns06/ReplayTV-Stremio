@@ -433,30 +433,34 @@ class SixPlayProvider:
                 safe_print(f"✅ [SixPlayProvider] Real-Debrid folder from credentials: {rd_folder}")
                 
                 if rd_folder:
-                    rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
-                    safe_print(f"✅ [SixPlayProvider] Constructed RD URL: {rd_file_url}")
-                    safe_print(f"✅ [SixPlayProvider] Checking if file exists in Real-Debrid (timeout 10s)...")
+                    safe_print(f"✅ [SixPlayProvider] Checking if '{processed_filename}' is listed in RD folder...")
                     
                     try:
-                        check_response = requests.head(rd_file_url, timeout=10)
-                        safe_print(f"✅ [SixPlayProvider] RD HTTP HEAD Status: {check_response.status_code}")
+                        # Fetch the folder listing page
+                        folder_response = requests.get(rd_folder, timeout=10)
+                        safe_print(f"✅ [SixPlayProvider] RD Folder HTTP Status: {folder_response.status_code}")
                         
-                        # Only accept 200 OK - file must be accessible
-                        if check_response.status_code==200:
-                            safe_print(f"✅ [SixPlayProvider] File found and accessible in Real-Debrid")
-                            safe_print(f"✅ [SixPlayProvider] Returning RD URL: {rd_file_url}")
-                            return {
-                                "url": rd_file_url,
-                                "manifest_type": "video",
-                                "title": "✅ [RD] DRM-Free Video",
-                                "filename": processed_filename
-                            }
+                        if folder_response.status_code == 200:
+                            # Check if filename appears in the folder listing
+                            folder_content = folder_response.text
+                            if processed_filename in folder_content:
+                                rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
+                                safe_print(f"✅ [SixPlayProvider] File '{processed_filename}' found in RD folder listing!")
+                                safe_print(f"✅ [SixPlayProvider] Returning RD URL: {rd_file_url}")
+                                return {
+                                    "url": rd_file_url,
+                                    "manifest_type": "video",
+                                    "title": "✅ [RD] DRM-Free Video",
+                                    "filename": processed_filename
+                                }
+                            else:
+                                safe_print(f"⚠️ [SixPlayProvider] File '{processed_filename}' NOT found in RD folder listing, will check api_url")
                         else:
-                            safe_print(f"⚠️ [SixPlayProvider] RD file not accessible (HTTP {check_response.status_code}), will check api_url")
+                            safe_print(f"⚠️ [SixPlayProvider] Could not access RD folder (HTTP {folder_response.status_code}), checking api_url...")
                     except requests.exceptions.Timeout:
-                        safe_print(f"⚠️ [SixPlayProvider] RD connection timed out, checking api_url...")
+                        safe_print(f"⚠️ [SixPlayProvider] RD folder request timed out, checking api_url...")
                     except Exception as e:
-                        safe_print(f"❌ [SixPlayProvider] RD HEAD request error: {e}, checking api_url...")
+                        safe_print(f"❌ [SixPlayProvider] RD folder request error: {e}, checking api_url...")
                 else:
                     safe_print("⚠️ [SixPlayProvider] Real-Debrid folder not configured in credentials, checking api_url...")
             except Exception as e:
