@@ -1045,7 +1045,7 @@ class MyTF1Provider:
                             safe_print(f"✅ [MyTF1Provider] RD HTTP HEAD Status: {check_response.status_code}")
                             
                             # Only accept 200 OK - file must be accessible
-                            if check_response.status_code not in [404, 503]:
+                            if check_response.status_code==200:
                                 safe_print(f"✅ [MyTF1Provider] File found and accessible in Real-Debrid")
                                 safe_print(f"✅ [MyTF1Provider] Returning RD URL: {rd_file_url}")
                                 return {

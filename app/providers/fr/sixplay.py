@@ -435,14 +435,14 @@ class SixPlayProvider:
                 if rd_folder:
                     rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
                     safe_print(f"✅ [SixPlayProvider] Constructed RD URL: {rd_file_url}")
-                    safe_print(f"✅ [SixPlayProvider] Checking if file exists in Real-Debrid (timeout 5s)...")
+                    safe_print(f"✅ [SixPlayProvider] Checking if file exists in Real-Debrid (timeout 10s)...")
                     
                     try:
                         check_response = requests.head(rd_file_url, timeout=10)
                         safe_print(f"✅ [SixPlayProvider] RD HTTP HEAD Status: {check_response.status_code}")
                         
                         # Only accept 200 OK - file must be accessible
-                        if check_response.status_code not in [404, 503]:
+                        if check_response.status_code==200:
                             safe_print(f"✅ [SixPlayProvider] File found and accessible in Real-Debrid")
                             safe_print(f"✅ [SixPlayProvider] Returning RD URL: {rd_file_url}")
                             return {
