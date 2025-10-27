@@ -1024,9 +1024,28 @@ class MyTF1Provider:
                 # Check if processed file already exists (for TF1 replays only)
                 api_url = "https://alphanet06-processor.hf.space"
                 processed_filename = f"{actual_episode_id}.mp4"
-                processed_url = f"{api_url}/stream/{processed_filename}"
                 
                 processed_file_exists = False
+                
+                # Try Real-Debrid folder first
+                rd_folder = self.credentials.get('realdebridfolder')
+                if rd_folder:
+                    try:
+                        rd_url = rd_folder + processed_filename
+                        check_response = requests.head(rd_url, timeout=5)
+                        if check_response.status_code == 200:
+                            safe_print(f"✅ [MyTF1Provider] Processed file exists on Real-Debrid: {rd_url}")
+                            return {
+                                "url": rd_url,
+                                "manifest_type": "video",
+                                "title": "✅ [RD] DRM-Free Video",
+                                "filename": processed_filename
+                            }
+                    except Exception as e:
+                        safe_print(f"⚠️ [MyTF1Provider] Could not check Real-Debrid folder: {e}")
+                
+                # Fallback to api_url
+                processed_url = f"{api_url}/stream/{processed_filename}"
                 try:
                     check_response = requests.head(processed_url, timeout=5)
                     if check_response.status_code == 200:
