@@ -1044,9 +1044,9 @@ class MyTF1Provider:
                             check_response = requests.head(rd_file_url, timeout=5)
                             safe_print(f"✅ [MyTF1Provider] RD HTTP HEAD Status: {check_response.status_code}")
                             
-                            # Accept 200, 206 (partial), or 403 (folder exists, file might be accessible directly)
-                            if check_response.status_code in [200, 206, 403]:
-                                safe_print(f"✅ [MyTF1Provider] RD file is accessible or folder exists (HTTP {check_response.status_code})")
+                            # Only accept 200 OK - file must be accessible
+                            if check_response.status_code == 200:
+                                safe_print(f"✅ [MyTF1Provider] File found and accessible in Real-Debrid")
                                 safe_print(f"✅ [MyTF1Provider] Returning RD URL: {rd_file_url}")
                                 return {
                                     "url": rd_file_url,
@@ -1055,7 +1055,7 @@ class MyTF1Provider:
                                     "filename": processed_filename
                                 }
                             else:
-                                safe_print(f"⚠️ [MyTF1Provider] RD returned unexpected status {check_response.status_code}, will check api_url")
+                                safe_print(f"⚠️ [MyTF1Provider] RD file not accessible (HTTP {check_response.status_code}), will check api_url")
                         except requests.exceptions.Timeout:
                             safe_print(f"⚠️ [MyTF1Provider] RD connection timed out, checking api_url...")
                         except Exception as e:
