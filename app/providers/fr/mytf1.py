@@ -24,7 +24,7 @@ import os
 from urllib.parse import urlencode, quote, unquote
 from typing import Dict, List, Optional
 from fastapi import Request
-from app.utils.credentials import get_provider_credentials
+from app.utils.credentials import get_provider_credentials, load_credentials
 from app.utils.safe_print import safe_print
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.base_url import get_base_url, get_logo_url
@@ -1024,33 +1024,58 @@ class MyTF1Provider:
                 # Check if processed file already exists (for TF1 replays only)
                 api_url = "https://alphanet06-processor.hf.space"
                 processed_filename = f"{actual_episode_id}.mp4"
+                safe_print(f"✅ [MyTF1Provider] Looking for processed file: {processed_filename}")
+                
+                # First check Real-Debrid folder
+                try:
+                    safe_print("✅ [MyTF1Provider] Loading credentials for Real-Debrid check...")
+                    all_creds = load_credentials()
+                    safe_print(f"✅ [MyTF1Provider] Credentials loaded. Keys: {list(all_creds.keys())}")
+                    
+                    rd_folder = all_creds.get('realdebridfolder')
+                    safe_print(f"✅ [MyTF1Provider] Real-Debrid folder from credentials: {rd_folder}")
+                    
+                    if rd_folder:
+                        rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
+                        safe_print(f"✅ [MyTF1Provider] Constructed RD URL: {rd_file_url}")
+                        safe_print(f"✅ [MyTF1Provider] Checking if file exists in Real-Debrid (timeout 5s)...")
+                        
+                        try:
+                            check_response = requests.head(rd_file_url, timeout=5)
+                            safe_print(f"✅ [MyTF1Provider] RD HTTP HEAD Status: {check_response.status_code}")
+                            
+                            # Accept 200, 206 (partial), or 403 (folder exists, file might be accessible directly)
+                            if check_response.status_code in [200, 206, 403]:
+                                safe_print(f"✅ [MyTF1Provider] RD file is accessible or folder exists (HTTP {check_response.status_code})")
+                                safe_print(f"✅ [MyTF1Provider] Returning RD URL: {rd_file_url}")
+                                return {
+                                    "url": rd_file_url,
+                                    "manifest_type": "video",
+                                    "title": "✅ [RD] DRM-Free Video",
+                                    "filename": processed_filename
+                                }
+                            else:
+                                safe_print(f"⚠️ [MyTF1Provider] RD returned unexpected status {check_response.status_code}, will check api_url")
+                        except requests.exceptions.Timeout:
+                            safe_print(f"⚠️ [MyTF1Provider] RD connection timed out, checking api_url...")
+                        except Exception as e:
+                            safe_print(f"❌ [MyTF1Provider] RD HEAD request error: {e}, checking api_url...")
+                    else:
+                        safe_print("⚠️ [MyTF1Provider] Real-Debrid folder not configured in credentials, checking api_url...")
+                except Exception as e:
+                    safe_print(f"❌ [MyTF1Provider] Error checking Real-Debrid: {e}")
+                    safe_print(f"❌ [MyTF1Provider] Proceeding to api_url check as fallback...")
+                
+                # Then check api_url location
                 processed_url = f"{api_url}/stream/{processed_filename}"
+                safe_print(f"✅ [MyTF1Provider] Checking api_url location: {processed_url}")
 
                 
                 processed_file_exists = False
-                
-                # Check Real-Debrid folder first
-                try:
-                    mytf1_creds = get_provider_credentials('mytf1')
-                    rd_folder = mytf1_creds.get('realdebridfolder')
-                    if rd_folder:
-                        rd_url = f"{rd_folder.rstrip('/')}/{processed_filename}"
-                        safe_print(f"✅ [MyTF1Provider] Checking Real-Debrid folder: {rd_url}")
-                        check_response = requests.head(rd_url, timeout=5)
-                        if check_response.status_code == 200:
-                            safe_print(f"✅ [MyTF1Provider] File found on Real-Debrid: {rd_url}")
-                            return {
-                                "url": rd_url,
-                                "manifest_type": "video",
-                                "title": "✅ DRM-Free Video (Real-Debrid)",
-                                "filename": processed_filename
-                            }
-                except Exception as e:
-                    safe_print(f"⚠️ [MyTF1Provider] Could not check Real-Debrid folder: {e}")
-                
-                # Check API URL as fallback
                 try:
                     check_response = requests.head(processed_url, timeout=5)
+                    safe_print(f"✅ [MyTF1Provider] API URL HTTP Status: {check_response.status_code}")
+                    
                     if check_response.status_code == 200:
                         # File exists - return immediately
                         safe_print(f"✅ [MyTF1Provider] Processed file already exists: {processed_url}")
@@ -1061,8 +1086,11 @@ class MyTF1Provider:
                             "title": "✅ DRM-Free Video",
                             "filename": processed_filename
                         }
-                except Exception:
+                    else:
+                        safe_print(f"⚠️ [MyTF1Provider] API URL file not found (HTTP {check_response.status_code})")
+                except Exception as e:
                     # Error checking file - proceed with normal flow
+                    safe_print(f"⚠️ [MyTF1Provider] Error checking api_url: {e}")
                     pass
 
                 # For DRM-protected MPD streams (replays only), use external DASH proxy

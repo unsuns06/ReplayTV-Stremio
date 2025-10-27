@@ -13,7 +13,7 @@ import uuid
 import os
 import base64
 from typing import Dict, List, Optional, Tuple
-from app.utils.credentials import get_provider_credentials
+from app.utils.credentials import get_provider_credentials, load_credentials
 from app.auth.sixplay_auth import SixPlayAuth
 from app.utils.metadata import metadata_processor
 from app.utils.client_ip import merge_ip_headers
@@ -22,6 +22,7 @@ from app.utils.mediaflow import build_mediaflow_url
 from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
 from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
 from app.utils.nm3u8_drm_processor import process_drm_simple
+from app.utils.safe_print import safe_print
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -420,37 +421,69 @@ class SixPlayProvider:
             api_url = "https://alphanet06-processor.hf.space"
             processed_filename = f"{actual_episode_id}.mp4"
             processed_url = f"{api_url}/stream/{processed_filename}"
-
-            # Try Real-Debrid folder first
-            rd_folder = self.credentials.get('realdebridfolder')
-            if rd_folder:
-                try:
-                    rd_url = f"{rd_folder.rstrip('/')}/{processed_filename}"
-                    print(f"✅ [SixPlayProvider] Checking Real-Debrid folder: {rd_url}")
-                    check_response = requests.head(rd_url, timeout=5)
-                    if check_response.status_code == 200:
-                        print(f"✅ [SixPlayProvider] Processed file exists on Real-Debrid: {rd_url}")
-                        return {
-                            "url": rd_url,
-                            "manifest_type": "video",
-                            "title": "✅ [RD] DRM-Free Video",
-                            "filename": processed_filename
-                        }
-                except Exception as e:
-                    print(f"⚠️ [SixPlayProvider] Could not check Real-Debrid folder: {e}")
+            safe_print(f"✅ [SixPlayProvider] Looking for processed file: {processed_filename}")
+            
+            # First check Real-Debrid folder
+            try:
+                safe_print("✅ [SixPlayProvider] Loading credentials for Real-Debrid check...")
+                all_creds = load_credentials()
+                safe_print(f"✅ [SixPlayProvider] Credentials loaded. Keys: {list(all_creds.keys())}")
+                
+                rd_folder = all_creds.get('realdebridfolder')
+                safe_print(f"✅ [SixPlayProvider] Real-Debrid folder from credentials: {rd_folder}")
+                
+                if rd_folder:
+                    rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
+                    safe_print(f"✅ [SixPlayProvider] Constructed RD URL: {rd_file_url}")
+                    safe_print(f"✅ [SixPlayProvider] Checking if file exists in Real-Debrid (timeout 5s)...")
+                    
+                    try:
+                        check_response = requests.head(rd_file_url, timeout=5)
+                        safe_print(f"✅ [SixPlayProvider] RD HTTP HEAD Status: {check_response.status_code}")
+                        
+                        # Accept 200, 206 (partial), or 403 (folder exists, file might be accessible directly)
+                        if check_response.status_code in [200, 206, 403]:
+                            safe_print(f"✅ [SixPlayProvider] RD file is accessible or folder exists (HTTP {check_response.status_code})")
+                            safe_print(f"✅ [SixPlayProvider] Returning RD URL: {rd_file_url}")
+                            return {
+                                "url": rd_file_url,
+                                "manifest_type": "video",
+                                "title": "✅ [RD] DRM-Free Video",
+                                "filename": processed_filename
+                            }
+                        else:
+                            safe_print(f"⚠️ [SixPlayProvider] RD returned unexpected status {check_response.status_code}, will check api_url")
+                    except requests.exceptions.Timeout:
+                        safe_print(f"⚠️ [SixPlayProvider] RD connection timed out, checking api_url...")
+                    except Exception as e:
+                        safe_print(f"❌ [SixPlayProvider] RD HEAD request error: {e}, checking api_url...")
+                else:
+                    safe_print("⚠️ [SixPlayProvider] Real-Debrid folder not configured in credentials, checking api_url...")
+            except Exception as e:
+                safe_print(f"❌ [SixPlayProvider] Error checking Real-Debrid: {e}")
+                safe_print(f"❌ [SixPlayProvider] Proceeding to api_url check as fallback...")
+            
+            # Then check api_url location
+            safe_print(f"✅ [SixPlayProvider] Checking api_url location: {processed_url}")
 
             try:
                 check_response = requests.head(processed_url, timeout=5)
+                safe_print(f"✅ [SixPlayProvider] API URL HTTP Status: {check_response.status_code}")
+                
                 if check_response.status_code == 200:
                     # File exists - return immediately
+                    safe_print(f"✅ [SixPlayProvider] Processed file already exists: {processed_url}")
                     return {
                         "url": processed_url,
                         "manifest_type": "video",
                         "title": "✅ DRM-Free Video",
                         "filename": processed_filename
                     }
-            except Exception:
+                else:
+                    safe_print(f"⚠️ [SixPlayProvider] API URL file not found (HTTP {check_response.status_code})")
+            except Exception as e:
                 # Error checking file - proceed with normal flow
+                safe_print(f"⚠️ [SixPlayProvider] Error checking api_url: {e}")
                 pass
 
             # Lazy authentication - only authenticate when needed
