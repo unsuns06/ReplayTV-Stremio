@@ -23,6 +23,7 @@ from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
 from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
 from app.utils.nm3u8_drm_processor import process_drm_simple
 from app.utils.safe_print import safe_print
+from app.utils.proxy_config import get_proxy_config
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -418,7 +419,14 @@ class SixPlayProvider:
             print(f"[SixPlayProvider] Getting replay stream for 6play episode: {actual_episode_id}")
 
             # Check if processed file already exists before authentication
-            api_url = "https://alphanet06-processor.hf.space"
+            # Get processor URL from proxy config
+            proxy_config = get_proxy_config()
+            api_url = proxy_config.get_proxy('nm3u8_processor')
+            if not api_url:
+                safe_print("❌ [SixPlayProvider] ERROR: nm3u8_processor not configured in credentials.json")
+                return None
+            
+            safe_print(f"✅ [SixPlayProvider] Using processor API: {api_url}")
             processed_filename = f"{actual_episode_id}.mp4"
             processed_url = f"{api_url}/stream/{processed_filename}"
             safe_print(f"✅ [SixPlayProvider] Looking for processed file: {processed_filename}")

@@ -1022,7 +1022,14 @@ class MyTF1Provider:
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
 
                 # Check if processed file already exists (for TF1 replays only)
-                api_url = "https://alphanet06-processor.hf.space"
+                # Get processor URL from proxy config
+                proxy_config = get_proxy_config()
+                api_url = proxy_config.get_proxy('nm3u8_processor')
+                if not api_url:
+                    safe_print("❌ [MyTF1Provider] ERROR: nm3u8_processor not configured in credentials.json")
+                    return None
+                
+                safe_print(f"✅ [MyTF1Provider] Using processor API: {api_url}")
                 processed_filename = f"{actual_episode_id}.mp4"
                 safe_print(f"✅ [MyTF1Provider] Looking for processed file: {processed_filename}")
                 
