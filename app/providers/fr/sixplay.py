@@ -45,7 +45,7 @@ class SixPlayProvider:
         self.credentials = get_provider_credentials('6play')
         self.base_url = "https://www.6play.fr"
         self.api_url = "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play"
-        self.auth_url = "https://login.6play.fr/accounts.login"
+        self.auth_url = "https://login-gigya.m6.fr/accounts.login"
         self.token_url = "https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users"
         self.live_url = "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live"
         self.api_key = "3_hH5KBv25qZTd_sURpixbQW6a4OsiIzIEF2Ei_2H7TXTGLJb_1Hr4THKZianCQhWK"

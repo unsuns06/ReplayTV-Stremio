@@ -15,7 +15,7 @@ class SixPlayAuth:
         self.device_id = '_luid_' + str(uuid.UUID(int=uuid.getnode()))
         
         # API endpoints
-        self.login_url = 'https://login.6play.fr/accounts.login'
+        self.login_url = 'https://login-gigya.m6.fr/accounts.login'
         self.token_url = 'https://front-auth.6cloud.fr/v2/platforms/m6group_web/getJwt'
         self.api_key_url = 'https://www.6play.fr/connexion'
         self.js_bundle_url = 'https://www.6play.fr/main-%s.bundle.js'

@@ -12,12 +12,14 @@ import time
 import random
 import sys
 from typing import Dict, List, Optional
+from urllib.parse import urlencode, quote
 from fastapi import Request
 from app.utils.credentials import get_provider_credentials
 from app.utils.metadata import metadata_processor
 from app.utils.safe_print import safe_print
 from app.utils.client_ip import merge_ip_headers
 from app.utils.base_url import get_base_url, get_logo_url
+from app.utils.proxy_config import get_proxy_config
 
 def get_random_windows_ua():
     """Generates a random Windows User-Agent string."""
@@ -48,6 +50,9 @@ class FranceTVProvider:
         self.request = request
         # Get base URL for static assets
         self.static_base = get_base_url(request)
+        
+        # Initialize proxy configuration for geo-blocking bypass
+        self.proxy_config = get_proxy_config()
         
         # Enhanced show information with rich metadata
         self.shows = {
@@ -112,8 +117,16 @@ class FranceTVProvider:
             }
         }
     
-    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, max_retries: int = 3) -> Optional[Dict]:
-        """Make a safe API call with retry logic and error handling"""
+    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, max_retries: int = 3, use_proxy: bool = False) -> Optional[Dict]:
+        """Make a safe API call with retry logic, error handling, and optional proxy support
+        
+        Args:
+            url: The API URL to call
+            params: Query parameters
+            headers: Request headers
+            max_retries: Maximum number of retry attempts
+            use_proxy: If True, route request through fr_router proxy for geo-blocking bypass
+        """
         for attempt in range(max_retries):
             try:
                 # Rotate User-Agent for each attempt
@@ -122,9 +135,25 @@ class FranceTVProvider:
                 # Forward viewer IP to upstream
                 current_headers = merge_ip_headers(current_headers)
                 
-                safe_print(f"[FranceTV] API call attempt {attempt + 1}/{max_retries}: {url}")
-                if params:
-                    safe_print(f"[FranceTV] Request params: {params}")
+                # Determine final URL (proxy or direct)
+                final_url = url
+                final_params = params
+                
+                if use_proxy:
+                    proxy_base = self.proxy_config.get_proxy('fr_router')
+                    if proxy_base:
+                        # Build URL with params for proxy routing
+                        dest_with_params = url + ("?" + urlencode(params) if params else "")
+                        # Use URL encoding (same as MyTF1)
+                        final_url = proxy_base + quote(dest_with_params, safe="")
+                        final_params = None  # Params already encoded in URL
+                        safe_print(f"[FranceTV] Using French proxy: {proxy_base[:50]}...")
+                    else:
+                        safe_print(f"[FranceTV] Proxy requested but not configured, using direct call")
+                
+                safe_print(f"[FranceTV] API call attempt {attempt + 1}/{max_retries}: {final_url}")
+                if final_params:
+                    safe_print(f"[FranceTV] Request params: {final_params}")
                 if headers:
                     safe_print(f"[FranceTV] Request headers (pre-merge): {headers}")
                 try:
@@ -132,7 +161,7 @@ class FranceTVProvider:
                 except Exception:
                     pass
                 
-                response = self.session.get(url, params=params, headers=current_headers, timeout=15)
+                response = self.session.get(final_url, params=final_params, headers=current_headers, timeout=15)
                 
                 if response.status_code == 200:
                     # Log response details for debugging
@@ -374,6 +403,7 @@ class FranceTVProvider:
                 return None
             
             # Get video info from API (same as reference)
+            # Try with proxy first for geo-blocking bypass, fallback to direct if needed
             video_url = f"https://k7.ftven.fr/videos/{broadcast_id}"
             params = {
                 'country_code': 'FR',
@@ -383,7 +413,13 @@ class FranceTVProvider:
             }
             
             safe_print(f"   Video API URL: {video_url}")
-            video_data = self._safe_api_call(video_url, params=params)
+            # Try proxy first for potential geo-blocking bypass
+            video_data = self._safe_api_call(video_url, params=params, use_proxy=True, max_retries=2)
+            
+            # Fallback to direct call if proxy fails
+            if not video_data:
+                safe_print(f"   Proxy failed, trying direct call")
+                video_data = self._safe_api_call(video_url, params=params, use_proxy=False, max_retries=2)
             
             if video_data and 'video' in video_data:
                 video_info = video_data['video']
@@ -409,7 +445,13 @@ class FranceTVProvider:
                 }
                 
                 safe_print(f"   Token API params: {token_params}")
-                token_data = self._safe_api_call(url_token, params=token_params)
+                # Try proxy first for token API
+                token_data = self._safe_api_call(url_token, params=token_params, use_proxy=True, max_retries=2)
+                
+                # Fallback to direct call if proxy fails
+                if not token_data:
+                    safe_print(f"   Token proxy failed, trying direct call")
+                    token_data = self._safe_api_call(url_token, params=token_params, use_proxy=False, max_retries=2)
                 
                 if token_data and 'url' in token_data:
                     final_url = token_data['url']
@@ -620,7 +662,13 @@ class FranceTVProvider:
                 'offline': 'false',
             }
             
-            video_data = self._safe_api_call(video_url, params=params)
+            # Try proxy first for geo-blocking bypass
+            video_data = self._safe_api_call(video_url, params=params, use_proxy=True, max_retries=2)
+            
+            # Fallback to direct call if proxy fails
+            if not video_data:
+                safe_print("[FranceTV] Episode stream proxy failed, trying direct call")
+                video_data = self._safe_api_call(video_url, params=params, use_proxy=False, max_retries=2)
             
             if video_data and 'video' in video_data:
                 video_info = video_data['video']
@@ -637,7 +685,13 @@ class FranceTVProvider:
                     'url': video_url
                 }
                 
-                token_data = self._safe_api_call(token_url, params=token_params)
+                # Try proxy first for token API
+                token_data = self._safe_api_call(token_url, params=token_params, use_proxy=True, max_retries=2)
+                
+                # Fallback to direct call if proxy fails
+                if not token_data:
+                    safe_print("[FranceTV] Episode token proxy failed, trying direct call")
+                    token_data = self._safe_api_call(token_url, params=token_params, use_proxy=False, max_retries=2)
                 
                 if token_data and 'url' in token_data:
                     final_url = token_data['url']
