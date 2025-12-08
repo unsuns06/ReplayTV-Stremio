@@ -6,10 +6,49 @@ import json
 from app.schemas.stremio import CatalogResponse
 from app.providers.common import ProviderFactory
 from app.utils.base_url import get_logo_url
-from app.routers.meta import DRAGONS_DEN_META
+from app.utils.programs_loader import get_programs_for_provider
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _build_fallback_shows_from_programs(provider_name: str, request: Request):
+    """Build fallback show list from programs.json for a specific provider."""
+    try:
+        programs = get_programs_for_provider(provider_name)
+        fallback_shows = []
+        for slug, show_info in programs.items():
+            fallback_shows.append({
+                "id": f"cutam:{_get_region(provider_name)}:{provider_name}:{slug}",
+                "type": "series",
+                "name": show_info.get('name', slug),
+                "poster": show_info.get('poster') or get_logo_url("fr", _get_default_channel(provider_name), request),
+                "logo": show_info.get('logo') or get_logo_url("fr", _get_default_channel(provider_name), request),
+                "description": show_info.get('description', ''),
+                "genres": show_info.get('genres', []),
+                "year": show_info.get('year', 2024),
+                "rating": show_info.get('rating', 'Tous publics'),
+                "channel": show_info.get('channel', '')
+            })
+        return fallback_shows
+    except Exception as e:
+        logger.error(f"❌ Error building fallback shows from programs.json: {e}")
+        return []
+
+
+def _get_region(provider_name: str) -> str:
+    """Get region code for provider ID format."""
+    return "ca" if provider_name == "cbc" else "fr"
+
+
+def _get_default_channel(provider_name: str) -> str:
+    """Get default channel logo for provider."""
+    return {
+        "francetv": "france2",
+        "mytf1": "tf1",
+        "6play": "m6",
+        "cbc": "dragonsden"
+    }.get(provider_name, "france2")
 
 
 def _log_json_decode_details(prefix: str, exc: Exception):
@@ -107,46 +146,9 @@ async def get_catalog(type: str, id: str, request: Request):
             logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
-            # Fallback to basic show list with enhanced metadata
-            logger.info("🔄 Using fallback France TV shows")
-            fallback_shows = [
-                {
-                    "id": "cutam:fr:francetv:envoye-special",
-                    "type": "series",
-                    "name": "Envoyé spécial",
-                    "poster": get_logo_url("fr", "france2", request),
-                    "logo": get_logo_url("fr", "france2", request),
-                    "description": "Magazine d'information de France 2",
-                    "genres": ["News", "Documentary", "Investigation"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "France 2"
-                },
-                {
-                    "id": "cutam:fr:francetv:cash-investigation",
-                    "type": "series",
-                    "name": "Cash Investigation",
-                    "poster": get_logo_url("fr", "france2", request),
-                    "logo": get_logo_url("fr", "france2", request),
-                    "description": "Magazine d'investigation économique de France 2",
-                    "genres": ["News", "Documentary", "Investigation", "Economics"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "France 2"
-                },
-                {
-                    "id": "cutam:fr:francetv:complement-enquete",
-                    "type": "series",
-                    "name": "Complément d'enquête",
-                    "poster": get_logo_url("fr", "france2", request),
-                    "logo": get_logo_url("fr", "france2", request),
-                    "description": "Magazine d'investigation de France 2",
-                    "genres": ["News", "Documentary", "Investigation"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "France 2"
-                }
-            ]
+            # Fallback to programs.json (single source of truth)
+            logger.info("🔄 Using fallback France TV shows from programs.json")
+            fallback_shows = _build_fallback_shows_from_programs("francetv", request)
             return CatalogResponse(metas=fallback_shows)
     
     # Return TF1+ TV show replays
@@ -166,34 +168,9 @@ async def get_catalog(type: str, id: str, request: Request):
             logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
-            # Fallback to basic show list with enhanced metadata
-            logger.info("🔄 Using fallback TF1+ shows")
-            fallback_shows = [
-                {
-                    "id": "cutam:fr:mytf1:sept-a-huit",
-                    "type": "series",
-                    "name": "Sept à huit",
-                    "poster": get_logo_url("fr", "tf1", request),
-                    "logo": get_logo_url("fr", "tf1", request),
-                    "description": "Magazine d'information de TF1",
-                    "genres": ["News", "Documentary", "Magazine"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "TF1"
-                },
-                {
-                    "id": "cutam:fr:mytf1:quotidien",
-                    "type": "series",
-                    "name": "Quotidien",
-                    "poster": get_logo_url("fr", "tmc", request),
-                    "logo": get_logo_url("fr", "tmc", request),
-                    "description": "Émission de divertissement et d'actualité de TMC",
-                    "genres": ["Entertainment", "News", "Talk Show"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "TMC"
-                }
-            ]
+            # Fallback to programs.json (single source of truth)
+            logger.info("🔄 Using fallback TF1+ shows from programs.json")
+            fallback_shows = _build_fallback_shows_from_programs("mytf1", request)
             return CatalogResponse(metas=fallback_shows)
     
     # Return 6play TV show replays
@@ -213,60 +190,9 @@ async def get_catalog(type: str, id: str, request: Request):
             logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
-            # Fallback to basic show list with enhanced metadata
-            logger.info("🔄 Using fallback 6play shows")
-            fallback_shows = [
-                {
-                    "id": "cutam:fr:6play:capital",
-                    "poster": "https://images-fio.6play.fr/v2/images/4654297/raw",
-                    "logo": "https://images.6play.fr/v1/images/4242438/raw",
-                    "description": "Magazine économique et financier de M6",
-                    "genres": ["Économie", "Finance", "Magazine"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "M6"
-                },
-                {
-                    "id": "cutam:fr:6play:66-minutes-le-doc",
-                    "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
-                    "logo": "https://images.6play.fr/v1/images/4248692/raw",
-                    "description": "Magazine d'investigation de M6",
-                    "genres": ["Investigation", "Magazine", "Documentaire"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "M6"
-                },
-                {
-                    "id": "cutam:fr:6play:66-minutes",
-                    "poster": "https://images-fio.6play.fr/v2/images/4654325/raw",
-                    "logo": "https://images.6play.fr/v1/images/4654324/raw",
-                    "description": "Magazine d'information de M6",
-                    "genres": ["Information", "Magazine", "Actualité"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "M6"
-                },
-                {
-                    "id": "cutam:fr:6play:zone-interdite",
-                    "poster": "https://images-fio.6play.fr/v2/images/4654281/raw",
-                    "logo": "https://images.6play.fr/v1/images/4639961/raw",
-                    "description": "Magazine d'investigation de M6",
-                    "genres": ["Investigation", "Magazine", "Documentaire"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "M6"
-                },
-                {
-                    "id": "cutam:fr:6play:enquete-exclusive",
-                    "poster": "https://images-fio.6play.fr/v2/images/4654307/raw",
-                    "logo": "https://images.6play.fr/v1/images/4242429/raw",
-                    "description": "Magazine d'investigation de M6",
-                    "genres": ["Investigation", "Magazine", "Documentaire"],
-                    "year": 2024,
-                    "rating": "Tous publics",
-                    "channel": "M6"
-                }
-            ]
+            # Fallback to programs.json (single source of truth)
+            logger.info("🔄 Using fallback 6play shows from programs.json")
+            fallback_shows = _build_fallback_shows_from_programs("6play", request)
             return CatalogResponse(metas=fallback_shows)
     
     # Return CBC Dragon's Den series
@@ -286,14 +212,9 @@ async def get_catalog(type: str, id: str, request: Request):
             logger.error("   Full traceback:")
             logger.error(traceback.format_exc())
             
-            # Fallback to basic show list with enhanced metadata
-            logger.info("🔄 Using fallback CBC Dragon's Den shows")
-            fallback_shows = [
-                {
-                    **DRAGONS_DEN_META,  # Use centralized configuration
-                    "type": "series"
-                }
-            ]
+            # Fallback to programs.json (single source of truth)
+            logger.info("🔄 Using fallback CBC shows from programs.json")
+            fallback_shows = _build_fallback_shows_from_programs("cbc", request)
             return CatalogResponse(metas=fallback_shows)
     
     logger.warning(f"⚠️ Unknown catalog request: type={type}, id={id}")

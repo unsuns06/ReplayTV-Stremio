@@ -1,36 +1,193 @@
-[
-  {
-    "id": "cutam:fr:mytf1:sept-a-huit",
-    "type": "series",
-    "name": "Sept \u00e0 huit",
-    "description": "Magazine d'information de TF1",
-    "logo": "https://photos.tf1.fr/700/933/flux-program-card-portrait-1-ef81e8-2576ce-63e706-0@1x.jpg",
-    "poster": "https://photos.tf1.fr/700/933/flux-program-card-portrait-1-ef81e8-2576ce-63e706-0@1x.jpg",
-    "fanart": "https://photos.tf1.fr/1920/1080/cover-showpage-f7ed23-3b0e99-0@1x.jpg",
-    "genres": [
-      "News",
-      "Documentary",
-      "Magazine"
-    ],
-    "channel": "TF1",
-    "year": 2024,
-    "rating": "Tous publics"
-  },
-  {
-    "id": "cutam:fr:mytf1:quotidien",
-    "type": "series",
-    "name": "Quotidien",
-    "description": "\u00c9mission de divertissement et d'actualit\u00e9 de TMC",
-    "logo": "https://photos.tf1.fr/700/933/flux-program-card-portrait-3-quotidien-2024-v2-66f2e9-01755f-257d34-0@1x.jpg",
-    "poster": "https://photos.tf1.fr/700/933/flux-program-card-portrait-3-quotidien-2024-v2-66f2e9-01755f-257d34-0@1x.jpg",
-    "fanart": "https://photos.tf1.fr/1920/1080/background-ott-quotidien-2024-v2-34620e-121ba1-0@1x.jpg",
-    "genres": [
-      "Entertainment",
-      "News",
-      "Talk Show"
-    ],
-    "channel": "TMC",
-    "year": 2024,
-    "rating": "Tous publics"
-  }
-]
+{
+  "version": "1.0",
+  "shows": [
+    {
+      "provider": "6play",
+      "slug": "capital",
+      "name": "Capital",
+      "description": "Magazine économique et financier de M6",
+      "channel": "M6",
+      "genres": [
+        "Économie",
+        "Finance",
+        "Magazine"
+      ],
+      "logo": "https://images.6play.fr/v1/images/4242438/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4654297/raw",
+      "year": 2025,
+      "rating": "Tout public",
+      "enabled": true
+    },
+    {
+      "provider": "6play",
+      "slug": "66-minutes-le-doc",
+      "name": "66 minutes le Doc",
+      "description": "Magazine d'investigation de M6",
+      "channel": "M6",
+      "genres": [
+        "Investigation",
+        "Magazine",
+        "Documentaire"
+      ],
+      "logo": "https://images.6play.fr/v1/images/4248692/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
+      "year": 2024,
+      "rating": "Tous publics",
+      "enabled": true
+    },
+    {
+      "provider": "6play",
+      "slug": "66-minutes",
+      "name": "66 minutes",
+      "description": "Magazine d'information de M6",
+      "channel": "M6",
+      "genres": [
+        "Information",
+        "Magazine",
+        "Actualité"
+      ],
+      "logo": "https://images.6play.fr/v1/images/4654324/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4654325/raw",
+      "year": 2025,
+      "rating": "Tout public",
+      "enabled": true
+    },
+    {
+      "provider": "6play",
+      "slug": "zone-interdite",
+      "name": "Zone Interdite",
+      "description": "Magazine d'investigation de M6",
+      "channel": "M6",
+      "genres": [
+        "Investigation",
+        "Magazine",
+        "Documentaire"
+      ],
+      "logo": "https://images.6play.fr/v1/images/4639961/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4654281/raw",
+      "year": 2025,
+      "rating": "Tout public",
+      "enabled": true
+    },
+    {
+      "provider": "6play",
+      "slug": "enquete-exclusive",
+      "name": "Enquête Exclusive",
+      "description": "Magazine d'investigation de M6",
+      "channel": "M6",
+      "genres": [
+        "Investigation",
+        "Magazine",
+        "Documentaire"
+      ],
+      "logo": "https://images.6play.fr/v1/images/4242429/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4654307/raw",
+      "year": 2025,
+      "rating": "Tout public",
+      "enabled": true
+    },
+    {
+      "provider": "mytf1",
+      "slug": "sept-a-huit",
+      "name": "Sept à huit",
+      "description": "Magazine d'information de TF1",
+      "channel": "TF1",
+      "genres": [
+        "News",
+        "Documentary",
+        "Magazine"
+      ],
+      "logo": "https://photos.tf1.fr/450/225/logo-programme-7-a-8-bf1904-e34c7a-0@1x.png",
+      "poster": "https://photos.tf1.fr/700/933/flux-program-card-portrait-1-ef81e8-2576ce-63e706-0@1x.jpg",
+      "background": "https://photos.tf1.fr/1920/1080/cover-showpage-f7ed23-3b0e99-0@1x.jpg",
+      "year": 2024,
+      "rating": "Tous publics",
+      "enabled": true
+    },
+    {
+      "provider": "mytf1",
+      "slug": "quotidien",
+      "name": "Quotidien",
+      "description": "Émission de divertissement et d'actualité de TMC",
+      "channel": "TMC",
+      "genres": [
+        "Entertainment",
+        "News",
+        "Talk Show"
+      ],
+      "logo": "https://photos.tf1.fr/450/225/logo-programme-quotidien-2024-v2-483e1c-57be80-0@1x.png",
+      "poster": "https://photos.tf1.fr/700/933/flux-program-card-portrait-3-quotidien-2024-v2-66f2e9-01755f-257d34-0@1x.jpg",
+      "background": "https://photos.tf1.fr/1920/1080/background-ott-quotidien-2024-v2-34620e-121ba1-0@1x.jpg",
+      "year": 2024,
+      "rating": "Tous publics",
+      "enabled": true
+    },
+    {
+      "provider": "francetv",
+      "slug": "envoye-special",
+      "api_id": "france-2_envoye-special",
+      "name": "Envoyé spécial",
+      "description": "Magazine d'information de France 2",
+      "channel": "France 2",
+      "genres": [
+        "News",
+        "Documentary",
+        "Investigation"
+      ],
+      "year": 2024,
+      "rating": "Tous publics",
+      "enabled": true
+    },
+    {
+      "provider": "francetv",
+      "slug": "cash-investigation",
+      "api_id": "france-2_cash-investigation",
+      "name": "Cash Investigation",
+      "description": "Magazine d'investigation économique de France 2",
+      "channel": "France 2",
+      "genres": [
+        "News",
+        "Documentary",
+        "Investigation",
+        "Economics"
+      ],
+      "year": 2024,
+      "rating": "Tous publics",
+      "enabled": true
+    },
+    {
+      "provider": "francetv",
+      "slug": "complement-enquete",
+      "api_id": "france-2_complement-d-enquete",
+      "name": "Complément d'enquête",
+      "description": "Magazine d'investigation de France 2",
+      "channel": "France 2",
+      "genres": [
+        "News",
+        "Documentary",
+        "Investigation"
+      ],
+      "year": 2024,
+      "rating": "Tous publics",
+      "enabled": true
+    },
+    {
+      "provider": "cbc",
+      "slug": "dragons-den",
+      "name": "Dragon's Den",
+      "description": "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists",
+      "channel": "CBC",
+      "genres": [
+        "Reality",
+        "Business",
+        "Entrepreneurship"
+      ],
+      "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v01.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
+      "poster": "https://images.gem.cbc.ca/v1/synps-cbc/season/perso/cbc_dragons_den_s20_ott_poster_v01.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75",
+      "background": "https://images.gem.cbc.ca/v1/synps-cbc/episode/perso/cbc_dragons_den_s20t01_thumbnail_v01.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75",
+      "year": 2024,
+      "rating": "G",
+      "enabled": true
+    }
+  ]
+}

@@ -5,12 +5,8 @@ Hybrid approach with robust error handling, fallbacks, and retry logic
 """
 
 import json
-import requests
-import re
 import os
 import time
-import random
-import sys
 from typing import Dict, List, Optional
 from urllib.parse import urlencode, quote
 from fastapi import Request
@@ -19,74 +15,32 @@ from app.utils.metadata import metadata_processor
 from app.utils.safe_print import safe_print
 from app.utils.client_ip import merge_ip_headers
 from app.utils.base_url import get_base_url, get_logo_url
-from app.utils.proxy_config import get_proxy_config
 
-def get_random_windows_ua():
-    """Generates a random Windows User-Agent string."""
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/109.0.1518.78',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/109.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0'
-    ]
-    return random.choice(user_agents)
+from app.utils.user_agent import get_random_windows_ua
+from app.utils.api_client import ProviderAPIClient
+from app.utils.programs_loader import get_programs_for_provider
+from app.providers.fr.base_fr_provider import BaseFrenchProvider
 
-class FranceTVProvider:
+class FranceTVProvider(BaseFrenchProvider):
     """France TV provider implementation with robust error handling and fallbacks"""
     
+    # Class attributes for BaseProvider
+    provider_name = "francetv"
+    base_url = "https://www.france.tv"
+    
     def __init__(self, request: Optional[Request] = None):
-        self.credentials = get_provider_credentials('francetv')
-        self.base_url = "https://www.france.tv"
+        # Initialize base class (handles credentials, session, proxy_config, mediaflow)
+        super().__init__(request)
+        
+        # France TV specific API endpoints
         self.api_mobile = "https://api-mobile.yatta.francetv.fr"
         self.api_front = "http://api-front.yatta.francetv.fr"
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': get_random_windows_ua()
-        })
         
-        # Store request for base URL determination
-        self.request = request
         # Get base URL for static assets
         self.static_base = get_base_url(request)
         
-        # Initialize proxy configuration for geo-blocking bypass
-        self.proxy_config = get_proxy_config()
-        
-        # Enhanced show information with rich metadata
-        self.shows = {
-            "envoye-special": {
-                "id": "france-2_envoye-special",
-                "name": "Envoyé spécial",
-                "description": "Magazine d'information de France 2",
-                "channel": "France 2",
-                "logo": get_logo_url("fr", "france2", self.request),
-                "genres": ["News", "Documentary", "Investigation"],
-                "year": 2024,
-                "rating": "Tous publics"
-            },
-            "cash-investigation": {
-                "id": "france-2_cash-investigation", 
-                "name": "Cash Investigation",
-                "description": "Magazine d'investigation économique de France 2",
-                "channel": "France 2",
-                "logo": get_logo_url("fr", "france2", self.request),
-                "genres": ["News", "Documentary", "Investigation", "Economics"],
-                "year": 2024,
-                "rating": "Tous publics"
-            },
-            "complement-enquete": {
-                "id": "france-2_complement-d-enquete",
-                "name": "Complément d'enquête",
-                "description": "Magazine d'investigation de France 2",
-                "channel": "France 2",
-                "logo": get_logo_url("fr", "france2", self.request),
-                "genres": ["News", "Documentary", "Investigation"],
-                "year": 2024,
-                "rating": "Tous publics"
-            }
-        }
+        # Load shows from external programs.json
+        self.shows = get_programs_for_provider('francetv')
         
         # Fallback channel data for when APIs fail
         self.fallback_channels = {
@@ -117,126 +71,9 @@ class FranceTVProvider:
             }
         }
     
-    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, max_retries: int = 3, use_proxy: bool = False) -> Optional[Dict]:
-        """Make a safe API call with retry logic, error handling, and optional proxy support
-        
-        Args:
-            url: The API URL to call
-            params: Query parameters
-            headers: Request headers
-            max_retries: Maximum number of retry attempts
-            use_proxy: If True, route request through fr_router proxy for geo-blocking bypass
-        """
-        for attempt in range(max_retries):
-            try:
-                # Rotate User-Agent for each attempt
-                current_headers = headers or {}
-                current_headers['User-Agent'] = get_random_windows_ua()
-                # Forward viewer IP to upstream
-                current_headers = merge_ip_headers(current_headers)
-                
-                # Determine final URL (proxy or direct)
-                final_url = url
-                final_params = params
-                
-                if use_proxy:
-                    proxy_base = self.proxy_config.get_proxy('fr_router')
-                    if proxy_base:
-                        # Build URL with params for proxy routing
-                        dest_with_params = url + ("?" + urlencode(params) if params else "")
-                        # Use URL encoding (same as MyTF1)
-                        final_url = proxy_base + quote(dest_with_params, safe="")
-                        final_params = None  # Params already encoded in URL
-                        safe_print(f"[FranceTV] Using French proxy: {proxy_base[:50]}...")
-                    else:
-                        safe_print(f"[FranceTV] Proxy requested but not configured, using direct call")
-                
-                safe_print(f"[FranceTV] API call attempt {attempt + 1}/{max_retries}: {final_url}")
-                if final_params:
-                    safe_print(f"[FranceTV] Request params: {final_params}")
-                if headers:
-                    safe_print(f"[FranceTV] Request headers (pre-merge): {headers}")
-                try:
-                    safe_print(f"[FranceTV] Request headers (effective): {current_headers}")
-                except Exception:
-                    pass
-                
-                response = self.session.get(final_url, params=final_params, headers=current_headers, timeout=15)
-                
-                if response.status_code == 200:
-                    # Log response details for debugging
-                    safe_print(f"[FranceTV] Response headers: {dict(response.headers)}")
-                    safe_print(f"[FranceTV] Content-Type: {response.headers.get('content-type', 'Not set')}")
-                    
-                    # Try to parse JSON with multiple strategies
-                    try:
-                        return response.json()
-                    except json.JSONDecodeError as e:
-                        safe_print(f"[FranceTV] JSON parse error on attempt {attempt + 1}: {e}")
-                        safe_print(f"[FranceTV] Error position: line {e.lineno}, column {e.colno}, char {e.pos}")
-                        
-                        # Log the raw response for debugging
-                        text = response.text
-                        safe_print(f"[FranceTV] Raw response length: {len(text)} characters")
-                        safe_print(f"[FranceTV] Raw response (first 500 chars): {text[:500]}")
-                        
-                        # Log the problematic area around the error
-                        if e.pos > 0:
-                            start = max(0, e.pos - 50)
-                            end = min(len(text), e.pos + 50)
-                            safe_print(f"[FranceTV] Context around error (chars {start}-{end}): {text[start:end]}")
-                        
-                        # Strategy 1: Try to fix common JSON issues
-                        if "'" in text and '"' not in text:
-                            # Replace single quotes with double quotes
-                            text = text.replace("'", '"')
-                            try:
-                                return json.loads(text)
-                            except:
-                                pass
-                        
-                        # Strategy 2: Try to fix unquoted property names
-                        try:
-                            # This regex looks for property names that aren't properly quoted
-                            import re
-                            fixed_text = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
-                            if fixed_text != text:
-                                safe_print(f"[FranceTV] Attempting to fix unquoted property names...")
-                                return json.loads(fixed_text)
-                        except:
-                            pass
-                        
-                        # Strategy 3: Try to extract JSON from larger response
-                        if '<html' in text.lower():
-                            safe_print(f"[FranceTV] Received HTML instead of JSON on attempt {attempt + 1}")
-                        else:
-                            safe_print(f"[FranceTV] Malformed response on attempt {attempt + 1}: {text[:200]}...")
-                        
-                        # Wait before retry
-                        if attempt < max_retries - 1:
-                            time.sleep(2 ** attempt)  # Exponential backoff
-                            continue
-                        
-                elif response.status_code in [403, 429, 500]:
-                    safe_print(f"[FranceTV] HTTP {response.status_code} on attempt {attempt + 1}")
-                    safe_print(f"[FranceTV] Response headers: {dict(response.headers)}")
-                    safe_print(f"[FranceTV] Response content: {response.text[:500]}...")
-                    if attempt < max_retries - 1:
-                        time.sleep(2 ** attempt)
-                        continue
-                else:
-                    safe_print(f"[FranceTV] HTTP {response.status_code} on attempt {attempt + 1}")
-                    safe_print(f"[FranceTV] Response headers: {dict(response.headers)}")
-                    safe_print(f"[FranceTV] Response content: {response.text[:500]}...")
-                    
-            except Exception as e:
-                safe_print(f"[FranceTV] Request error on attempt {attempt + 1}: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-                    continue
-        
-        safe_print(f"[FranceTV] All {max_retries} attempts failed for {url}")
-        return None
+    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, max_retries: int = 3) -> Optional[Dict]:
+        """Delegate to shared ProviderAPIClient."""
+        return self.api_client.get(url, params=params, headers=headers, max_retries=max_retries)
     
     def get_programs(self) -> List[Dict]:
         """Get list of replay shows with enhanced metadata"""
@@ -250,8 +87,10 @@ class FranceTVProvider:
             )
             
             # Try to get additional metadata from France TV API with fallback
+            # Use api_id if available (for composite IDs like france-2_envoye-special), otherwise fall back to id
+            api_show_id = show_info.get('api_id') or show_info.get('id', show_id)
             try:
-                api_metadata = self._get_show_api_metadata(show_info['id'])
+                api_metadata = self._get_show_api_metadata(api_show_id)
                 if api_metadata:
                     show_metadata = metadata_processor.enhance_metadata_with_api(
                         show_metadata, api_metadata
@@ -413,13 +252,7 @@ class FranceTVProvider:
             }
             
             safe_print(f"   Video API URL: {video_url}")
-            # Try proxy first for potential geo-blocking bypass
-            video_data = self._safe_api_call(video_url, params=params, use_proxy=True, max_retries=2)
-            
-            # Fallback to direct call if proxy fails
-            if not video_data:
-                safe_print(f"   Proxy failed, trying direct call")
-                video_data = self._safe_api_call(video_url, params=params, use_proxy=False, max_retries=2)
+            video_data = self._safe_api_call(video_url, params=params, max_retries=2)
             
             if video_data and 'video' in video_data:
                 video_info = video_data['video']
@@ -445,13 +278,7 @@ class FranceTVProvider:
                 }
                 
                 safe_print(f"   Token API params: {token_params}")
-                # Try proxy first for token API
-                token_data = self._safe_api_call(url_token, params=token_params, use_proxy=True, max_retries=2)
-                
-                # Fallback to direct call if proxy fails
-                if not token_data:
-                    safe_print(f"   Token proxy failed, trying direct call")
-                    token_data = self._safe_api_call(url_token, params=token_params, use_proxy=False, max_retries=2)
+                token_data = self._safe_api_call(url_token, params=token_params, max_retries=2)
                 
                 if token_data and 'url' in token_data:
                     final_url = token_data['url']
@@ -494,9 +321,13 @@ class FranceTVProvider:
             return []
         
         try:
+            # Get the api_id for API calls (e.g., france-2_cash-investigation)
+            show_info = self.shows[actual_show_id]
+            api_show_id = show_info.get('api_id') or show_info.get('id', actual_show_id)
+            
             # Use the same API endpoint as the source addon with error handling
             # URL example: http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_cash-investigation/contents/?size=20&page=0&sort=begin_date:desc&filter=with-no-vod,only-visible
-            api_url = f"{self.api_front}/standard/publish/taxonomies/{self.shows[actual_show_id]['id']}/contents/"
+            api_url = f"{self.api_front}/standard/publish/taxonomies/{api_show_id}/contents/"
             params = {
                 'size': 20,
                 'page': 0,
@@ -510,15 +341,23 @@ class FranceTVProvider:
                 episodes = []
                 
                 # Parse the response to get episodes (same logic as source addon)
-                for i, video in enumerate(data['result']):
+                for video in data['result']:
                     if video['type'] in ['integrale', 'extrait']:
-                        # This is a video/episode
-                        episode_info = self._parse_episode(video, i + 1)
+                        # This is a video/episode - pass raw data first, episode number assigned later
+                        episode_info = self._parse_episode(video, 0)
                         if episode_info:
                             episodes.append(episode_info)
                 
                 if episodes:
-                    safe_print(f"[FranceTV] Found {len(episodes)} episodes for {actual_show_id}")
+                    # Sort episodes chronologically by air_date (oldest first)
+                    episodes.sort(key=lambda x: x.get('air_date', '') or '')
+                    
+                    # Assign episode numbers based on chronological order
+                    for i, ep in enumerate(episodes, start=1):
+                        ep['episode'] = i
+                        ep['episode_number'] = i
+                    
+                    safe_print(f"[FranceTV] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
                     return episodes
                 else:
                     safe_print(f"[FranceTV] No episodes found in API response for {actual_show_id}")
@@ -619,6 +458,12 @@ class FranceTVProvider:
             if not broadcast_id:
                 return None
             
+            # Extract air_date from begin_date field (format: 2024-01-15T21:00:00+01:00)
+            air_date = episode_data.get('begin_date', '')
+            # Parse to extract just the date portion if full datetime
+            if air_date and 'T' in air_date:
+                air_date = air_date.split('T')[0]  # Get just YYYY-MM-DD
+            
             # Create base episode metadata
             episode_meta = {
                 "id": f"cutam:fr:francetv:episode:{broadcast_id}",
@@ -628,8 +473,9 @@ class FranceTVProvider:
                 "fanart": fanart,
                 "broadcast_id": broadcast_id,
                 "type": "episode",
+                "air_date": air_date,  # Used for chronological sorting
                 "episode_number": episode_number,
-                "season": 1,  # All episodes in season 1 for now
+                "season": 1,  # All episodes in season 1
                 "episode": episode_number
             }
             
@@ -662,13 +508,7 @@ class FranceTVProvider:
                 'offline': 'false',
             }
             
-            # Try proxy first for geo-blocking bypass
-            video_data = self._safe_api_call(video_url, params=params, use_proxy=True, max_retries=2)
-            
-            # Fallback to direct call if proxy fails
-            if not video_data:
-                safe_print("[FranceTV] Episode stream proxy failed, trying direct call")
-                video_data = self._safe_api_call(video_url, params=params, use_proxy=False, max_retries=2)
+            video_data = self._safe_api_call(video_url, params=params, max_retries=2)
             
             if video_data and 'video' in video_data:
                 video_info = video_data['video']
@@ -685,13 +525,7 @@ class FranceTVProvider:
                     'url': video_url
                 }
                 
-                # Try proxy first for token API
-                token_data = self._safe_api_call(token_url, params=token_params, use_proxy=True, max_retries=2)
-                
-                # Fallback to direct call if proxy fails
-                if not token_data:
-                    safe_print("[FranceTV] Episode token proxy failed, trying direct call")
-                    token_data = self._safe_api_call(token_url, params=token_params, use_proxy=False, max_retries=2)
+                token_data = self._safe_api_call(token_url, params=token_params, max_retries=2)
                 
                 if token_data and 'url' in token_data:
                     final_url = token_data['url']

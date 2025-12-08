@@ -1,0 +1,75 @@
+{
+  "timestamp": "2025-12-08T11:05:42.462180",
+  "provider": "mytf1",
+  "tests": {
+    "get_live_channels": {
+      "status": "PASS",
+      "count": 4,
+      "channels": [
+        {
+          "id": "cutam:fr:mytf1:tf1",
+          "name": "TF1"
+        },
+        {
+          "id": "cutam:fr:mytf1:tmc",
+          "name": "TMC"
+        },
+        {
+          "id": "cutam:fr:mytf1:tfx",
+          "name": "TFX"
+        },
+        {
+          "id": "cutam:fr:mytf1:tf1-series-films",
+          "name": "TF1 S\u00e9ries Films"
+        }
+      ]
+    },
+    "get_programs": {
+      "status": "PASS",
+      "count": 2,
+      "programs": [
+        {
+          "id": "cutam:fr:mytf1:sept-a-huit",
+          "name": "Sept \u00e0 huit"
+        },
+        {
+          "id": "cutam:fr:mytf1:quotidien",
+          "name": "Quotidien"
+        }
+      ]
+    },
+    "get_episodes": {
+      "status": "PASS",
+      "show_id": "cutam:fr:mytf1:sept-a-huit",
+      "count": 50,
+      "sample_episodes": [
+        {
+          "id": "cutam:fr:mytf1:episode:fc0cd546-d1a9-4ccd-af06-238aad494ad4",
+          "title": "Sept \u00e0 huit du dimanche 7 d\u00e9cembre 2025"
+        },
+        {
+          "id": "cutam:fr:mytf1:episode:fdcbf226-0867-47bb-97fe-32cb41348b8f",
+          "title": "Sept \u00e0 huit Life du dimanche 7 d\u00e9cembre 2025"
+        },
+        {
+          "id": "cutam:fr:mytf1:episode:9460b263-05c0-4661-8e43-651bef0919c0",
+          "title": "Sept \u00e0 huit du dimanche 30 novembre 2025"
+        },
+        {
+          "id": "cutam:fr:mytf1:episode:2d660cf6-45be-41da-b07d-b72d431f7315",
+          "title": "Sept \u00e0 huit Life du dimanche 30 novembre 2025"
+        },
+        {
+          "id": "cutam:fr:mytf1:episode:fde36989-5f13-44be-9252-83a20c47ac3c",
+          "title": "Sept \u00e0 huit du dimanche 23 novembre 2025"
+        }
+      ]
+    },
+    "get_channel_stream_url": {
+      "status": "PASS",
+      "channel_id": "cutam:fr:mytf1:tf1",
+      "has_url": true,
+      "manifest_type": "hls"
+    }
+  }
+}

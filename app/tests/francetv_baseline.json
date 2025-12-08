@@ -1,0 +1,83 @@
+{
+  "timestamp": "2025-12-08T13:45:09.671935",
+  "provider": "francetv",
+  "tests": {
+    "get_live_channels": {
+      "status": "PASS",
+      "count": 5,
+      "channels": [
+        {
+          "id": "cutam:fr:francetv:france-2",
+          "name": "France 2"
+        },
+        {
+          "id": "cutam:fr:francetv:france-3",
+          "name": "France 3"
+        },
+        {
+          "id": "cutam:fr:francetv:france-4",
+          "name": "France 4"
+        },
+        {
+          "id": "cutam:fr:francetv:france-5",
+          "name": "France 5"
+        },
+        {
+          "id": "cutam:fr:francetv:franceinfo",
+          "name": "franceinfo:"
+        }
+      ]
+    },
+    "get_programs": {
+      "status": "PASS",
+      "count": 3,
+      "programs": [
+        {
+          "id": "cutam:fr:francetv:envoye-special",
+          "name": "Envoy\u00e9 sp\u00e9cial"
+        },
+        {
+          "id": "cutam:fr:francetv:cash-investigation",
+          "name": "Cash Investigation"
+        },
+        {
+          "id": "cutam:fr:francetv:complement-enquete",
+          "name": "Compl\u00e9ment d'enqu\u00eate"
+        }
+      ]
+    },
+    "get_episodes": {
+      "status": "PASS",
+      "show_id": "cutam:fr:francetv:envoye-special",
+      "count": 20,
+      "sample_episodes": [
+        {
+          "id": "cutam:fr:francetv:episode:5becda5f-c9e5-4203-8a0e-e2bcd0f69ca3",
+          "title": "Emission du 27 novembre 2025"
+        },
+        {
+          "id": "cutam:fr:francetv:episode:f7f0c809-64fe-4f4c-b463-1aa7042e4df0",
+          "title": "Madagascar : la r\u00e9volution de la g\u00e9n\u00e9ration Z"
+        },
+        {
+          "id": "cutam:fr:francetv:episode:2428176b-cb87-4d00-94f6-1fc06841ff60",
+          "title": "Menus anti-crise : la formule magique"
+        },
+        {
+          "id": "cutam:fr:francetv:episode:15b958b8-cb94-11f0-8501-19616fa871f9",
+          "title": "Protection de l'enfance : le scandale des mineures prostitu\u00e9es"
+        },
+        {
+          "id": "cutam:fr:francetv:episode:2ec9287e-bbcc-11f0-92e5-6dcd43e8ddfd",
+          "title": "[extrait] Cris, 53 ans, partage sa vie avec Orion, un avatar"
+        }
+      ]
+    },
+    "get_channel_stream_url": {
+      "status": "PASS",
+      "channel_id": "cutam:fr:francetv:france-2",
+      "has_url": true,
+      "manifest_type": "mpd"
+    }
+  }
+}

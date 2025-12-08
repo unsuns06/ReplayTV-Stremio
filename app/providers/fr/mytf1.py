@@ -31,6 +31,9 @@ from app.utils.base_url import get_base_url, get_logo_url
 from app.utils.client_ip import make_ip_headers
 from app.utils.proxy_config import get_proxy_config
 from app.utils.user_agent import get_random_windows_ua
+from app.utils.api_client import ProviderAPIClient
+from app.utils.programs_loader import get_programs_for_provider
+from app.providers.fr.base_fr_provider import BaseFrenchProvider
 
 
 
@@ -52,203 +55,55 @@ def force_decode_tf1_replay_url(original_url: str) -> str:
     safe_print(f"✅ [TF1 URL Decoder] Force-decoded URL: {decoded_url}")
     return decoded_url
 
-class MyTF1Provider:
+class MyTF1Provider(BaseFrenchProvider):
     """MyTF1 provider implementation with robust error handling and fallbacks"""
     
+    # Class attributes for BaseProvider
+    provider_name = "mytf1"
+    base_url = "https://www.tf1.fr"
+    
     def __init__(self, request: Optional[Request] = None):
-        self.credentials = get_provider_credentials('mytf1')
-        self.proxy_config = get_proxy_config()
-        self.base_url = "https://www.tf1.fr"
+        # Initialize base class (handles credentials, session, proxy_config, mediaflow)
+        super().__init__(request)
+        
+        # TF1-specific API configuration
         self.api_key = "3_hWgJdARhz_7l1oOp3a8BDLoR9cuWZpUaKG4aqF7gum9_iK3uTZ2VlDBl8ANf8FVk"
         self.api_url = "https://www.tf1.fr/graphql/web"
         self.video_stream_url = "https://mediainfo.tf1.fr/mediainfocombo"
-        # MediaFlow config via env and credentials with deployment-friendly fallbacks
-        # First try environment variables (for deployment)
-        self.mediaflow_url = self.proxy_config.get_proxy('mediaflow')
-        self.mediaflow_password = os.getenv('MEDIAFLOW_API_PASSWORD')
-
-        # Fallback to credentials file (for local development)
-        if not self.mediaflow_password:
-            mediaflow_creds = get_provider_credentials('mediaflow')
-            if not self.mediaflow_password:
-                self.mediaflow_password = mediaflow_creds.get('password')
-
-        # Also try to get MediaFlow URL from mediaflow credentials section if not in proxies
-        if not self.mediaflow_url:
-            mediaflow_creds = get_provider_credentials('mediaflow')
-            self.mediaflow_url = mediaflow_creds.get('url')
         
-        # Use MediaFlow proxy from credentials.json (no localhost fallback)
-        
-        # Log MediaFlow configuration for debugging
+        # Log MediaFlow configuration for debugging (already set by base class)
         if self.mediaflow_url:
-            safe_print(f"✅ [MyTF1Provider] MediaFlow URL loaded from: {'proxies.mediaflow' if self.proxy_config.get_proxy('mediaflow') else 'mediaflow.url in credentials.json'}")
-        safe_print(f"✅ [MyTF1Provider] MediaFlow URL: {self.mediaflow_url}")
+            safe_print(f"✅ [MyTF1Provider] MediaFlow configured: {self.mediaflow_url[:30]}...")
         safe_print(f"✅ [MyTF1Provider] MediaFlow Password: {'***' if self.mediaflow_password else 'None'}")
-        safe_print(f"✅ [MyTF1Provider] MediaFlow configured: {bool(self.mediaflow_url and self.mediaflow_password)}")
         
-        # Store request for base URL determination
-        self.request = request
         # Get base URL for static assets
         self.static_base = get_base_url(request)
 
+        # TF1-specific auth endpoints
         self.accounts_login = "https://compte.tf1.fr/accounts.login"
         self.accounts_bootstrap = "https://compte.tf1.fr/accounts.webSdkBootstrap"
         self.token_gigya_web = "https://www.tf1.fr/token/gigya/web"
-        self.license_base_url = 'https://drm-wide.tf1.fr/proxy?id=%s' # Renamed to avoid conflict
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': get_random_windows_ua()
-        })
-        # Set timeouts for all requests
-        self.session.timeout = 10
+        self.license_base_url = 'https://drm-wide.tf1.fr/proxy?id=%s'
+        
+        # TF1-specific authentication state
         self.auth_token = None
-        self._authenticated = False
 
         # Initialize IP forwarding headers (critical for geo-restricted content)
         self.viewer_ip_headers = make_ip_headers(None, getattr(request, 'headers', {}) if request else {})
 
-    # TF1+ shows configuration based on reference plugin
-        self.shows = {
-            "sept-a-huit": {
-                "id": "sept-a-huit",
-                "name": "Sept à huit",
-                "description": "Magazine d'information de TF1",
-                "channel": "TF1",
-                "genres": ["News", "Documentary", "Magazine"],
-                "year": 2024,
-                "rating": "Tous publics"
-            },
-            "quotidien": {
-                "id": "quotidien",
-                "name": "Quotidien",
-                "description": "Émission de divertissement et d'actualité de TMC",
-                "channel": "TMC",
-                "genres": ["Entertainment", "News", "Talk Show"],
-                "year": 2024,
-                "rating": "Tous publics"
-            }
-        }
+        # Load shows from external programs.json
+        self.shows = get_programs_for_provider('mytf1')
     
     def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3) -> Optional[Dict]:
-        """Make a safe API call with retry logic and error handling"""
-        for attempt in range(max_retries):
-            try:
-                # Rotate User-Agent for each attempt
-                current_headers = headers or {}
-                current_headers['User-Agent'] = get_random_windows_ua()
-
-                # Forward viewer IP to upstream servers (critical for geo-restricted content)
-                # Use the instance's pre-computed IP headers to ensure consistency
-                for header_name, header_value in self.viewer_ip_headers.items():
-                    current_headers[header_name] = header_value
-
-                # Optional per-request proxy support via env
-                proxies = None
-
-                
-                safe_print(f"✅ [MyTF1] API call attempt {attempt + 1}/{max_retries}: {url}")
-                if params:
-                    safe_print(f"✅ [MyTF1] Request params: {params}")
-                if headers:
-                    safe_print(f"✅ [MyTF1] Request headers (pre-merge): {headers}")
-                try:
-                    safe_print(f"✅ [MyTF1] Request headers (effective): {current_headers}")
-                except Exception:
-                    pass
-                
-                if method.upper() == 'POST':
-                    if data:
-                        # Check if we need form data or JSON based on Content-Type
-                        if current_headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                            response = self.session.post(url, params=params, headers=current_headers, data=data, timeout=15, proxies=proxies)
-                        else:
-                            response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15, proxies=proxies)
-                    else:
-                        response = self.session.post(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
-                else:
-                    response = self.session.get(url, params=params, headers=current_headers, timeout=15, proxies=proxies)
-                
-                if response.status_code == 200:
-                    # Log response details for debugging
-                    safe_print(f"✅ [MyTF1] Response headers: {dict(response.headers)}")
-                    safe_print(f"✅ [MyTF1] Content-Type: {response.headers.get('content-type', 'Not set')}")
-                    
-                    # Try to parse JSON with multiple strategies
-                    try:
-                        return response.json()
-                    except json.JSONDecodeError as e:
-                        safe_print(f"❌ [MyTF1] JSON parse error on attempt {attempt + 1}: {e}")
-                        safe_print(f"❌ [MyTF1] Error position: line {e.lineno}, column {e.colno}, char {e.pos}")
-                        
-                        # Log the raw response for debugging
-                        text = response.text
-                        safe_print(f"❌ [MyTF1] Raw response length: {len(text)} characters")
-                        safe_print(f"❌ [MyTF1] Raw response (first 500 chars): {text[:500]}")
-                        
-                        # Log the problematic area around the error
-                        if e.pos > 0:
-                            start = max(0, e.pos - 50)
-                            end = min(len(text), e.pos + 1)
-                            safe_print(f"❌ [MyTF1] Context around error (chars {start}-{end}): {text[start:end]}")
-                        
-                        # Strategy 1: Try to fix common JSON issues
-                        if "'" in text and '"' not in text:
-                            # Replace single quotes with double quotes
-                            text = text.replace("'", '"')
-                            try:
-                                return json.loads(text)
-                            except Exception:
-                                pass
-                        
-                        # Strategy 2: Try to fix unquoted property names
-                        try:
-                            # This regex looks for property names that aren't properly quoted
-                            import re
-                            fixed_text = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
-                            if fixed_text != text:
-                                safe_print("✅ [MyTF1] Attempting to fix unquoted property names...")
-                                return json.loads(fixed_text)
-                        except Exception:
-                            pass
-                        
-                        # Strategy 3: Try to extract JSON from larger response
-                        if '<html' in text.lower():
-                            safe_print(f"❌ [MyTF1] Received HTML instead of JSON on attempt {attempt + 1}")
-                        else:
-                            safe_print(f"❌ [MyTF1] Malformed response on attempt {attempt + 1}: {text[:200]}...")
-                        
-                        # Wait before retry
-                        if attempt < max_retries - 1:
-                            time.sleep(2 ** attempt)  # Exponential backoff
-                            continue
-                        
-                elif response.status_code in [403, 429, 500]:
-                    safe_print(f"❌ [MyTF1] HTTP {response.status_code} on attempt {attempt + 1}")
-                    safe_print(f"❌ [MyTF1] Response headers: {dict(response.headers)}")
-                    safe_print(f"❌ [MyTF1] Response content: {response.text[:500]}...")
-                    
-                    # For 500 errors with max_retries=1, fail fast to enable proxy fallback
-                    if response.status_code == 500 and max_retries == 1:
-                        safe_print("❌ [MyTF1] HTTP 500 with max_retries=1, failing fast for proxy fallback")
-                        return None
-                    
-                    if attempt < max_retries - 1:
-                        time.sleep(2 ** attempt)
-                        continue
-                else:
-                    safe_print(f"❌ [MyTF1] HTTP {response.status_code} on attempt {attempt + 1}")
-                    safe_print(f"❌ [MyTF1] Response headers: {dict(response.headers)}")
-                    safe_print(f"❌ [MyTF1] Response content: {response.text[:500]}...")
-                    
-            except Exception as e:
-                safe_print(f"❌ [MyTF1] Request error on attempt {attempt + 1}: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-                    continue
+        """Delegate to shared ProviderAPIClient for consistent retry/error handling."""
+        # Merge viewer IP headers
+        merged_headers = headers.copy() if headers else {}
+        for k, v in self.viewer_ip_headers.items():
+            merged_headers[k] = v
         
-        safe_print(f"❌ [MyTF1] All {max_retries} attempts failed for {url}")
-        return None
+        if method.upper() == 'POST':
+            return self.api_client.post(url, params=params, headers=merged_headers, data=data, max_retries=max_retries)
+        return self.api_client.get(url, params=params, headers=merged_headers, max_retries=max_retries)
     
     def _authenticate(self) -> bool:
         """Authenticate with TF1+ using provided credentials with robust error handling"""

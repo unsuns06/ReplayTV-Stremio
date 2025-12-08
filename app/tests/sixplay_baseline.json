@@ -1,0 +1,65 @@
+{
+  "timestamp": "2025-12-08T13:45:23.799640",
+  "provider": "sixplay",
+  "tests": {
+    "get_programs": {
+      "status": "PASS",
+      "count": 5,
+      "programs": [
+        {
+          "id": "cutam:fr:6play:capital",
+          "name": "Capital"
+        },
+        {
+          "id": "cutam:fr:6play:66-minutes-le-doc",
+          "name": "66 minutes le Doc"
+        },
+        {
+          "id": "cutam:fr:6play:66-minutes",
+          "name": "66 minutes"
+        },
+        {
+          "id": "cutam:fr:6play:zone-interdite",
+          "name": "Zone Interdite"
+        },
+        {
+          "id": "cutam:fr:6play:enquete-exclusive",
+          "name": "Enqu\u00eate Exclusive"
+        }
+      ]
+    },
+    "get_episodes": {
+      "status": "PASS",
+      "show_id": "cutam:fr:6play:capital",
+      "count": 16,
+      "sample_episodes": [
+        {
+          "id": "cutam:fr:6play:episode:clip_13154290",
+          "title": "Folie fiscale : quand le travail ne paie plus, les solutions pour s\u2019en sortir"
+        },
+        {
+          "id": "cutam:fr:6play:episode:clip_13151749",
+          "title": "Plats d\u2019antan, produits locaux : la tradition fait recette !"
+        },
+        {
+          "id": "cutam:fr:6play:episode:clip_13148166",
+          "title": "Seb, Noz, Cdiscount : \u00e9quipez-vous dernier cri, \u00e0 petit prix !"
+        },
+        {
+          "id": "cutam:fr:6play:episode:clip_13145759",
+          "title": "Toujours plus pour moins cher : que valent les nouveaux bons plans resto ?"
+        },
+        {
+          "id": "cutam:fr:6play:episode:clip_13143259",
+          "title": "Shein - Temu : ce que nous cachent les g\u00e9ants du e-commerce"
+        }
+      ]
+    },
+    "get_episode_stream_url": {
+      "status": "PASS",
+      "episode_id": "cutam:fr:6play:episode:clip_13154290",
+      "has_url": true,
+      "manifest_type": "video"
+    }
+  }
+}

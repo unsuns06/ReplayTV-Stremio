@@ -24,55 +24,31 @@ from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
 from app.utils.nm3u8_drm_processor import process_drm_simple
 from app.utils.safe_print import safe_print
 from app.utils.proxy_config import get_proxy_config
+from app.utils.user_agent import get_random_windows_ua
+from app.utils.programs_loader import get_programs_for_provider
+from app.providers.fr.base_fr_provider import BaseFrenchProvider
 
-def get_random_windows_ua():
-    """Generates a random Windows User-Agent string."""
-    # A selection of common Windows User-Agent strings
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/109.0.1518.78',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/109.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0'
-    ]
-    return random.choice(user_agents)
-
-class SixPlayProvider:
+class SixPlayProvider(BaseFrenchProvider):
     """6play provider implementation with robust error handling and fallbacks"""
     
-    def __init__(self):
-        self.credentials = get_provider_credentials('6play')
-        self.base_url = "https://www.6play.fr"
+    # Class attributes for BaseProvider
+    provider_name = "6play"
+    base_url = "https://www.6play.fr"
+    
+    def __init__(self, request=None):
+        # Initialize base class (handles credentials, session, mediaflow, proxy_config)
+        super().__init__(request)
+        
+        # 6play-specific API endpoints
         self.api_url = "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play"
         self.auth_url = "https://login-gigya.m6.fr/accounts.login"
         self.token_url = "https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users"
         self.live_url = "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live"
         self.api_key = "3_hH5KBv25qZTd_sURpixbQW6a4OsiIzIEF2Ei_2H7TXTGLJb_1Hr4THKZianCQhWK"
         
-        # MediaFlow config for enhanced DRM compatibility (optional)
-        self.mediaflow_url = os.getenv('MEDIAFLOW_PROXY_URL')
-        self.mediaflow_password = os.getenv('MEDIAFLOW_API_PASSWORD')
-        
-        # Fallback to credentials file
-        if not self.mediaflow_url or not self.mediaflow_password:
-            mediaflow_creds = get_provider_credentials('mediaflow')
-            if not self.mediaflow_url:
-                self.mediaflow_url = mediaflow_creds.get('url')
-            if not self.mediaflow_password:
-                self.mediaflow_password = mediaflow_creds.get('password')
-        
-        # Final fallback for local development
-        if not self.mediaflow_url:
-            self.mediaflow_url = 'http://localhost:8888'
-        
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': get_random_windows_ua()
-        })
+        # 6play-specific authentication state
         self.account_id = None
         self.login_token = None
-        self._authenticated = False
 
     def _authenticate(self) -> bool:
         """Authenticate the session for 6play using real Gigya authentication.
@@ -234,96 +210,16 @@ class SixPlayProvider:
         return None
     
     def get_live_channels(self) -> List[Dict]:
-        """Get list of live channels from 6play"""
-        channels = []
-        
-        # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
-        
-        # Known 6play channels - updated to use local logos
-        channel_data = [
-            {"id": "m6", "name": "M6", "logo": f"{static_base}/static/logos/fr/m6.png"},
-            {"id": "w9", "name": "W9", "logo": f"{static_base}/static/logos/fr/w9.png"},
-            {"id": "6ter", "name": "6ter", "logo": f"{static_base}/static/logos/fr/6ter.png"},
-            {"id": "fun_radio", "name": "Fun Radio", "logo": f"{static_base}/static/logos/fr/funradio.png"},
-        ]
-        
-        for channel_info in channel_data:
-            channels.append({
-                "id": f"cutam:fr:6play:{channel_info['id']}",
-                "name": channel_info['name'],
-                "poster": channel_info['logo'],  # Use logo as poster for menu display
-                "logo": channel_info['logo'],
-                "type": "channel"
-            })
-        
-        return channels
+        """Live channels not supported for 6play - returns empty list."""
+        return []
+
 
     def get_programs(self) -> List[Dict]:
         """Get list of 6play replay shows with enhanced metadata"""
         shows = []
         
-        # Get base URL for static assets
-        static_base = os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
-        
-        # 6play shows configuration with specific poster URLs and specific logo URLs
-        self.shows = {
-            "capital": {
-                "id": "capital",
-                "name": "Capital",
-                "description": "Magazine économique et financier de M6",
-                "channel": "M6",
-                "logo": "https://images.6play.fr/v1/images/4242438/raw",  # Specific logo as requested
-                "poster": "https://images-fio.6play.fr/v2/images/4654297/raw",
-                "genres": ["Économie", "Finance", "Magazine"],
-                "year": 2025,
-                "rating": "Tout public"
-            },
-            "66-minutes-le-doc": {
-                "id": "66-minutes-le-doc",
-                "name": "66 minutes le Doc",
-                "description": "Magazine d'investigation de M6",
-                "channel": "M6",
-                "logo": "https://images.6play.fr/v1/images/4248692/raw",
-                "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
-                "genres": ["Investigation", "Magazine", "Documentaire"],
-                "year": 2024,
-                "rating": "Tous publics"
-            },
-            "66-minutes": {
-                "id": "66-minutes",
-                "name": "66 minutes",
-                "description": "Magazine d'information de M6",
-                "channel": "M6",
-                "logo": "https://images.6play.fr/v1/images/4654324/raw",  # Specific logo as requested
-                "poster": "https://images-fio.6play.fr/v2/images/4654325/raw",
-                "genres": ["Information", "Magazine", "Actualité"],
-                "year": 2025,
-                "rating": "Tout public"
-            },
-            "zone-interdite": {
-                "id": "zone-interdite",
-                "name": "Zone Interdite",
-                "description": "Magazine d'investigation de M6",
-                "channel": "M6",
-                "logo": "https://images.6play.fr/v1/images/4639961/raw",  # Specific basic logo as requested
-                "poster": "https://images-fio.6play.fr/v2/images/4654281/raw",
-                "genres": ["Investigation", "Magazine", "Documentaire"],
-                "year": 2025,
-                "rating": "Tout public"
-            },
-            "enquete-exclusive": {
-                "id": "enquete-exclusive",
-                "name": "Enquête Exclusive",
-                "description": "Magazine d'investigation de M6",
-                "channel": "M6",
-                "logo": "https://images.6play.fr/v1/images/4242429/raw",  # Specific logo as requested
-                "poster": "https://images-fio.6play.fr/v2/images/4654307/raw",
-                "genres": ["Investigation", "Magazine", "Documentaire"],
-                "year": 2025,
-                "rating": "Tout public"
-            }
-        }
+        # Load shows from external programs.json
+        self.shows = get_programs_for_provider('6play')
         
         try:
             # Process each show with proper poster and logo handling
@@ -661,18 +557,6 @@ class SixPlayProvider:
                                                         "title": "❌ DRM Processing Failed",
                                                         "description": "Stream not available - DRM processing could not be started. Please try again later."
                                                     }
-
-                                                if key_id_hex:
-                                                    mediaflow_stream = self._build_mediaflow_clearkey_stream(
-                                                        original_mpd_url=final_video_url,
-                                                        base_headers=headers_video_stream,
-                                                        key_id_hex=key_id_hex,
-                                                        key_hex=normalized_key,
-                                                        is_live=False,
-                                                    )
-                                                    if mediaflow_stream:
-                                                        safe_print("✅ Serving stream via MediaFlow ClearKey proxy")
-                                                        return mediaflow_stream
                                             else:
                                                 safe_print("❌ Unable to normalize Widevine key for MediaFlow usage")
                                         else:
@@ -723,179 +607,9 @@ class SixPlayProvider:
         return None
 
     def get_channel_stream_url(self, channel_id: str) -> Optional[Dict]:
-        """Get stream URL for a specific channel"""
-        channel_name = channel_id.split(":")[-1]
-    
-        try:
-            if not self._authenticated and not self._authenticate():
-                safe_print("6play authentication failed")
-                return None
-    
-            payload_headers = {
-                'X-Customer-Name': 'm6web',
-                'X-Client-Release': '5.103.3',
-                'Authorization': f'Bearer {self.login_token}',
-            }
-    
-            complete_headers = merge_ip_headers(payload_headers)
-    
-            safe_print(f"?? [SixPlay] Live Token Request Headers:")
-            for header_name, header_value in complete_headers.items():
-                if header_name.lower() in ['authorization', 'x-auth-token', 'token']:
-                    masked_value = f"{header_value[:20]}..." if len(str(header_value)) > 20 else "***"
-                    safe_print(f"   {header_name}: {masked_value}")
-                else:
-                    safe_print(f"   {header_name}: {header_value}")
-    
-            live_item_id = channel_name.upper()
-            if channel_name == '6ter':
-                live_item_id = '6T'
-            elif channel_name in {'fun_radio', 'rtl2', 'gulli'}:
-                live_item_id = channel_name
-    
-            token_url = f"https://6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/6play/users/{self.account_id}/live/dashcenc_{live_item_id}/upfront-token"
-            safe_print(f"?? [SixPlay] Live Token URL: {token_url}")
-    
-            token_response = self.session.get(token_url, headers=complete_headers, timeout=10)
-    
-            safe_print(f"?? [SixPlay] Live Token Response:")
-            safe_print(f"   Status Code: {token_response.status_code}")
-            safe_print(f"   Response Headers: {dict(token_response.headers)}")
-    
-            if token_response.status_code != 200:
-                safe_print(f"6play token error: {token_response.status_code}")
-                return None
-    
-            token_json = token_response.json()
-            token = token_json["token"]
-            safe_print(f"? Live token obtained successfully")
-            safe_print(f"?? [SixPlay] Live Token Value: {token[:50]}...")
-    
-            params = {
-                'channel': live_item_id,
-                'with': 'service_display_images,nextdiffusion,extra_data'
-            }
-    
-            headers_video_stream = merge_ip_headers({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
-    
-            video_response = self.session.get(
-                "https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/live",
-                params=params,
-                headers=headers_video_stream,
-                timeout=10
-            )
-    
-            if video_response.status_code != 200:
-                safe_print(f"6play live API error: {video_response.status_code}")
-                return None
-    
-            json_parser = video_response.json()
-            if live_item_id not in json_parser or len(json_parser[live_item_id]) == 0:
-                safe_print(f"? No live data returned for {live_item_id}")
-                return None
-    
-            video_assets = json_parser[live_item_id][0]['live']['assets']
-            if not video_assets:
-                safe_print("? No MPD streams found either")
-                return None
-    
-            safe_print(f"?? Analyzing {len(video_assets)} live assets for optimal format...")
-            available_formats = self._analyze_available_formats(video_assets)
-            safe_print(f"?? Available live formats: {available_formats}")
-    
-            best_format = self._determine_best_format(available_formats, is_live=True)
-            safe_print(f"?? Selected live format: {best_format}")
-    
-            final_video_url = self._get_final_video_url(video_assets, best_format['asset_type'])
-            if not final_video_url:
-                safe_print("? No MPD streams found either")
-                return None
-    
-            safe_print(f"? {best_format['format_name']} live stream found: {final_video_url}")
-    
-            if best_format['format_type'] == 'hls':
-                return {
-                    "url": final_video_url,
-                    "manifest_type": "hls"
-                }
-    
-            if best_format['format_type'] != 'mpd':
-                safe_print(f"? No {best_format['format_name']} live streams found")
-                return None
-    
-            pssh_record, mpd_text, drm_info = self._extract_pssh_from_mpd(final_video_url)
-            key_id_hex = self._normalize_key_id((drm_info or {}).get('key_id'))
-            if key_id_hex:
-                safe_print(f"? [SixPlayProvider] Live MPD default_KID: {key_id_hex}")
-    
-            stream_response = {
-                "url": final_video_url,
-                "manifest_type": "mpd"
-            }
-            if key_id_hex:
-                stream_response["default_kid"] = key_id_hex
-    
-            if pssh_record:
-                stream_response["pssh"] = pssh_record.base64_text
-                stream_response["pssh_system_id"] = pssh_record.system_id
-                stream_response["pssh_source"] = pssh_record.source
-                safe_print(f"? Live PSSH data included in stream response")
-    
-                raw_key = self._extract_widevine_key(pssh_record.base64_text, token)
-                if raw_key:
-                    normalized_key = self._normalize_decryption_key(raw_key, key_id_hex)
-                    if normalized_key:
-                        stream_response["decryption_key"] = normalized_key
-                        safe_print(f"? Live Widevine decryption key included in stream response")
-    
-                        self._print_download_command(final_video_url, normalized_key, f"live_{channel_name}")
-    
-                        if key_id_hex:
-                            mediaflow_stream = self._build_mediaflow_clearkey_stream(
-                                original_mpd_url=final_video_url,
-                                base_headers=headers_video_stream,
-                                key_id_hex=key_id_hex,
-                                key_hex=normalized_key,
-                                is_live=True,
-                            )
-                            if mediaflow_stream:
-                                safe_print("✅ Serving live stream via MediaFlow ClearKey proxy")
-                                return mediaflow_stream
-                    else:
-                        safe_print("❌ Unable to normalize Widevine key for MediaFlow usage")
-                else:
-                    safe_print("❌ CDRM did not return a Widevine key")
-    
-            if token:
-                license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={token}|R{{SSM}}|JBlicense"
-                license_headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
-                }
-    
-                safe_print(f"📋 [SixPlay] Live DRM License Information:")
-                safe_print(f"📋   License URL: {license_url}")
-                safe_print(f"📋   License Headers: {license_headers}")
-                safe_print(f"📋   Live Token: {token[:50]}...")
-                safe_print(f"📋   Video URL: {final_video_url}")
-    
-                safe_print(f"✅ Live DRM stream configured")
-    
-                stream_response.update({
-                    "licenseUrl": license_url,
-                    "licenseHeaders": license_headers,
-                    "live_token": token,
-                    "drm_protected": True
-                })
-    
-                return stream_response
-    
-            safe_print(f"⚠️  No authentication for live DRM content")
-            return stream_response
-    
-        except Exception as e:
-            safe_print(f"❌ Error getting stream for {channel_name}: {e}")
-    
+        """Live channel streaming not supported for 6play - returns None."""
         return None
+    
     
     def _get_final_video_url(self, video_assets, asset_type=None):
         """Get final video URL from assets (based on reference get_final_video_url)"""

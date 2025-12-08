@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-12-08T13:39:19.918775",
+  "provider": "cbc",
+  "tests": {
+    "get_programs": {
+      "status": "PASS",
+      "count": 1,
+      "programs": [
+        {
+          "id": "cutam:ca:cbc:dragons-den",
+          "name": "Dragon's Den"
+        }
+      ]
+    },
+    "get_episodes": {
+      "status": "PASS",
+      "show_id": "cutam:ca:cbc:dragons-den",
+      "count": 157,
+      "sample_episodes": [
+        {
+          "id": "cutam:ca:cbc:dragons-den:episode-10-1",
+          "title": "S10 | Episode 1"
+        },
+        {
+          "id": "cutam:ca:cbc:dragons-den:episode-10-2",
+          "title": "S10 | Episode 2"
+        },
+        {
+          "id": "cutam:ca:cbc:dragons-den:episode-10-3",
+          "title": "S10 | Episode 3"
+        },
+        {
+          "id": "cutam:ca:cbc:dragons-den:episode-10-4",
+          "title": "S10 | Episode 4"
+        },
+        {
+          "id": "cutam:ca:cbc:dragons-den:episode-10-5",
+          "title": "S10 | Episode 5"
+        }
+      ]
+    },
+    "get_episode_stream_url": {
+      "status": "PASS",
+      "episode_id": "cutam:ca:cbc:dragons-den:episode-10-1",
+      "has_url": true,
+      "manifest_type": "hls"
+    }
+  }
+}

@@ -55,12 +55,15 @@ app = FastAPI(
 )
 
 # Add CORS middleware to allow requests from Stremio
+# Note: allow_credentials=False is required when using wildcard origins
+# Stremio clients need proper CORS preflight (OPTIONS) handling
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # Must be False when using wildcard origins
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],  # Expose all headers to clients
 )
 
 # Helper: decode viewer IP from a signed token header (if present)

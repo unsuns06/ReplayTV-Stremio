@@ -14,6 +14,7 @@ from app.utils.cache import cache
 from app.utils.client_ip import get_client_ip, merge_ip_headers
 from app.utils.base_url import  get_logo_url
 from app.utils.http_utils import http_client
+from app.utils.programs_loader import get_programs_for_provider
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ class CBCProvider:
             cache.set("cbc_auth_status", {'authenticated': False}, ttl=300)
     
     def get_shows(self) -> List[Dict[str, Any]]:
-        """Get CBC shows/series with caching"""
+        """Get CBC shows/series from programs.json with caching"""
         try:
             logger.info("🇨🇦 Getting CBC shows...")
             
@@ -138,23 +139,24 @@ class CBCProvider:
                 logger.info(f"✅ Using cached CBC shows: {len(cached_shows)} shows")
                 return cached_shows
             
-            # For now, return the shows we know about
-            shows = [
-                {
-                    "id": "cutam:ca:cbc:dragons-den",
-                    "title": "Dragon's Den",
-                    "description": "Aspiring entrepreneurs pitch their business ideas to a panel of wealthy investors.",
-                    "poster": get_logo_url("ca", "dragonsden", self.request),
-                    "background": "https://images.radio-canada.ca/v1/synps-cbc/show/perso/cbc_dragons_den_show_fanart_v01.jpg?impolicy=ott&im=Resize=1920&quality=100",
+            # Load shows from programs.json (single source of truth)
+            cbc_shows = get_programs_for_provider('cbc')
+            shows = []
+            for slug, show_info in cbc_shows.items():
+                shows.append({
+                    "id": f"cutam:ca:cbc:{slug}",
+                    "title": show_info.get('name', slug),
+                    "description": show_info.get('description', ''),
+                    "poster": show_info.get('poster') or get_logo_url("ca", "dragonsden", self.request),
+                    "background": show_info.get('background', ''),
                     "type": "series",
                     "country": "CA",
                     "provider": "cbc"
-                }
-            ]
+                })
             
             # Cache shows for 2 hours
             cache.set(cache_key, shows, ttl=7200)
-            logger.info(f"📺 Found and cached {len(shows)} CBC shows")
+            logger.info(f"📺 Found and cached {len(shows)} CBC shows from programs.json")
             return shows
             
         except Exception as e:
@@ -162,65 +164,14 @@ class CBCProvider:
             return []
 
     def get_live_channels(self) -> List[Dict[str, Any]]:
-        """Get CBC live TV channels"""
-        try:
-            logger.info("🇨🇦 Getting CBC live channels...")
-            
-            # Get live stream info from CBC
-            live_info_url = f"{self.base_url}/public/js/main.js"
-            logger.info(f"🌍 CBC Live Stream Info request using viewer IP: {get_client_ip()}")
-            response = http_client.safe_request("GET", live_info_url, headers=self._get_headers_with_viewer_ip())
-            if not response:
-                return []
-            
-            # Extract live stream URL from JavaScript
-            url_match = re.search(r'LLC_URL=r\\+"(.*?)\\?', response.text)
-            if not url_match:
-                logger.error("Could not find live stream URL in CBC JavaScript")
-                return []
-            
-            live_stream_url = f"https:{url_match.group(1)}"
-            
-            # Get live stream data
-            logger.info(f"🌍 CBC Live Stream Data request using viewer IP: {get_client_ip()}")
-            live_data = http_client.get_json(live_stream_url, headers=self._get_headers_with_viewer_ip())
-            if not live_data:
-                return []
-            
-            channels = []
-            for entry in live_data.get("entries", []):
-                call_sign = entry.get("cbc$callSign", "")
-                if call_sign:
-                    # Find the region name for this call sign
-                    region_name = None
-                    for region, sign in self.live_regions.items():
-                        if sign in call_sign:
-                            region_name = region
-                            break
-                    
-                    if region_name:
-                        channel = {
-                            "id": f"cutam:ca:cbc:live:{call_sign.lower()}",
-                            "name": f"CBC {region_name}",
-                            "logo": "https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/canada/cbc-ca.png",
-                            "poster": "https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/canada/cbc-ca.png",
-                            "description": f"CBC live stream for {region_name}",
-                            "channel": "CBC",
-                            "type": "channel",
-                            "region": region_name,
-                            "call_sign": call_sign
-                        }
-                        channels.append(channel)
-            
-            logger.info(f"✅ CBC returned {len(channels)} live channels")
-            return channels
-            
-        except Exception as e:
-            logger.error(f"❌ Error getting CBC live channels: {e}")
-            return []
+        """CBC live channels are not currently supported - returns empty list."""
+        # Live channel functionality was removed as non-functional per project requirements
+        logger.info("ℹ️ CBC live channels not available - using replay content only")
+        return []
     
+
     def get_programs(self) -> List[Dict[str, Any]]:
-        """Get CBC programs including Dragon's Den with caching"""
+        """Get CBC programs from programs.json with optional API enrichment"""
         try:
             logger.info("🇨🇦 Getting CBC programs...")
             
@@ -231,30 +182,41 @@ class CBCProvider:
                 logger.info(f"✅ Using cached CBC programs: {len(cached_programs)} programs")
                 return cached_programs
             
-            # Try to get Dragon's Den from CBC catalog
-            dragons_den_program = self._search_dragons_den()
-            if dragons_den_program:
-                programs = [dragons_den_program]
-            else:
-                # Fallback to static program
-                programs = [
-                    {
-                        "id": "cutam:ca:cbc:dragons-den",
-                        "type": "series",
-                        "name": "Dragon's Den",
-                        "poster": get_logo_url("ca", "dragonsden", self.request),
-                        "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
-                        "description": "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists",
-                        "genres": ["Reality", "Business", "Entrepreneurship"],
-                        "year": 2024,
-                        "rating": "G",
-                        "channel": "CBC"
-                    }
-                ]
+            # Primary source: programs.json (single source of truth)
+            cbc_shows = get_programs_for_provider('cbc')
+            programs = []
+            for slug, show_info in cbc_shows.items():
+                program = {
+                    "id": f"cutam:ca:cbc:{slug}",
+                    "type": "series",
+                    "name": show_info.get('name', slug),
+                    "poster": show_info.get('poster') or get_logo_url("ca", "dragonsden", self.request),
+                    "logo": show_info.get('logo', ''),
+                    "background": show_info.get('background', ''),
+                    "description": show_info.get('description', ''),
+                    "genres": show_info.get('genres', []),
+                    "year": show_info.get('year', 2024),
+                    "rating": show_info.get('rating', 'G'),
+                    "channel": show_info.get('channel', 'CBC')
+                }
+                programs.append(program)
+            
+            # Optionally enrich with live API metadata (non-blocking)
+            try:
+                for program in programs:
+                    slug = program['id'].split(':')[-1]
+                    if slug == 'dragons-den':
+                        api_enrichment = self._search_dragons_den()
+                        if api_enrichment:
+                            # Only update dynamic fields, preserve programs.json core data
+                            if api_enrichment.get('gem_url'):
+                                program['gem_url'] = api_enrichment['gem_url']
+            except Exception as enrich_error:
+                logger.warning(f"⚠️ API enrichment failed (non-critical): {enrich_error}")
             
             # Cache programs for 2 hours
             cache.set(cache_key, programs, ttl=7200)
-            logger.info(f"✅ CBC returned and cached {len(programs)} programs")
+            logger.info(f"✅ CBC returned and cached {len(programs)} programs from programs.json")
             return programs
             
         except Exception as e:
@@ -262,15 +224,15 @@ class CBCProvider:
             return []
     
     def _search_dragons_den(self) -> Optional[Dict[str, Any]]:
-        """Search for Dragon's Den in CBC catalog with caching"""
+        """Search for Dragon's Den on GEM website for API enrichment (live metadata)"""
         try:
-            logger.info("🔍 Searching for Dragon's Den in CBC catalog...")
+            logger.info("🔍 Checking Dragon's Den on GEM for live metadata...")
             
             # Check cache first
             cache_key = "cbc_dragons_den_search"
             cached_result = cache.get(cache_key)
             if cached_result:
-                logger.info("✅ Using cached Dragon's Den search result")
+                logger.info("✅ Using cached Dragon's Den GEM metadata")
                 return cached_result
             
             # Try to get Dragon's Den from GEM website directly
@@ -279,35 +241,21 @@ class CBCProvider:
             if not response:
                 return None
             
-            # Parse the GEM page to extract show information
+            # Parse the GEM page to extract live show information
             from bs4 import BeautifulSoup
             
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Extract show title
+            # Extract show title from live page (for verification)
             title_element = soup.find('h1')
-            show_title = title_element.get_text().strip() if title_element else "Dragon's Den"
+            show_title = title_element.get_text().strip() if title_element else None
             
-            # Extract description
-            description_element = soup.find('p', class_='description') or soup.find('div', class_='description')
-            description = description_element.get_text().strip() if description_element else "Canadian reality television series featuring entrepreneurs pitching their business ideas to a panel of venture capitalists"
+            logger.info(f"✅ Found Dragon's Den on GEM: {show_title or 'title not found'}")
             
-            # Extract poster image
-            
-            logger.info(f"✅ Found Dragon's Den on GEM: {show_title}")
-            
+            # Return only the live API metadata (program data comes from programs.json)
             result = {
-                "id": "cutam:ca:cbc:dragons-den",
-                "type": "series",
-                "name": show_title,
-                "poster": get_logo_url("ca", "dragonsden", self.request),
-                "logo": "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v05.png?impolicy=ott&im=Resize=(_Size_)&quality=75",
-                "description": description,
-                "genres": ["Reality", "Business", "Entrepreneurship"],
-                "year": 2024,
-                "rating": "G",
-                "channel": "CBC",
-                "gem_url": gem_url
+                "gem_url": gem_url,
+                "live_title": show_title
             }
             
             # Cache the result for 1 hour
@@ -315,7 +263,7 @@ class CBCProvider:
             return result
             
         except Exception as e:
-            logger.error(f"❌ Error searching for Dragon's Den: {e}")
+            logger.error(f"❌ Error searching for Dragon's Den on GEM: {e}")
             return None
     
     def get_episodes(self, series_id: str) -> List[Dict[str, Any]]:
