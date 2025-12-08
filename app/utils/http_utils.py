@@ -9,6 +9,7 @@ from typing import Dict, Optional, Any, Union
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from app.utils.client_ip import merge_ip_headers
+from app.utils.safe_print import safe_print
 
 logger = logging.getLogger(__name__)
 
@@ -96,35 +97,35 @@ class RobustHTTPClient:
                 
             except json.JSONDecodeError as json_error:
                 # Print detailed JSON error information to console (for immediate debugging)
-                print(f"\n🚨 JSON DECODE ERROR - {context}")
-                print(f"   Error: {json_error}")
-                print(f"   Line: {json_error.lineno}, Column: {json_error.colno}")
-                print(f"   Response Status: {response.status_code}")
-                print(f"   Content-Type: {content_type}")
-                print(f"   URL: {response.url}")
+                safe_print(f"\n🚨 JSON DECODE ERROR - {context}")
+                safe_print(f"   Error: {json_error}")
+                safe_print(f"   Line: {json_error.lineno}, Column: {json_error.colno}")
+                safe_print(f"   Response Status: {response.status_code}")
+                safe_print(f"   Content-Type: {content_type}")
+                safe_print(f"   URL: {response.url}")
                 
                 # Show more of the problematic content for debugging
                 error_preview = text_content[:1000] if len(text_content) > 1000 else text_content
-                print(f"   Response Content: {error_preview}")
+                safe_print(f"   Response Content: {error_preview}")
                 
                 # Try to identify common issues
                 if '<html' in text_content.lower():
-                    print("   ⚠️  Response appears to be HTML (error page)")
+                    safe_print("   ⚠️  Response appears to be HTML (error page)")
                 elif 'cloudflare' in text_content.lower():
-                    print("   ⚠️  Cloudflare protection detected")
+                    safe_print("   ⚠️  Cloudflare protection detected")
                 elif 'access denied' in text_content.lower():
-                    print("   ⚠️  Access denied response")
+                    safe_print("   ⚠️  Access denied response")
                 elif 'rate limit' in text_content.lower():
-                    print("   ⚠️  Rate limiting detected")
+                    safe_print("   ⚠️  Rate limiting detected")
                 elif 'forbidden' in text_content.lower():
-                    print("   ⚠️  Forbidden access")
+                    safe_print("   ⚠️  Forbidden access")
                 elif 'unauthorized' in text_content.lower():
-                    print("   ⚠️  Unauthorized access")
+                    safe_print("   ⚠️  Unauthorized access")
                 
-                print(f"   📝 Full response headers: {dict(response.headers)}")
+                safe_print(f"   📝 Full response headers: {dict(response.headers)}")
                 
                 # Try lenient parsing strategies
-                print("   🔧 Attempting lenient parsing strategies...")
+                safe_print("   🔧 Attempting lenient parsing strategies...")
                 
                 # Strategy 1: Try to fix common JSON issues
                 try:
@@ -134,7 +135,7 @@ class RobustHTTPClient:
                     import re
                     fixed_content = re.sub(r'(\w+):', r'"\1":', fixed_content)
                     data = json.loads(fixed_content)
-                    print("   ✅ Successfully parsed with quote fixing")
+                    safe_print("   ✅ Successfully parsed with quote fixing")
                     logger.info(f"{context} - JSON parsed successfully with quote fixing")
                     return data
                 except Exception:
@@ -148,7 +149,7 @@ class RobustHTTPClient:
                     if json_match:
                         potential_json = json_match.group(0)
                         data = json.loads(potential_json)
-                        print("   ✅ Successfully extracted and parsed JSON from response")
+                        safe_print("   ✅ Successfully extracted and parsed JSON from response")
                         logger.info(f"{context} - JSON extracted and parsed successfully")
                         return data
                 except Exception:
@@ -163,14 +164,14 @@ class RobustHTTPClient:
                         if start != -1 and end > start:
                             potential_json = text_content[start:end]
                             data = json.loads(potential_json)
-                            print("   ✅ Successfully parsed JSON after removing wrapper")
+                            safe_print("   ✅ Successfully parsed JSON after removing wrapper")
                             logger.info(f"{context} - JSON parsed successfully after removing wrapper")
                             return data
                 except Exception:
                     pass
                 
-                print("   ❌ All lenient parsing strategies failed")
-                print("🚨 END JSON DECODE ERROR\n")
+                safe_print("   ❌ All lenient parsing strategies failed")
+                safe_print("🚨 END JSON DECODE ERROR\n")
                 
                 # Also log to logger for file logging
                 logger.error(f"{context} - JSON Decode Error: {json_error}")
@@ -240,38 +241,38 @@ class RobustHTTPClient:
             return response
             
         except requests.exceptions.Timeout:
-            print(f"\n⏰ TIMEOUT ERROR - {context}")
-            print(f"   URL: {url}")
-            print(f"   Timeout: {timeout}s")
-            print("⏰ END TIMEOUT ERROR\n")
+            safe_print(f"\n⏰ TIMEOUT ERROR - {context}")
+            safe_print(f"   URL: {url}")
+            safe_print(f"   Timeout: {timeout}s")
+            safe_print("⏰ END TIMEOUT ERROR\n")
             logger.error(f"{context} - Request timeout ({timeout}s) for {url}")
             return None
             
         except requests.exceptions.ConnectionError as e:
-            print(f"\n🔌 CONNECTION ERROR - {context}")
-            print(f"   URL: {url}")
-            print(f"   Error: {str(e)}")
-            print("🔌 END CONNECTION ERROR\n")
+            safe_print(f"\n🔌 CONNECTION ERROR - {context}")
+            safe_print(f"   URL: {url}")
+            safe_print(f"   Error: {str(e)}")
+            safe_print("🔌 END CONNECTION ERROR\n")
             logger.error(f"{context} - Connection error for {url}: {e}")
             return None
             
         except requests.exceptions.HTTPError as e:
-            print(f"\n🌐 HTTP ERROR - {context}")
-            print(f"   URL: {url}")
-            print(f"   Error: {str(e)}")
-            print("🌐 END HTTP ERROR\n")
+            safe_print(f"\n🌐 HTTP ERROR - {context}")
+            safe_print(f"   URL: {url}")
+            safe_print(f"   Error: {str(e)}")
+            safe_print("🌐 END HTTP ERROR\n")
             logger.error(f"{context} - HTTP error for {url}: {e}")
             return None
             
         except Exception as e:
-            print(f"\n❌ UNEXPECTED HTTP ERROR - {context}")
-            print(f"   URL: {url}")
-            print(f"   Error Type: {type(e).__name__}")
-            print(f"   Error: {str(e)}")
+            safe_print(f"\n❌ UNEXPECTED HTTP ERROR - {context}")
+            safe_print(f"   URL: {url}")
+            safe_print(f"   Error Type: {type(e).__name__}")
+            safe_print(f"   Error: {str(e)}")
             import traceback
-            print("   Traceback:")
+            safe_print("   Traceback:")
             traceback.print_exc()
-            print("❌ END UNEXPECTED HTTP ERROR\n")
+            safe_print("❌ END UNEXPECTED HTTP ERROR\n")
             logger.error(f"{context} - Unexpected error for {url}: {e}")
             return None
     
@@ -369,15 +370,15 @@ def safe_api_call(func, context: str = "", default_return=None):
         return func()
     except Exception as e:
         # Print detailed error information to console for debugging
-        print(f"\n💥 API CALL ERROR - {context}")
-        print(f"   Error Type: {type(e).__name__}")
-        print(f"   Error Message: {str(e)}")
+        safe_print(f"\n💥 API CALL ERROR - {context}")
+        safe_print(f"   Error Type: {type(e).__name__}")
+        safe_print(f"   Error Message: {str(e)}")
         
         # Print traceback for more detailed debugging
         import traceback
-        print("   Traceback:")
+        safe_print("   Traceback:")
         traceback.print_exc()
-        print("💥 END API CALL ERROR\n")
+        safe_print("💥 END API CALL ERROR\n")
         
         # Also log to logger
         logger.error(f"{context} - API call failed: {e}")

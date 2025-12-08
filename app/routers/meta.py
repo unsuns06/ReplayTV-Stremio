@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request
 import os
 from app.schemas.stremio import MetaResponse
 from app.providers.common import ProviderFactory
+from app.utils.safe_print import safe_print
 
 router = APIRouter()
 
@@ -45,7 +46,7 @@ async def get_meta(type: str, id: str, request: Request):
                         }
                     )
         except Exception as e:
-            print(f"Error getting France TV channel metadata: {e}")
+            safe_print(f"Error getting France TV channel metadata: {e}")
         
         # Try to get channel from TF1 provider
         try:
@@ -66,7 +67,7 @@ async def get_meta(type: str, id: str, request: Request):
                         }
                     )
         except Exception as e:
-            print(f"Error getting TF1 channel metadata: {e}")
+            safe_print(f"Error getting TF1 channel metadata: {e}")
         
         # Try to get channel from 6play provider
         try:
@@ -87,7 +88,7 @@ async def get_meta(type: str, id: str, request: Request):
                         }
                     )
         except Exception as e:
-            print(f"Error getting 6play channel metadata: {e}")
+            safe_print(f"Error getting 6play channel metadata: {e}")
     
     # Handle France TV series metadata with enhanced episode handling
     elif type == "series" and "francetv" in id:
@@ -166,12 +167,12 @@ async def get_meta(type: str, id: str, request: Request):
                     from app.utils.metadata import metadata_processor
                     series_meta = metadata_processor.enhance_metadata_with_api(series_meta, provider_metadata)
             except Exception as e:
-                print(f"Warning: Could not enhance series metadata: {e}")
+                safe_print(f"Warning: Could not enhance series metadata: {e}")
             
             return MetaResponse(meta=series_meta)
             
         except Exception as e:
-            print(f"Error getting France TV series metadata: {e}")
+            safe_print(f"Error getting France TV series metadata: {e}")
             # Fallback to basic metadata with enhanced structure
             if "envoye-special" in id:
                 return MetaResponse(
@@ -287,7 +288,7 @@ async def get_meta(type: str, id: str, request: Request):
             return MetaResponse(meta=series_meta)
             
         except Exception as e:
-            print(f"Error getting TF1+ series metadata: {e}")
+            safe_print(f"Error getting TF1+ series metadata: {e}")
             # Fallback to basic metadata with enhanced structure
             if "sept-a-huit" in id:
                 return MetaResponse(
@@ -408,7 +409,7 @@ async def get_meta(type: str, id: str, request: Request):
             return MetaResponse(meta=series_meta)
             
         except Exception as e:
-            print(f"Error getting 6play series metadata: {e}")
+            safe_print(f"Error getting 6play series metadata: {e}")
             # Fallback to basic metadata with enhanced structure
             if "capital" in id:
                 return MetaResponse(
@@ -532,7 +533,7 @@ async def get_meta(type: str, id: str, request: Request):
             return MetaResponse(meta=series_meta)
             
         except Exception as e:
-            print(f"Error getting CBC Dragon's Den metadata: {e}")
+            safe_print(f"Error getting CBC Dragon's Den metadata: {e}")
             # Fallback to basic metadata
             return MetaResponse(
                         meta={

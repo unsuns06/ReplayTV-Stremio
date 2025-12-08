@@ -1024,12 +1024,12 @@ class MyTF1Provider:
                 # Check if processed file already exists (for TF1 replays only)
                 # Get processor URL from proxy config
                 proxy_config = get_proxy_config()
-                api_url = proxy_config.get_proxy('nm3u8_processor')
-                if not api_url:
+                processor_url = proxy_config.get_proxy('nm3u8_processor')
+                if not processor_url:
                     safe_print("❌ [MyTF1Provider] ERROR: nm3u8_processor not configured in credentials.json")
                     return None
                 
-                safe_print(f"✅ [MyTF1Provider] Using processor API: {api_url}")
+                safe_print(f"✅ [MyTF1Provider] Using processor API: {processor_url}")
                 processed_filename = f"{actual_episode_id}.mp4"
                 safe_print(f"✅ [MyTF1Provider] Looking for processed file: {processed_filename}")
                 
@@ -1077,28 +1077,28 @@ class MyTF1Provider:
                                         "filename": processed_filename
                                     }
                                 else:
-                                    safe_print(f"⚠️ [MyTF1Provider] File '{processed_filename}' NOT found in RD folder listing, will check api_url")
+                                    safe_print(f"⚠️ [MyTF1Provider] File '{processed_filename}' NOT found in RD folder listing, will check processor_url")
                             else:
-                                safe_print(f"⚠️ [MyTF1Provider] Could not access RD folder (HTTP {folder_response.status_code}), checking api_url...")
-                        except requests.exceptions.Timeout:
-                            safe_print(f"⚠️ [MyTF1Provider] RD folder request timed out, checking api_url...")
+                                safe_print(f"⚠️ [MyTF1Provider] Could not access RD folder (HTTP {folder_response.status_code}), checking processor_url...")
+                        except Exception: # requests.exceptions.Timeout
+                            safe_print(f"⚠️ [MyTF1Provider] RD folder request timed out, checking processor_url...")
                         except Exception as e:
-                            safe_print(f"❌ [MyTF1Provider] RD folder request error: {e}, checking api_url...")
+                            safe_print(f"❌ [MyTF1Provider] RD folder request error: {e}, checking processor_url...")
                     else:
-                        safe_print("⚠️ [MyTF1Provider] Real-Debrid folder not configured in credentials, checking api_url...")
+                        safe_print("⚠️ [MyTF1Provider] Real-Debrid folder not configured in credentials, checking processor_url...")
                 except Exception as e:
                     safe_print(f"❌ [MyTF1Provider] Error checking Real-Debrid: {e}")
-                    safe_print(f"❌ [MyTF1Provider] Proceeding to api_url check as fallback...")
+                    safe_print(f"❌ [MyTF1Provider] Proceeding to processor_url check as fallback...")
                 
-                # Then check api_url location
-                processed_url = f"{api_url}/stream/{processed_filename}"
-                safe_print(f"✅ [MyTF1Provider] Checking api_url location: {processed_url}")
+                # Then check processor_url location
+                processed_url = f"{processor_url}/stream/{processed_filename}"
+                safe_print(f"✅ [MyTF1Provider] Checking processor_url location: {processed_url}")
 
                 
                 processed_file_exists = False
                 try:
                     check_response = requests.head(processed_url, timeout=5)
-                    safe_print(f"✅ [MyTF1Provider] API URL HTTP Status: {check_response.status_code}")
+                    safe_print(f"✅ [MyTF1Provider] PROCESSOR URL HTTP Status: {check_response.status_code}")
                     
                     if check_response.status_code == 200:
                         # File exists - return immediately
@@ -1111,10 +1111,10 @@ class MyTF1Provider:
                             "filename": processed_filename
                         }
                     else:
-                        safe_print(f"⚠️ [MyTF1Provider] API URL file not found (HTTP {check_response.status_code})")
+                        safe_print(f"⚠️ [MyTF1Provider] PROCESSOR URL file not found (HTTP {check_response.status_code})")
                 except Exception as e:
                     # Error checking file - proceed with normal flow
-                    safe_print(f"⚠️ [MyTF1Provider] Error checking api_url: {e}")
+                    safe_print(f"⚠️ [MyTF1Provider] Error checking processor_url: {e}")
                     pass
 
                 # For DRM-protected MPD streams (replays only), use external DASH proxy
@@ -1145,7 +1145,7 @@ class MyTF1Provider:
                                 
                                 # Print full N_m3u8DL-RE command with all keys
                                 keys_param = " ".join([f"--key {key}" for key in formatted_keys])
-                                print(f'./N_m3u8DL-RE "{video_url}" --save-name "{actual_episode_id}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --binary-merge {keys_param}')
+                                safe_print(f'./N_m3u8DL-RE "{video_url}" --save-name "{actual_episode_id}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --binary-merge {keys_param}')
                                 
                                 # Trigger background processing with multiple keys
                                 from app.utils.nm3u8_drm_processor import process_drm_simple

@@ -139,7 +139,7 @@ class CBCAuthenticator:
             logger.info(f"Successfully {note.lower()}")
             return token_data
             
-        except requests.exceptions.RequestException as e:
+        except Exception as e: # requests.exceptions.RequestException
             logger.error(f"Network error during {note}: {e}")
             raise Exception(f"Network error: {e}")
     

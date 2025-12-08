@@ -87,7 +87,7 @@ class SimpleDRMProcessor:
                 "message": "Processing started in background"
             }
 
-        except requests.RequestException as e:
+        except Exception as e: # requests.RequestException
             return {
                 "success": False,
                 "error": f"Failed to start processing: {e}"
@@ -131,7 +131,7 @@ class SimpleDRMProcessor:
                 # Still processing - wait silently
                 time.sleep(5)
 
-            except requests.RequestException:
+            except Exception: # requests.RequestException
                 # Silent failure handling - don't print progress
                 pass
 

@@ -6,6 +6,7 @@ This bypasses the need for a separate server by processing the MPD content direc
 import requests
 from typing import Optional
 from .sixplay_mpd_processor import create_mediaflow_compatible_mpd
+from app.utils.safe_print import safe_print
 
 
 def get_processed_mpd_content(original_mpd_url: str, auth_token: Optional[str] = None) -> Optional[str]:
@@ -24,33 +25,33 @@ def get_processed_mpd_content(original_mpd_url: str, auth_token: Optional[str] =
         if auth_token:
             headers['Authorization'] = f'Bearer {auth_token}'
         
-        print(f"[DirectMPDProcessor] Downloading MPD: {original_mpd_url[:50]}...")
+        safe_print(f"[DirectMPDProcessor] Downloading MPD: {original_mpd_url[:50]}...")
         response = requests.get(original_mpd_url, headers=headers, timeout=15)
         
         if response.status_code != 200:
-            print(f"[DirectMPDProcessor] Failed to download MPD: {response.status_code}")
+            safe_print(f"[DirectMPDProcessor] Failed to download MPD: {response.status_code}")
             return None
         
         # Process the MPD to make it MediaFlow compatible
         original_mpd = response.text
         processed_mpd = create_mediaflow_compatible_mpd(original_mpd, original_mpd_url)
         
-        print(f"[DirectMPDProcessor] MPD processed successfully ({len(processed_mpd)} chars)")
+        safe_print(f"[DirectMPDProcessor] MPD processed successfully ({len(processed_mpd)} chars)")
         
         # Check the processing result
         cp_count = processed_mpd.count('ContentProtection')
         mspr_count = processed_mpd.count('<mspr:')
         
-        print(f"[DirectMPDProcessor] ContentProtection elements: {cp_count}")
-        print(f"[DirectMPDProcessor] MSPR nested elements: {mspr_count}")
+        safe_print(f"[DirectMPDProcessor] ContentProtection elements: {cp_count}")
+        safe_print(f"[DirectMPDProcessor] MSPR nested elements: {mspr_count}")
         
         if mspr_count == 0:
-            print("[DirectMPDProcessor] ✅ PlayReady elements successfully removed")
+            safe_print("[DirectMPDProcessor] ✅ PlayReady elements successfully removed")
         
         return processed_mpd
         
     except Exception as e:
-        print(f"[DirectMPDProcessor] Error processing MPD: {e}")
+        safe_print(f"[DirectMPDProcessor] Error processing MPD: {e}")
         return None
 
 

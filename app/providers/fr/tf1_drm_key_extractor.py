@@ -7,6 +7,7 @@ License: Educational purposes only
 
 import requests
 import re
+from app.utils.safe_print import safe_print
 from typing import Dict, Optional
 import xml.etree.ElementTree as ET
 
@@ -392,11 +393,11 @@ def get_tf1_keys(video_url: str, license_url: str, wvd_path: str = "device.wvd")
 
     if keys:
         # print("\n" + "="*70)
-        print("DRM KEYS:")
+        safe_print("DRM KEYS:")
         for kid, key in keys.items():
-            print(f"{kid}:{key}")
+            safe_print(f"{kid}:{key}")
     else:
-        print("\n[FAILED] Could not extract keys. Check errors above.")
+        safe_print("\n[FAILED] Could not extract keys. Check errors above.")
     return keys
 
 

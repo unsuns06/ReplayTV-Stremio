@@ -9,6 +9,7 @@ from urllib.parse import urlparse, parse_qs
 import requests
 from typing import Optional
 from .sixplay_mpd_processor import create_mediaflow_compatible_mpd
+from app.utils.safe_print import safe_print
 
 
 class MPDHandler(BaseHTTPRequestHandler):
@@ -60,7 +61,7 @@ class MPDHandler(BaseHTTPRequestHandler):
             self.wfile.write(processed_mpd.encode('utf-8'))
             
         except Exception as e:
-            print(f"[MPDServer] Error processing request: {e}")
+            safe_print(f"[MPDServer] Error processing request: {e}")
             self.send_error(500, f"Internal server error: {str(e)}")
     
     def log_message(self, format, *args):
@@ -87,9 +88,9 @@ class MPDServer:
             self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
             self.thread.start()
             self.running = True
-            print(f"[MPDServer] Started on http://localhost:{self.port}")
+            safe_print(f"[MPDServer] Started on http://localhost:{self.port}")
         except Exception as e:
-            print(f"[MPDServer] Failed to start: {e}")
+            safe_print(f"[MPDServer] Failed to start: {e}")
             raise
     
     def stop(self):
@@ -98,7 +99,7 @@ class MPDServer:
             self.server.shutdown()
             self.server.server_close()
             self.running = False
-            print("[MPDServer] Stopped")
+            safe_print("[MPDServer] Stopped")
     
     def get_processed_mpd_url(self, original_mpd_url: str, auth_token: Optional[str] = None) -> str:
         """Get URL for processed MPD that MediaFlow can handle"""
