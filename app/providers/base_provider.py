@@ -12,6 +12,7 @@ from app.utils.credentials import get_provider_credentials
 from app.utils.api_client import ProviderAPIClient
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.safe_print import safe_print
+from app.schemas.type_defs import StreamInfo, EpisodeInfo, ShowInfo
 
 
 class BaseProvider(ABC):
@@ -82,21 +83,21 @@ class BaseProvider(ABC):
         return os.getenv('ADDON_BASE_URL', 'http://localhost:7860')
     
     @abstractmethod
-    def get_programs(self) -> List[Dict]:
+    def get_programs(self) -> List[ShowInfo]:
         """Get list of available programs/shows"""
         pass
     
     @abstractmethod
-    def get_episodes(self, show_id: str) -> List[Dict]:
+    def get_episodes(self, show_id: str) -> List[EpisodeInfo]:
         """Get episodes for a specific show"""
         pass
     
     @abstractmethod
-    def get_episode_stream_url(self, episode_id: str) -> Optional[Dict]:
+    def get_episode_stream_url(self, episode_id: str) -> Optional[StreamInfo]:
         """Get stream URL for a specific episode"""
         pass
     
-    def get_live_channels(self) -> List[Dict]:
+    def get_live_channels(self) -> List[Dict[str, Any]]:
         """
         Get list of live channels.
         Override in subclasses that support live channels.
@@ -104,7 +105,7 @@ class BaseProvider(ABC):
         """
         return []
     
-    def get_channel_stream_url(self, channel_id: str) -> Optional[Dict]:
+    def get_channel_stream_url(self, channel_id: str) -> Optional[StreamInfo]:
         """
         Get stream URL for a live channel.
         Override in subclasses that support live channels.
@@ -112,7 +113,7 @@ class BaseProvider(ABC):
         """
         return None
     
-    def resolve_stream(self, stream_id: str) -> Optional[Dict]:
+    def resolve_stream(self, stream_id: str) -> Optional[StreamInfo]:
         """
         Resolve any stream ID to a playable URL.
         Determines if it's a live channel or episode and routes accordingly.
@@ -121,3 +122,4 @@ class BaseProvider(ABC):
             return self.get_channel_stream_url(stream_id)
         else:
             return self.get_episode_stream_url(stream_id)
+

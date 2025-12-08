@@ -3,9 +3,7 @@ Unified API client with robust error handling and retry logic.
 Replaces duplicated _safe_api_call implementations across all providers.
 """
 
-import json
 import time
-import re
 import requests
 import logging
 from typing import Dict, Optional, Any, Union
@@ -15,6 +13,7 @@ from urllib3.util.retry import Retry
 from app.utils.client_ip import merge_ip_headers
 from app.utils.safe_print import safe_print
 from app.utils.user_agent import get_random_windows_ua
+from app.utils.http_utils import http_client  # Consolidated JSON parsing
 
 logger = logging.getLogger(__name__)
 
@@ -92,63 +91,27 @@ class ProviderAPIClient:
         context: str = ""
     ) -> Optional[Dict[str, Any]]:
         """
-        Parse JSON response with multiple fallback strategies.
-        Handles common issues like JSONP, single quotes, unquoted keys.
+        Parse JSON response using consolidated RobustHTTPClient.
+        Provides comprehensive error handling including JSONP, HTML detection,
+        quote fixing, and detailed logging.
         """
-        try:
-            return response.json()
-        except json.JSONDecodeError as e:
-            text = response.text
-            safe_print(f"⚠️ [{self.provider_name}] JSON parse error: {e}")
-            safe_print(f"📋 [{self.provider_name}] Response length: {len(text)} chars")
-            
-            # Log problematic area
-            if e.pos > 0:
-                start = max(0, e.pos - 50)
-                end = min(len(text), e.pos + 50)
-                safe_print(f"⚠️ [{self.provider_name}] Context: {text[start:end]}")
-            
-            # Strategy 1: Handle JSONP
-            if text.strip().startswith('jsonp_') and text.strip().endswith(');'):
-                try:
-                    start_idx = text.find('(') + 1
-                    end_idx = text.rfind(');')
-                    return json.loads(text[start_idx:end_idx])
-                except:
-                    pass
-            
-            # Strategy 2: Replace single quotes
-            if "'" in text and '"' not in text[:100]:
-                try:
-                    return json.loads(text.replace("'", '"'))
-                except:
-                    pass
-            
-            # Strategy 3: Fix unquoted property names
-            try:
-                fixed = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
-                if fixed != text:
-                    return json.loads(fixed)
-            except:
-                pass
-            
-            # Check for HTML response (common error)
-            if '<html' in text.lower():
-                safe_print(f"⚠️ [{self.provider_name}] Received HTML instead of JSON")
-            
-            return None
+        # Delegate to RobustHTTPClient for comprehensive JSON parsing
+        return http_client.safe_json_parse(
+            response, 
+            context=f"[{self.provider_name}] {context}".strip()
+        )
     
     def safe_request(
         self,
         method: str,
         url: str,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
-        data: Optional[Union[Dict, str]] = None,
-        json_data: Optional[Dict] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        data: Optional[Union[Dict[str, Any], str]] = None,
+        json_data: Optional[Dict[str, Any]] = None,
         timeout: Optional[int] = None,
         max_retries: Optional[int] = None
-    ) -> Optional[Dict]:
+    ) -> Optional[Dict[str, Any]]:
         """
         Make a safe API request with retry logic and error handling.
         

@@ -145,7 +145,11 @@ def _handle_series_metadata(
         # FranceTV-specific: Try to enhance with API metadata
         if provider_key == "francetv":
             try:
-                api_id = f"france-2_{show_id}"
+                # Get the correct api_id from the provider's show data
+                programs = get_programs_for_provider(provider_name)
+                show_data = programs.get(show_id, {})
+                api_id = show_data.get('api_id') or show_data.get('id', show_id)
+                
                 provider_metadata = provider._get_show_api_metadata(api_id)
                 if provider_metadata:
                     from app.utils.metadata import metadata_processor

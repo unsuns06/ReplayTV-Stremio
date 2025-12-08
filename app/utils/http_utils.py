@@ -75,7 +75,9 @@ class RobustHTTPClient:
                 return None
             
             # Handle HTML error pages (common in cloud environments)
-            if 'text/html' in content_type:
+            # But allow responses that include both text/html AND application/json
+            # (FranceTV token endpoint returns "text/html, application/json")
+            if 'text/html' in content_type and 'application/json' not in content_type:
                 logger.warning(f"{context} - Received HTML instead of JSON (likely error page)")
                 logger.debug(f"{context} - HTML content preview: {response.text[:200]}...")
                 return None

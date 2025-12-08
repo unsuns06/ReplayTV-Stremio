@@ -107,107 +107,15 @@ class SixPlayProvider(BaseFrenchProvider):
             return False
     
     def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, data: Dict = None, method: str = 'GET', max_retries: int = 3) -> Optional[Dict]:
-        """Make a safe API call with retry logic and error handling"""
-        for attempt in range(max_retries):
-            try:
-                # Rotate User-Agent for each attempt
-                current_headers = headers or {}
-                current_headers['User-Agent'] = get_random_windows_ua()
-                # Forward viewer IP to upstream
-                current_headers = merge_ip_headers(current_headers)
-                
-                safe_print(f"🔍 [6play] API call attempt {attempt + 1}/{max_retries}: {url}")
-                if params:
-                    safe_print(f"📋 [6play] Request params: {params}")
-                if headers:
-                    safe_print(f"📋 [6play] Request headers (pre-merge): {headers}")
-                try:
-                    safe_print(f"📋 [6play] Request headers (effective): {current_headers}")
-                except Exception:
-                    pass
-                
-                if method.upper() == 'POST':
-                    if data:
-                        response = self.session.post(url, params=params, headers=current_headers, json=data, timeout=15)
-                    else:
-                        response = self.session.post(url, params=params, headers=current_headers, timeout=15)
-                else:
-                    response = self.session.get(url, params=params, headers=current_headers, timeout=15)
-                
-                if response.status_code == 200:
-                    # Log response details for debugging
-                    safe_print(f"📋 [6play] Response headers: {dict(response.headers)}")
-                    safe_print(f"📋 [6play] Content-Type: {response.headers.get('content-type', 'Not set')}")
-                    
-                    # Try to parse JSON with multiple strategies
-                    try:
-                        return response.json()
-                    except json.JSONDecodeError as e:
-                        safe_print(f"⚠️ [6play] JSON parse error on attempt {attempt + 1}: {e}")
-                        safe_print(f"⚠️ [6play] Error position: line {e.lineno}, column {e.colno}, char {e.pos}")
-                        
-                        # Log the raw response for debugging
-                        text = response.text
-                        safe_print(f"📋 [6play] Raw response length: {len(text)} characters")
-                        safe_print(f"📋 [6play] Raw response (first 500 chars): {text[:500]}")
-                        
-                        # Log the problematic area around the error
-                        if e.pos > 0:
-                            start = max(0, e.pos - 50)
-                            end = min(len(text), e.pos + 50)
-                            safe_print(f"⚠️ [6play] Context around error (chars {start}-{end}): {text[start:end]}")
-                        
-                        # Strategy 1: Try to fix common JSON issues
-                        if "'" in text and '"' not in text:
-                            # Replace single quotes with double quotes
-                            text = text.replace("'", '"')
-                            try:
-                                return json.loads(text)
-                            except:
-                                pass
-                        
-                        # Strategy 2: Try to fix unquoted property names
-                        try:
-                            # This regex looks for property names that aren't properly quoted
-                            import re
-                            fixed_text = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
-                            if fixed_text != text:
-                                safe_print(f"🔧 [6play] Attempting to fix unquoted property names...")
-                                return json.loads(fixed_text)
-                        except:
-                            pass
-                        
-                        # Strategy 3: Try to extract JSON from larger response
-                        if '<html' in text.lower():
-                            safe_print(f"⚠️ [6play] Received HTML instead of JSON on attempt {attempt + 1}")
-                        else:
-                            safe_print(f"⚠️ [6play] Malformed response on attempt {attempt + 1}: {text[:200]}...")
-                        
-                        # Wait before retry
-                        if attempt < max_retries - 1:
-                            time.sleep(2 ** attempt)  # Exponential backoff
-                            continue
-                        
-                elif response.status_code in [403, 429, 500]:
-                    safe_print(f"⚠️ [6play] HTTP {response.status_code} on attempt {attempt + 1}")
-                    safe_print(f"📋 [6play] Response headers: {dict(response.headers)}")
-                    safe_print(f"📋 [6play] Response content: {response.text[:500]}...")
-                    if attempt < max_retries - 1:
-                        time.sleep(2 ** attempt)
-                        continue
-                else:
-                    safe_print(f"⚠️ [6play] HTTP {response.status_code} on attempt {attempt + 1}")
-                    safe_print(f"📋 [6play] Response headers: {dict(response.headers)}")
-                    safe_print(f"📋 [6play] Response content: {response.text[:500]}...")
-                    
-            except Exception as e:
-                safe_print(f"⚠️ [6play] Request error on attempt {attempt + 1}: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-                    continue
-        
-        safe_print(f"❌ [6play] All {max_retries} attempts failed for {url}")
-        return None
+        """Delegate to shared ProviderAPIClient for consistent retry/error handling."""
+        return self.api_client.safe_request(
+            method=method,
+            url=url,
+            params=params,
+            headers=headers,
+            data=data if method.upper() == 'POST' else None,
+            max_retries=max_retries
+        )
     
     def get_live_channels(self) -> List[Dict]:
         """Live channels not supported for 6play - returns empty list."""
@@ -376,9 +284,9 @@ class SixPlayProvider(BaseFrenchProvider):
                                 safe_print(f"⚠️ [SixPlayProvider] File '{processed_filename}' NOT found in RD folder listing, will check processor_url")
                         else:
                             safe_print(f"⚠️ [SixPlayProvider] Could not access RD folder (HTTP {folder_response.status_code}), checking processor_url...")
-                    except Exception: # requests.exceptions.Timeout
+                    except requests.exceptions.Timeout:
                         safe_print(f"⚠️ [SixPlayProvider] RD folder request timed out, checking processor_url...")
-                    except Exception as e:
+                    except requests.exceptions.RequestException as e:
                         safe_print(f"❌ [SixPlayProvider] RD folder request error: {e}, checking processor_url...")
                 else:
                     safe_print("⚠️ [SixPlayProvider] Real-Debrid folder not configured in credentials, checking processor_url...")

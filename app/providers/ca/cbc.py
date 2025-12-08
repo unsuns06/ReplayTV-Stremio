@@ -6,24 +6,33 @@ Based on the catchuptv plugin reference implementation
 
 import re
 import logging
+from bs4 import BeautifulSoup
 from typing import List, Dict, Optional, Any
 from fastapi import Request
+from app.providers.base_provider import BaseProvider
 from app.auth.cbc_auth import CBCAuthenticator
 from app.utils.credentials import load_credentials
 from app.utils.cache import cache
 from app.utils.client_ip import get_client_ip, merge_ip_headers
-from app.utils.base_url import  get_logo_url
+from app.utils.base_url import get_logo_url
 from app.utils.http_utils import http_client
 from app.utils.programs_loader import get_programs_for_provider
 
 logger = logging.getLogger(__name__)
 
-class CBCProvider:
+class CBCProvider(BaseProvider):
     """CBC provider for Canadian content including Dragon's Den"""
     
+    # BaseProvider class attributes
+    provider_name = "cbc"
+    base_url = "https://gem.cbc.ca"
+    country = "ca"
+    
     def __init__(self, request: Optional[Request] = None):
-        self.request = request
-        self.base_url = "https://gem.cbc.ca"
+        # Call parent class init for session, api_client, credentials
+        super().__init__(request)
+        
+        # CBC-specific API URLs
         self.api_base = "https://services.radio-canada.ca"
         self.catalog_api = f"{self.api_base}/ott/catalog/v2/gem"
         self.media_api = f"{self.api_base}/media/validation/v2"
@@ -241,8 +250,6 @@ class CBCProvider:
             if not response:
                 return None
             
-            # Parse the GEM page to extract live show information
-            from bs4 import BeautifulSoup
             
             soup = BeautifulSoup(response.text, 'html.parser')
             
@@ -401,9 +408,6 @@ class CBCProvider:
             }))
             if not response:
                 return None
-            
-            from bs4 import BeautifulSoup
-            import re
             
             soup = BeautifulSoup(response.text, 'html.parser')
             
@@ -595,7 +599,6 @@ class CBCProvider:
                     duration_text = element.get_text().strip()
                     if duration_text:
                         # Convert "44 min" to seconds
-                        import re
                         duration_match = re.search(r'(\d+)\s*min', duration_text)
                         if duration_match:
                             return str(int(duration_match.group(1)) * 60)
@@ -902,7 +905,6 @@ class CBCProvider:
             if 'duration' in structured_metadata:
                 duration_str = structured_metadata['duration']
                 # Parse PT0H44M format
-                import re
                 duration_match = re.search(r'PT(\d+)H(\d+)M', duration_str)
                 if duration_match:
                     hours = int(duration_match.group(1))
@@ -985,9 +987,6 @@ class CBCProvider:
             response = http_client.safe_request("GET", episode_url, headers=self._get_headers_with_viewer_ip())
             if not response:
                 return {}
-            
-            from bs4 import BeautifulSoup
-            import re
             
             soup = BeautifulSoup(response.text, 'html.parser')
             details = {}
@@ -1117,7 +1116,6 @@ class CBCProvider:
         """Extract season number from season title"""
         try:
             # Look for patterns like "Season 19", "S19", etc.
-            import re
             match = re.search(r'season\s*(\d+)', season_title.lower())
             if match:
                 return int(match.group(1))
@@ -1292,8 +1290,6 @@ class CBCProvider:
             }))
             if not response:
                 return None
-            
-            import re
             
             # Look for various stream URL patterns in the page
             stream_patterns = [

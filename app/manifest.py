@@ -39,7 +39,7 @@ def get_manifest():
             {
                 "id": "ca-cbc-dragons-den",
                 "type": "series",
-                "name": "CBC Dragon's Den"
+                "name": "CBC Shows: Dragon's Den"
             }
         ],
         "idPrefixes": [
