@@ -34,7 +34,7 @@ class ProviderFactory:
         elif provider_name == "mytf1":
             return MyTF1Provider(request)
         elif provider_name == "6play":
-            return SixPlayProvider()
+            return SixPlayProvider(request)
         elif provider_name == "cbc":
             return CBCProvider(request)
         else:
