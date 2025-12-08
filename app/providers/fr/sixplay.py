@@ -235,7 +235,8 @@ class SixPlayProvider(BaseFrenchProvider):
                     'year': show_info['year'],
                     'rating': show_info['rating'],
                     'logo': show_info['logo'],  # Use the specific logo URL
-                    'poster': show_info['poster']  # Use the specific poster URL
+                    'poster': show_info['poster'],  # Use the specific poster URL
+                    'background': show_info.get('background', '')  # Background image from programs.json
                 }
                 
                 # Try to get additional metadata from 6play API (but preserve our poster and logo)
@@ -264,7 +265,8 @@ class SixPlayProvider(BaseFrenchProvider):
                     'year': show_info['year'],
                     'rating': show_info['rating'],
                     'logo': show_info['logo'],  # Use the specific logo URL
-                    'poster': show_info['poster']  # Use the specific poster URL
+                    'poster': show_info['poster'],  # Use the specific poster URL
+                    'background': show_info.get('background', '')  # Background image from programs.json
                 }
                 shows.append(show_metadata)
         

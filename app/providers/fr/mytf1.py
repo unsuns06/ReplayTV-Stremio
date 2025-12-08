@@ -254,6 +254,7 @@ class MyTF1Provider(BaseFrenchProvider):
                     "logo": show_metadata.get("logo", get_logo_url("fr", "tf1", self.request)),
                     "poster": show_metadata.get("poster", get_logo_url("fr", "tf1", self.request)),
                     "fanart": show_metadata.get("fanart"),
+                    "background": show_info.get("background", ""),  # Background image from programs.json
                     "genres": show_info["genres"],
                     "channel": show_info["channel"],
                     "year": show_info["year"],
@@ -270,6 +271,7 @@ class MyTF1Provider(BaseFrenchProvider):
                     "description": show_info["description"],
                     "logo": get_logo_url("fr", "tf1", self.request),
                     "poster": get_logo_url("fr", "tf1", self.request),
+                    "background": show_info.get("background", ""),  # Background image from programs.json
                     "genres": show_info["genres"],
                     "channel": show_info["channel"],
                     "year": show_info["year"],

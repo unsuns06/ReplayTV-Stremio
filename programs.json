@@ -14,6 +14,7 @@
       ],
       "logo": "https://images.6play.fr/v1/images/4242438/raw",
       "poster": "https://images-fio.6play.fr/v2/images/4654297/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4654294/raw",
       "year": 2025,
       "rating": "Tout public",
       "enabled": true
@@ -29,8 +30,9 @@
         "Magazine",
         "Documentaire"
       ],
-      "logo": "https://images.6play.fr/v1/images/4248692/raw",
+      "logo": "https://images.6play.fr/v2/images/4248692/raw",
       "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4654323/raw",
       "year": 2024,
       "rating": "Tous publics",
       "enabled": true
@@ -46,8 +48,9 @@
         "Magazine",
         "Actualité"
       ],
-      "logo": "https://images.6play.fr/v1/images/4654324/raw",
+      "logo": "https://images.6play.fr/v2/images/4654324/raw",
       "poster": "https://images-fio.6play.fr/v2/images/4654325/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4654323/raw",
       "year": 2025,
       "rating": "Tout public",
       "enabled": true
@@ -63,8 +66,9 @@
         "Magazine",
         "Documentaire"
       ],
-      "logo": "https://images.6play.fr/v1/images/4639961/raw",
+      "logo": "https://images.6play.fr/v2/images/4654288/raw",
       "poster": "https://images-fio.6play.fr/v2/images/4654281/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4654280/raw",
       "year": 2025,
       "rating": "Tout public",
       "enabled": true
@@ -82,6 +86,7 @@
       ],
       "logo": "https://images.6play.fr/v1/images/4242429/raw",
       "poster": "https://images-fio.6play.fr/v2/images/4654307/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4654306/raw",
       "year": 2025,
       "rating": "Tout public",
       "enabled": true
