@@ -24,6 +24,7 @@ def _build_fallback_shows_from_programs(provider_name: str, request: Request):
                 "name": show_info.get('name', slug),
                 "poster": show_info.get('poster') or get_logo_url("fr", _get_default_channel(provider_name), request),
                 "logo": show_info.get('logo') or get_logo_url("fr", _get_default_channel(provider_name), request),
+                "background": show_info.get('background', ''),
                 "description": show_info.get('description', ''),
                 "genres": show_info.get('genres', []),
                 "year": show_info.get('year', 2024),
