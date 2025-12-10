@@ -5,22 +5,22 @@ from typing import Dict, List, Optional, Union
 from app.schemas.stremio import StreamResponse, Stream
 from app.providers.common import ProviderFactory
 from app.utils.client_ip import make_ip_headers
+from app.config.provider_config import PROVIDER_REGISTRY, get_live_providers
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# Provider routing configuration
+# Use centralized provider registry - map to expected format for backwards compatibility
 SERIES_PROVIDERS = {
-    "francetv": {"name": "France TV", "episode_marker": "episode:"},
-    "mytf1": {"name": "TF1+", "episode_marker": "episode:"},
-    "6play": {"name": "6play", "episode_marker": "episode:"},
-    "cbc": {"name": "CBC", "episode_marker": "episode-"},
+    key: {"name": config["display_name"], "episode_marker": config["episode_marker"]}
+    for key, config in PROVIDER_REGISTRY.items()
 }
 
+# Derive channel providers from registry (only those supporting live)
 CHANNEL_PROVIDERS = {
-    "francetv": "France TV",
-    "mytf1": "MyTF1",
-    "6play": "6play",
+    key: config["display_name"]
+    for key, config in PROVIDER_REGISTRY.items()
+    if config.get("supports_live", False)
 }
 
 

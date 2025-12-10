@@ -339,6 +339,17 @@ class MyTF1Provider(BaseFrenchProvider):
                     if episodes:
                         # Filter episodes based on subscription access
                         available_episodes = self._filter_available_episodes(episodes)
+                        
+                        # Sort episodes by released date ascending (oldest first, newest last)
+                        # Stremio expects videos sorted chronologically with newest episode having highest number
+                        available_episodes.sort(key=lambda ep: ep.get('released', '') or '')
+                        
+                        # Re-number episodes after sorting (1, 2, 3... with 1 being oldest)
+                        for i, ep in enumerate(available_episodes):
+                            ep['episode'] = i + 1
+                            ep['episode_number'] = i + 1
+                        
+                        safe_print(f"✅ [MyTF1Provider] Found {len(available_episodes)} episodes (sorted chronologically)")
                         return available_episodes
                     else:
                         safe_print(f"❌ [MyTF1Provider] No episodes found for program: {program_slug}")
@@ -456,8 +467,11 @@ class MyTF1Provider(BaseFrenchProvider):
             # Extract episode information
             episode_id = video.get('id')
             title = video.get('decoration', {}).get('label', 'Unknown Title')
-            description = video.get('decoration', {}).get('summary', '')
+            # The API uses 'description' in the decoration, not 'summary'
+            description = video.get('decoration', {}).get('description', '')
             duration = video.get('playingInfos', {}).get('duration', '')
+            # Get the release date in ISO 8601 format for Stremio
+            released = video.get('date', '')  # e.g., "2025-12-06T18:07:51Z"
             
             # Get images from decoration fields (like the reference plugin)
             poster = None
@@ -486,6 +500,7 @@ class MyTF1Provider(BaseFrenchProvider):
                 "poster": poster,
                 "fanart": fanart,
                 "duration": duration,
+                "released": released,  # ISO 8601 date for Stremio
                 "type": "episode",
                 "episode_number": episode_number,
                 "season": 1,  # Default season
@@ -698,9 +713,27 @@ class MyTF1Provider(BaseFrenchProvider):
                         final_url = video_url
                         manifest_type = 'hls' if is_hls else 'mpd'
 
+                    # Extract current program title from API response for enhanced stream title
+                    # API provides: media.programName (e.g., "Chicago Police Department")
+                    # and media.shortTitle (e.g., "Le protecteur" - episode title)
+                    current_program = None
+                    if 'media' in json_parser:
+                        media_info = json_parser['media']
+                        # Prefer programName, fallback to title
+                        current_program = media_info.get('programName') or media_info.get('title', '')
+                        safe_print(f"✅ [MyTF1Provider] Current program: {current_program}")
+                    
+                    # Build enhanced stream title: [FORMAT] Current Program Name
+                    format_label = 'HLS' if manifest_type == 'hls' else 'MPD'
+                    if current_program:
+                        stream_title = f"[{format_label}] {current_program}"
+                    else:
+                        stream_title = f"[{format_label}] {channel_name.upper()}"
+
                     stream_info = {
                         "url": final_url,
                         "manifest_type": manifest_type,
+                        "title": stream_title,
                         "headers": headers_video_stream
                     }
                     
@@ -710,7 +743,7 @@ class MyTF1Provider(BaseFrenchProvider):
                         if license_headers:
                             stream_info["licenseHeaders"] = license_headers
                     
-                    safe_print(f"✅ [MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}")
+                    safe_print(f"✅ [MyTF1Provider] MyTF1 stream info prepared: manifest_type={stream_info['manifest_type']}, title={stream_title}")
                     return stream_info
                 else:
                     safe_print(f"❌ [MyTF1Provider] MyTF1 delivery error: {json_parser['delivery']['code']}")

@@ -1,33 +1,37 @@
 """
 Unified API client with robust error handling and retry logic.
 Replaces duplicated _safe_api_call implementations across all providers.
+
+Extends RobustHTTPClient for session management and JSON parsing,
+adding provider-specific features like User-Agent rotation and logging.
 """
 
 import time
 import requests
 import logging
 from typing import Dict, Optional, Any, Union
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 from app.utils.client_ip import merge_ip_headers
 from app.utils.safe_print import safe_print
 from app.utils.user_agent import get_random_windows_ua
-from app.utils.http_utils import http_client  # Consolidated JSON parsing
+from app.utils.http_utils import RobustHTTPClient
 
 logger = logging.getLogger(__name__)
 
 
-class ProviderAPIClient:
+class ProviderAPIClient(RobustHTTPClient):
     """
-    Unified HTTP client for provider API calls.
+    Provider-specific HTTP client extending RobustHTTPClient.
     
-    Features:
-    - Automatic retry with exponential backoff
-    - User-Agent rotation
-    - IP header forwarding for geo-restricted content
+    Inherits from RobustHTTPClient:
+    - Session management with retry strategy
     - Robust JSON parsing with multiple fallback strategies
-    - Detailed logging for debugging
+    - Connection error handling
+    
+    Adds provider-specific features:
+    - User-Agent rotation per request
+    - Provider-prefixed logging
+    - IP header forwarding for geo-restricted content
     """
     
     def __init__(
@@ -36,37 +40,9 @@ class ProviderAPIClient:
         timeout: int = 15, 
         max_retries: int = 3
     ):
+        # Initialize parent class (creates session with retry strategy)
+        super().__init__(timeout=timeout, max_retries=max_retries)
         self.provider_name = provider_name
-        self.timeout = timeout
-        self.max_retries = max_retries
-        self.session = self._create_session()
-    
-    def _create_session(self) -> requests.Session:
-        """Create a requests session with retry strategy"""
-        session = requests.Session()
-        
-        # Configure retry strategy
-        try:
-            retry_strategy = Retry(
-                total=self.max_retries,
-                status_forcelist=[429, 500, 502, 503, 504],
-                allowed_methods=["HEAD", "GET", "POST", "OPTIONS"],
-                backoff_factor=1
-            )
-        except TypeError:
-            # Fallback for older urllib3
-            retry_strategy = Retry(
-                total=self.max_retries,
-                status_forcelist=[429, 500, 502, 503, 504],
-                method_whitelist=["HEAD", "GET", "POST", "OPTIONS"],
-                backoff_factor=1
-            )
-        
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        
-        return session
     
     def _prepare_headers(
         self, 
@@ -91,12 +67,12 @@ class ProviderAPIClient:
         context: str = ""
     ) -> Optional[Dict[str, Any]]:
         """
-        Parse JSON response using consolidated RobustHTTPClient.
+        Parse JSON response using inherited RobustHTTPClient.safe_json_parse.
         Provides comprehensive error handling including JSONP, HTML detection,
         quote fixing, and detailed logging.
         """
-        # Delegate to RobustHTTPClient for comprehensive JSON parsing
-        return http_client.safe_json_parse(
+        # Use inherited method from RobustHTTPClient with provider-prefixed context
+        return self.safe_json_parse(
             response, 
             context=f"[{self.provider_name}] {context}".strip()
         )

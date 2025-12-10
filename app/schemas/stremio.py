@@ -73,6 +73,7 @@ class Video(BaseModel):
     thumbnail: Optional[str] = None
     # Enhanced video metadata
     description: Optional[str] = None
+    released: Optional[str] = None  # ISO 8601 date for Stremio
     duration: Optional[str] = None
     broadcast_date: Optional[str] = None
     rating: Optional[str] = None

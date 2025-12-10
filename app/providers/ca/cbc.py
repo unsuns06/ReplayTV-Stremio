@@ -37,9 +37,9 @@ class CBCProvider(BaseProvider):
         self.catalog_api = f"{self.api_base}/ott/catalog/v2/gem"
         self.media_api = f"{self.api_base}/media/validation/v2"
         
-        # Initialize CBC authenticator with cache handler
+        # Initialize CBC authenticator with cache handler (lazy auth - only authenticate when needed)
         self.authenticator = CBCAuthenticator(cache_handler=cache)
-        self._authenticate_if_needed()
+        # NOTE: Authentication is now lazy - only called in get_episode_stream_url()
         
         # CBC regions for live streams
         self.live_regions = {
@@ -339,9 +339,9 @@ class CBCProvider(BaseProvider):
             return []
     
     def _get_dragons_den_episodes(self) -> List[Dict[str, Any]]:
-        """Get real Dragon's Den episodes from CBC API with optimized single call"""
+        """Get ALL Dragon's Den episodes with single optimized API call (future-proof)"""
         try:
-            logger.info("🔍 Fetching real Dragon's Den episodes from CBC API...")
+            logger.info("🔍 Fetching Dragon's Den episodes from CBC API (single call)...")
             
             # Check cache for all episodes first
             cache_key = "cbc_dragons_den_all_episodes"
@@ -352,44 +352,71 @@ class CBCProvider(BaseProvider):
             
             episodes = []
             
-            # Fetch episodes from multiple seasons
-            # Try recent seasons first, then older ones
-            seasons_to_fetch = [20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10]
-            logger.info(f"🔍 Fetching episodes from {len(seasons_to_fetch)} seasons: {seasons_to_fetch}")
+            # OPTIMIZED: Single API call - s01e01 is guaranteed to exist and returns ALL lineups
+            # Future-proof: No hardcoded season numbers - we iterate all returned lineups dynamically
+            # The API returns ALL seasons in the lineups array regardless of which episode is requested
+            api_url = f"{self.catalog_api}/show/dragons-den/s01e01?device=web&tier=Member"
             
-            for season in seasons_to_fetch:
-                try:
-                    season_episodes = self._get_season_episodes_from_api(season)
-                    if season_episodes:
-                        episodes.extend(season_episodes)
-                        logger.info(f"✅ Season {season}: {len(season_episodes)} episodes (Total: {len(episodes)})")
-                    else:
-                        logger.info(f"ℹ️ Season {season}: No episodes found")
-                except Exception as e:
-                    logger.warning(f"⚠️ Failed to get season {season}: {e}")
-                    continue
+            logger.info(f"🌍 CBC API request (single call for all seasons): {api_url}")
+            data = http_client.get_json(api_url, headers=self._get_headers_with_viewer_ip({
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Referer': 'https://gem.cbc.ca/',
+                'Origin': 'https://gem.cbc.ca',
+                'DNT': '1',
+                'Connection': 'keep-alive'
+            }))
+            
+            if data and 'content' in data and data['content']:
+                lineups = data['content'][0].get('lineups', [])
+                logger.info(f"✅ API returned {len(lineups)} seasons (lineups)")
+                
+                # Process ALL seasons dynamically (future-proof - handles any number of seasons)
+                for lineup in lineups:
+                    season_num = lineup.get('seasonNumber')
+                    if not season_num:
+                        continue
+                    
+                    items = lineup.get('items', [])
+                    season_episode_count = 0
+                    
+                    for item in items:
+                        # Skip trailers and non-episode content
+                        if item.get('mediaType') != 'Episode':
+                            continue
+                        
+                        episode_data = self._parse_episode_from_season_data(item, season_num)
+                        if episode_data:
+                            episodes.append(episode_data)
+                            season_episode_count += 1
+                    
+                    if season_episode_count > 0:
+                        logger.info(f"✅ Season {season_num}: {season_episode_count} episodes")
+            else:
+                logger.warning("⚠️ API returned no content or empty response")
             
             # Sort episodes by season and episode number
             episodes.sort(key=lambda x: (x['season'], x['episode']))
             
-            # Cache all episodes for 1 hour
+            # Cache all episodes for 2 hours
             if episodes:
-                cache.set(cache_key, episodes, ttl=3600)
+                cache.set(cache_key, episodes, ttl=7200)
                 # Count episodes by season for summary
                 season_counts = {}
                 for ep in episodes:
                     season = ep.get('season', 'Unknown')
                     season_counts[season] = season_counts.get(season, 0) + 1
                 
-                logger.info(f"✅ Found and cached {len(episodes)} total episodes from CBC API")
+                logger.info(f"✅ Found and cached {len(episodes)} total episodes from {len(season_counts)} seasons (single API call)")
                 logger.info(f"📊 Episodes by season: {dict(sorted(season_counts.items()))}")
             else:
-                logger.warning("⚠️ No episodes found from any season")
+                logger.warning("⚠️ No episodes found")
             
             return episodes
             
         except Exception as e:
-            logger.error(f"❌ Error fetching real Dragon's Den episodes: {e}")
+            logger.error(f"❌ Error fetching Dragon's Den episodes: {e}")
             return []
     
     def _get_detailed_episode_info(self, episode_url: str, season_num: int, episode_num: int, episode_title: str) -> Optional[Dict[str, Any]]:
@@ -768,10 +795,22 @@ class CBCProvider(BaseProvider):
             if 'duration' in metadata:
                 duration = metadata['duration']
             
-            # Get air date from infoTitle or metadata
+            # Get air date from infoTitle or metadata.availabilityDate
             air_date = item.get('infoTitle', '')
             if not air_date:
-                air_date = metadata.get('airDate', '')
+                air_date = metadata.get('airDate', '') or metadata.get('availabilityDate', '')
+            
+            # Extract released date for Stremio (ISO 8601 format)
+            # CBC API provides availabilityDate in YYYY-MM-DD format (e.g., "2025-09-04")
+            # Convert to ISO 8601: "2025-09-04T00:00:00.000Z"
+            released = ""
+            availability_date = metadata.get('availabilityDate', '')
+            if availability_date:
+                try:
+                    # Format: YYYY-MM-DD -> YYYY-MM-DDTHH:MM:SS.000Z
+                    released = f"{availability_date}T00:00:00.000Z"
+                except Exception:
+                    pass
             
             # Get rating from metadata
             rating = metadata.get('rating', 'PG')
@@ -825,6 +864,10 @@ class CBCProvider(BaseProvider):
                 "genres": ["Reality", "Business", "Entrepreneurship"],
                 "cbc_media_id": str(cbc_media_id)
             }
+            
+            # Only add released if we have a value (optional for Stremio)
+            if released:
+                episode_data["released"] = released
             
             logger.info(f"\u2705 Created episode S{season_num}E{episode_num} with media ID: {cbc_media_id}")
             return episode_data
@@ -1190,6 +1233,9 @@ class CBCProvider(BaseProvider):
         """Get stream URL for a CBC episode using proper CBC Gem API with caching"""
         try:
             logger.info(f"🇨🇦 Getting stream for episode: {episode_id}")
+            
+            # Lazy authentication - only authenticate when a stream is actually requested
+            self._authenticate_if_needed()
             
             # Check cache first for stream URL
             cache_key = f"cbc_stream_{episode_id}"

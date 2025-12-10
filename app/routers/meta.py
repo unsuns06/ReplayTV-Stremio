@@ -5,19 +5,15 @@ from app.schemas.stremio import MetaResponse
 from app.providers.common import ProviderFactory
 from app.utils.safe_print import safe_print
 from app.utils.programs_loader import get_programs_for_provider
+from app.config.provider_config import PROVIDER_REGISTRY, get_live_providers
 
 router = APIRouter()
 
-# Provider configuration for series metadata
-SERIES_PROVIDERS = {
-    "francetv": {"provider_name": "francetv", "display_name": "France TV", "id_prefix": "cutam:fr:francetv", "country": "fr"},
-    "mytf1": {"provider_name": "mytf1", "display_name": "TF1+", "id_prefix": "cutam:fr:mytf1", "country": "fr"},
-    "6play": {"provider_name": "6play", "display_name": "6play", "id_prefix": "cutam:fr:6play", "country": "fr"},
-    "cbc": {"provider_name": "cbc", "display_name": "CBC", "id_prefix": "cutam:ca:cbc", "country": "ca"},
-}
+# Use centralized provider registry
+SERIES_PROVIDERS = PROVIDER_REGISTRY
 
-# Providers that support live channels
-CHANNEL_PROVIDERS = ["francetv", "mytf1", "6play"]
+# Providers that support live channels (derived from registry)
+CHANNEL_PROVIDERS = get_live_providers()
 
 
 def _get_show_metadata_from_programs(provider_name: str, show_slug: str, static_base: str) -> Optional[Dict]:
@@ -42,7 +38,7 @@ def _get_show_metadata_from_programs(provider_name: str, show_slug: str, static_
 
 def _build_video_data(episode: Dict, show_meta: Dict, index: int) -> Dict:
     """Build video data dict from episode and show metadata."""
-    return {
+    video_data = {
         "id": episode["id"],
         "title": episode["title"],
         "season": episode.get("season", 1),
@@ -60,6 +56,12 @@ def _build_video_data(episode: Dict, show_meta: Dict, index: int) -> Dict:
         "program": episode.get("program", show_meta.get("name", "")),
         "type": episode.get("type", "episode")
     }
+    
+    # Only add 'released' if it exists and is non-empty (optional for Stremio)
+    if episode.get("released"):
+        video_data["released"] = episode["released"]
+    
+    return video_data
 
 
 def _build_series_meta(show_meta: Dict, id_prefix: str, videos: List[Dict]) -> Dict:

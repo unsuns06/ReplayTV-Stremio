@@ -203,7 +203,15 @@ class SixPlayProvider(BaseFrenchProvider):
             episodes = self._get_show_episodes(program_id)
             
             if episodes:
-                safe_print(f"✅ [SixPlayProvider] Found {len(episodes)} episodes for {actual_show_id}")
+                # Sort episodes by released date ascending (oldest first, newest last)
+                # Stremio expects videos sorted chronologically with newest episode having highest number
+                episodes.sort(key=lambda ep: ep.get('released', '') or ep.get('broadcast_date', '') or '')
+                
+                # Re-number episodes after sorting (1, 2, 3... with 1 being oldest)
+                for i, ep in enumerate(episodes):
+                    ep['episode'] = i + 1
+                
+                safe_print(f"✅ [SixPlayProvider] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
             else:
                 safe_print(f"⚠️ [SixPlayProvider] No episodes found for {actual_show_id}")
             
@@ -1193,10 +1201,34 @@ class SixPlayProvider(BaseFrenchProvider):
                             fanart = poster  # Use same image for both
                             break
             
-            # Get broadcast date
+            # Get broadcast date and released date from clips[0].product (nested structure)
+            # The date fields are in clips[0].product, not directly in video['product']
             broadcast_date = None
-            if 'product' in video and 'last_diffusion' in video['product']:
-                broadcast_date = video['product']['last_diffusion'][:10]  # YYYY-MM-DD format
+            released = ""
+            
+            # Try clips[0].product.first_diffusion first (most accurate air date)
+            if 'clips' in video and video['clips'] and len(video['clips']) > 0:
+                clip_product = video['clips'][0].get('product', {})
+                # first_diffusion is the original broadcast date (format: "2025-11-30 21:10:00")
+                first_diffusion = clip_product.get('first_diffusion', '')
+                if first_diffusion:
+                    broadcast_date = first_diffusion[:10]  # YYYY-MM-DD
+                    # Convert to ISO 8601 for Stremio: "2025-11-30T21:10:00.000Z"
+                    try:
+                        released = first_diffusion.replace(' ', 'T') + '.000Z'
+                    except Exception:
+                        pass
+            
+            # Fallback to top-level publication_date if clips data not available
+            # Format: "2025-12-07 23:16:57"
+            if not released and 'publication_date' in video:
+                pub_date = video.get('publication_date', '')
+                if pub_date:
+                    broadcast_date = pub_date[:10] if not broadcast_date else broadcast_date
+                    try:
+                        released = pub_date.replace(' ', 'T') + '.000Z'
+                    except Exception:
+                        pass
             
             episode_info = {
                 "id": f"cutam:fr:6play:episode:{video_id}",
@@ -1209,6 +1241,10 @@ class SixPlayProvider(BaseFrenchProvider):
                 "duration": duration,
                 "broadcast_date": broadcast_date
             }
+            
+            # Only add released if we have a value (optional for Stremio)
+            if released:
+                episode_info["released"] = released
             
             return episode_info
             

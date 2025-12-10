@@ -4,6 +4,7 @@ Metadata utility module for FranceTV replays
 Based on the reference plugin.video.catchuptvandmore implementation
 """
 
+import html
 import re
 import time
 from typing import Dict, List, Any
@@ -103,6 +104,8 @@ class FranceTVMetadataProcessor:
         if description:
             # Clean HTML tags like the reference plugin
             description = re.sub(r'<[^>]+>', '', description)
+            # Decode HTML entities like &nbsp; &amp; etc.
+            description = html.unescape(description)
             video_data['description'] = description
         
         # Broadcast date

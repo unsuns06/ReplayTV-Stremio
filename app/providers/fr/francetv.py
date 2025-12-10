@@ -4,6 +4,7 @@ France TV provider implementation
 Hybrid approach with robust error handling, fallbacks, and retry logic
 """
 
+import html
 import json
 import os
 import time
@@ -191,8 +192,9 @@ class FranceTVProvider(BaseFrenchProvider):
             channel_name = channel_id.split(":")[-1]
             safe_print(f"   Channel name: {channel_name}")
             
-            # First try to get broadcast ID from mobile API
+            # First try to get broadcast ID and current program info from mobile API
             broadcast_id = None
+            current_program_title = None
             try:
                 params = {'platform': 'apps'}
                 api_url = f"{self.api_mobile}/apps/channels/{channel_name}"
@@ -204,10 +206,16 @@ class FranceTVProvider(BaseFrenchProvider):
                     for collection in data.get('collections', []):
                         if collection.get('type') == 'live':
                             items = collection.get('items', [])
-                            if items and items[0].get('channel') and items[0]['channel'].get('si_id'):
-                                broadcast_id = items[0]['channel']['si_id']
-                                safe_print(f"   Found broadcast ID from mobile API: {broadcast_id}")
-                                break
+                            if items:
+                                # Get current program title
+                                current_program_title = items[0].get('title', '')
+                                safe_print(f"   Current program: {current_program_title}")
+                                
+                                # Get broadcast ID
+                                if items[0].get('channel') and items[0]['channel'].get('si_id'):
+                                    broadcast_id = items[0]['channel']['si_id']
+                                    safe_print(f"   Found broadcast ID from mobile API: {broadcast_id}")
+                            break
             except Exception as e:
                 safe_print(f"   Mobile API failed: {e}")
             
@@ -221,7 +229,12 @@ class FranceTVProvider(BaseFrenchProvider):
                     if data:
                         for live in data.get('result', []):
                             if live.get('channel') == channel_name:
-                                medias = live.get('collection', [{}])[0].get('content_has_medias', [])
+                                # Try to get program title from collection
+                                collections = live.get('collection', [])
+                                if collections and not current_program_title:
+                                    current_program_title = collections[0].get('title', '')
+                                
+                                medias = collections[0].get('content_has_medias', []) if collections else []
                                 for m in medias:
                                     media = m.get('media', {})
                                     if 'si_direct_id' in media:
@@ -284,11 +297,21 @@ class FranceTVProvider(BaseFrenchProvider):
                     final_url = token_data['url']
                     
                     if final_url:
+                        # Determine manifest type
                         manifest_type = 'hls' if 'hls' in video_info.get('format', []) else 'mpd'
+                        format_label = 'HLS' if manifest_type == 'hls' else 'MPD'
+                        
+                        # Build enhanced title: [FORMAT] Current Program Name
+                        # Falls back to channel name if no EPG data available
+                        if current_program_title:
+                            stream_title = f"[{format_label}] {current_program_title}"
+                        else:
+                            stream_title = f"[{format_label}] {channel_name.upper()}"
+                        
                         result = {
                             "url": final_url,
                             "manifest_type": manifest_type,
-                            "title": f"Live {channel_name.upper()}"
+                            "title": stream_title
                         }
                         safe_print(f"   ✅ Returning result: {result}")
                         return result
@@ -349,10 +372,11 @@ class FranceTVProvider(BaseFrenchProvider):
                             episodes.append(episode_info)
                 
                 if episodes:
-                    # Sort episodes chronologically by air_date (oldest first)
-                    episodes.sort(key=lambda x: x.get('air_date', '') or '')
+                    # Sort episodes chronologically by released date (oldest first, newest last)
+                    # Use 'released' for full timestamp, fallback to 'air_date' if not available
+                    episodes.sort(key=lambda x: x.get('released', '') or x.get('air_date', '') or '')
                     
-                    # Assign episode numbers based on chronological order
+                    # Assign episode numbers based on chronological order (1 = oldest, highest = newest)
                     for i, ep in enumerate(episodes, start=1):
                         ep['episode'] = i
                         ep['episode_number'] = i
@@ -394,7 +418,9 @@ class FranceTVProvider(BaseFrenchProvider):
             # Extract episode information
             episode_id = episode_data.get('id')
             title = episode_data.get('title', episode_data.get('label', 'Unknown Title'))
-            description = episode_data.get('text', episode_data.get('description', ''))
+            raw_description = episode_data.get('text', episode_data.get('description', ''))
+            # Decode HTML entities like &nbsp; in the description
+            description = html.unescape(raw_description) if raw_description else ''
             
             # Get images from the correct API structure
             poster = None
@@ -464,6 +490,22 @@ class FranceTVProvider(BaseFrenchProvider):
             if air_date and 'T' in air_date:
                 air_date = air_date.split('T')[0]  # Get just YYYY-MM-DD
             
+            # Extract first_publication_date for Stremio 'released' field
+            # Format from API: "2025-11-27T11:33:09+01:00"
+            # Format for Stremio: "2025-11-27T10:33:09.000Z" (UTC)
+            released = ""
+            first_pub_date = episode_data.get('first_publication_date', '')
+            if first_pub_date:
+                try:
+                    from datetime import datetime
+                    # Parse the datetime with timezone
+                    dt = datetime.fromisoformat(first_pub_date)
+                    # Convert to UTC and format for Stremio
+                    released = dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                except Exception:
+                    # Fallback: use the original format if parsing fails
+                    released = first_pub_date
+            
             # Create base episode metadata
             episode_meta = {
                 "id": f"cutam:fr:francetv:episode:{broadcast_id}",
@@ -474,6 +516,7 @@ class FranceTVProvider(BaseFrenchProvider):
                 "broadcast_id": broadcast_id,
                 "type": "episode",
                 "air_date": air_date,  # Used for chronological sorting
+                "released": released,  # ISO 8601 date for Stremio
                 "episode_number": episode_number,
                 "season": 1,  # All episodes in season 1
                 "episode": episode_number
