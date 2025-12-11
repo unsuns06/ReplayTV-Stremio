@@ -98,6 +98,7 @@ def _handle_channel_metadata(id: str, request: Request) -> Optional[MetaResponse
                             "name": channel["name"],
                             "logo": channel.get("logo", ""),
                             "poster": channel.get("poster", ""),
+                            "description": channel.get("description", ""),
                             "videos": []
                         }
                     )
