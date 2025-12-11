@@ -98,7 +98,6 @@ def _handle_channel_metadata(id: str, request: Request) -> Optional[MetaResponse
                             "name": channel["name"],
                             "logo": channel.get("logo", ""),
                             "poster": channel.get("poster", ""),
-                            "description": f"Live stream for {channel['name']}",
                             "videos": []
                         }
                     )
@@ -156,6 +155,9 @@ def _handle_series_metadata(
                 if provider_metadata:
                     from app.utils.metadata import metadata_processor
                     series_meta = metadata_processor.enhance_metadata_with_api(series_meta, provider_metadata)
+                    # Apply logo if extracted from API
+                    if provider_metadata.get('logo'):
+                        series_meta['logo'] = provider_metadata['logo']
             except Exception as e:
                 safe_print(f"Warning: Could not enhance series metadata: {e}")
         

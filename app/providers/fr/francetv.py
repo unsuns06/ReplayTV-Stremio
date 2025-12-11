@@ -96,6 +96,9 @@ class FranceTVProvider(BaseFrenchProvider):
                     show_metadata = metadata_processor.enhance_metadata_with_api(
                         show_metadata, api_metadata
                     )
+                    # Apply logo if extracted from API
+                    if api_metadata.get('logo'):
+                        show_metadata['logo'] = api_metadata['logo']
             except Exception as e:
                 safe_print(f"[FranceTV] Warning: Could not fetch API metadata for {show_id}: {e}")
                 # Continue with static metadata
@@ -120,11 +123,26 @@ class FranceTVProvider(BaseFrenchProvider):
             description = data.get('description', '')
             text = data.get('seo', '')  # SEO field often contains rich text
             
+            # Extract program logo from media_image patterns (type: "logo")
+            # The API returns patterns with urls for different widths: w:450, w:300, w:150
+            logo_url = None
+            for pattern in images:
+                if pattern.get('type') == 'logo' and 'urls' in pattern:
+                    pattern_urls = pattern['urls']
+                    # Prefer w:450 for higher quality, fallback to w:300 or w:150
+                    relative_url = pattern_urls.get('w:450') or pattern_urls.get('w:300') or pattern_urls.get('w:150')
+                    if relative_url and relative_url.startswith('/'):
+                        logo_url = f"https://www.france.tv{relative_url}"
+                    elif relative_url:
+                        logo_url = relative_url
+                    break
+            
             # Get additional metadata
             metadata = {
                 'images': images,
                 'description': description,
                 'text': text,
+                'logo': logo_url,
             }
             
             return metadata
@@ -133,55 +151,119 @@ class FranceTVProvider(BaseFrenchProvider):
             safe_print(f"[FranceTV] Error getting show API metadata: {e}")
             return None
     
+    def _get_channel_images(self, channel_id: str) -> Dict[str, str]:
+        """Get poster and logo images for a channel from the FranceTV API.
+        
+        Args:
+            channel_id: Channel identifier (e.g., 'france-2', 'franceinfo')
+            
+        Returns:
+            Dict with 'poster' and 'logo' URLs, or empty strings if not found
+        """
+        try:
+            api_url = f"{self.api_front}/standard/publish/taxonomies/{channel_id}"
+            params = {'platform': 'apps'}
+            
+            data = self._safe_api_call(api_url, params=params)
+            if not data:
+                return {'poster': '', 'logo': ''}
+            
+            images = data.get('media_image', {}).get('patterns', []) if 'media_image' in data else []
+            
+            poster_url = ''
+            logo_url = ''
+            
+            for pattern in images:
+                pattern_type = pattern.get('type', '')
+                pattern_urls = pattern.get('urls', {})
+                
+                # Extract vignette_3x4 (w:1024) for poster
+                if 'vignette_3x4' in pattern_type:
+                    relative_url = pattern_urls.get('w:1024') or pattern_urls.get('w:400')
+                    if relative_url and relative_url.startswith('/'):
+                        poster_url = f"https://www.france.tv{relative_url}"
+                    elif relative_url:
+                        poster_url = relative_url
+                
+                # Extract logo (w:450) for logo
+                if pattern_type == 'logo':
+                    relative_url = pattern_urls.get('w:450') or pattern_urls.get('w:300') or pattern_urls.get('w:150')
+                    if relative_url and relative_url.startswith('/'):
+                        logo_url = f"https://www.france.tv{relative_url}"
+                    elif relative_url:
+                        logo_url = relative_url
+                
+                # Break early if we have both
+                if poster_url and logo_url:
+                    break
+            
+            return {'poster': poster_url, 'logo': logo_url}
+            
+        except Exception as e:
+            safe_print(f"[FranceTV] Error getting channel images for {channel_id}: {e}")
+            return {'poster': '', 'logo': ''}
+    
     def get_live_channels(self) -> List[Dict]:
-        """Get list of live TV channels from France TV"""
+        """Get list of live TV channels from France TV with dynamic images from API"""
         channels = []
         
-        # France TV live channels (based on source addon)
-        france_channels = [
+        # France TV live channels configuration
+        channel_configs = [
             {
                 "id": "cutam:fr:francetv:france-2",
-                "type": "channel",
+                "channel_api_id": "france-2",
                 "name": "France 2",
-                "poster": get_logo_url("fr", "france2", self.request),
-                "logo": get_logo_url("fr", "france2", self.request),
+                "fallback_logo": "france2",
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:france-3",
-                "type": "channel",
+                "channel_api_id": "france-3",
                 "name": "France 3",
-                "poster": get_logo_url("fr", "france3", self.request),
-                "logo": get_logo_url("fr", "france3", self.request),
+                "fallback_logo": "france3",
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:france-4",
-                "type": "channel",
-                "name": "France 4", 
-                "poster": get_logo_url("fr", "france4", self.request),
-                "logo": get_logo_url("fr", "france4", self.request),
+                "channel_api_id": "france-4",
+                "name": "France 4",
+                "fallback_logo": "france4",
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:france-5",
-                "type": "channel",
-                "name": "France 5", 
-                "poster": get_logo_url("fr", "france5", self.request),
-                "logo": get_logo_url("fr", "france5", self.request),
+                "channel_api_id": "france-5",
+                "name": "France 5",
+                "fallback_logo": "france5",
                 "description": "Chaîne de télévision française de service public"
             },
             {
                 "id": "cutam:fr:francetv:franceinfo",
-                "type": "channel",
+                "channel_api_id": "franceinfo",
                 "name": "franceinfo:",
-                "poster": get_logo_url("fr", "franceinfo", self.request),
-                "logo": get_logo_url("fr", "franceinfo", self.request),
+                "fallback_logo": "franceinfo",
                 "description": "Chaîne d'information continue française de service public"
             }
         ]
         
-        channels.extend(france_channels)
+        for config in channel_configs:
+            # Try to get dynamic images from API
+            images = self._get_channel_images(config["channel_api_id"])
+            
+            # Use API images if available, otherwise fallback to static logos
+            fallback_url = get_logo_url("fr", config["fallback_logo"], self.request)
+            poster = images.get('poster') or fallback_url
+            logo = images.get('logo') or fallback_url
+            
+            channels.append({
+                "id": config["id"],
+                "type": "channel",
+                "name": config["name"],
+                "poster": poster,
+                "logo": logo,
+                "description": config["description"]
+            })
+        
         return channels
     
     def get_live_stream_url(self, channel_id: str) -> Optional[Dict]:
