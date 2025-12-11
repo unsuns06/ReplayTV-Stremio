@@ -194,117 +194,47 @@ class MyTF1Provider(BaseFrenchProvider):
     
 
     
-    def _get_channel_logo(self, channel_name: str) -> Optional[str]:
-        """Get channel logo from the TF1 mediainfo API.
-        
-        Args:
-            channel_name: Channel identifier (e.g., 'tf1', 'tmc')
-            
-        Returns:
-            Logo URL or None if not found
-        """
-        try:
-            # TF1 live streams use 'L_' prefix (e.g., 'L_TF1')
-            video_id = f'L_{channel_name.upper()}'
-            
-            headers = {
-                "User-Agent": get_random_windows_ua(),
-                "accept": "application/json, text/plain, */*",
-                "accept-language": "fr-FR,fr;q=0.9",
-            }
-            
-            params = {
-                'context': 'MYTF1',
-                'pver': '5029000',
-                'platform': 'web',
-                'device': 'desktop',
-                'os': 'windows',
-                'osVersion': '10.0',
-                'topDomain': 'www.tf1.fr',
-                'playerVersion': '5.29.0',
-                'productName': 'mytf1',
-                'productVersion': '3.37.0',
-                'format': 'hls'
-            }
-            
-            url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
-            
-            # Try via French proxy first for geo-restricted content
-            dest_with_params = url_json + ("?" + urlencode(params) if params else "")
-            proxy_base = self.proxy_config.get_proxy('fr_default')
-            proxied_url = proxy_base + quote(dest_with_params, safe="")
-            
-            data = self._safe_api_call(proxied_url, headers=headers, max_retries=1)
-            
-            # Fallback to direct if proxy fails
-            if not data:
-                data = self._safe_api_call(url_json, headers=headers, params=params, max_retries=1)
-            
-            if data and 'media' in data:
-                channel_logo = data['media'].get('channelLogo')
-                if channel_logo:
-                    safe_print(f"✅ [MyTF1Provider] Got channelLogo for {channel_name}: {channel_logo[:50]}...")
-                    return channel_logo
-                    
-        except Exception as e:
-            safe_print(f"⚠️ [MyTF1Provider] Error getting channel logo for {channel_name}: {e}")
-        
-        return None
-    
     def get_live_channels(self) -> List[Dict]:
-        """Get list of live TV channels from TF1+ with dynamic logos from API"""
+        """Get list of live TV channels from TF1+"""
         channels = []
         
-        # TF1+ live channels configuration
-        channel_configs = [
+        # TF1+ live channels (based on source addon)
+        tf1_channels = [
             {
                 "id": "cutam:fr:mytf1:tf1",
-                "channel_name": "tf1",
+                "type": "channel",
                 "name": "TF1",
-                "fallback_logo": "tf1",
+                "poster": get_logo_url("fr", "tf1", self.request),
+                "logo": get_logo_url("fr", "tf1", self.request),
                 "description": "Première chaîne de télévision privée française"
             },
             {
                 "id": "cutam:fr:mytf1:tmc",
-                "channel_name": "tmc",
+                "type": "channel",
                 "name": "TMC",
-                "fallback_logo": "tmc",
+                "poster": get_logo_url("fr", "tmc", self.request),
+                "logo": get_logo_url("fr", "tmc", self.request),
                 "description": "Chaîne de télévision du groupe TF1"
             },
             {
                 "id": "cutam:fr:mytf1:tfx",
-                "channel_name": "tfx",
+                "type": "channel",
                 "name": "TFX",
-                "fallback_logo": "tfx",
+                "poster": get_logo_url("fr", "tfx", self.request),
+                "logo": get_logo_url("fr", "tfx", self.request),
                 "description": "Chaîne de divertissement du groupe TF1"
             },
             {
                 "id": "cutam:fr:mytf1:tf1-series-films",
-                "channel_name": "tf1-series-films",
+                "type": "channel",
                 "name": "TF1 Séries Films",
-                "fallback_logo": "tf1seriesfilms",
+                "poster": get_logo_url("fr", "tf1seriesfilms", self.request),
+                "logo": get_logo_url("fr", "tf1seriesfilms", self.request),
                 "description": "Chaîne dédiée aux séries et films du groupe TF1"
             }
         ]
         
-        for config in channel_configs:
-            # Try to get dynamic logo from API
-            channel_logo = self._get_channel_logo(config["channel_name"])
-            
-            # Use API logo if available, otherwise fallback to static logo
-            fallback_url = get_logo_url("fr", config["fallback_logo"], self.request)
-            logo = channel_logo or fallback_url
-            poster = channel_logo or fallback_url  # Use same logo for poster
-            
-            channels.append({
-                "id": config["id"],
-                "type": "channel",
-                "name": config["name"],
-                "poster": poster,
-                "logo": logo,
-                "description": config["description"]
-            })
-        
+        channels.extend(tf1_channels)
         return channels
     
     def get_programs(self) -> List[Dict]:
