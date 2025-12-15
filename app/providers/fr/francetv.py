@@ -20,14 +20,15 @@ from app.utils.base_url import get_base_url, get_logo_url
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.api_client import ProviderAPIClient
 from app.utils.programs_loader import get_programs_for_provider
-from app.providers.fr.base_fr_provider import BaseFrenchProvider
+from app.providers.base_provider import BaseProvider
 
-class FranceTVProvider(BaseFrenchProvider):
+class FranceTVProvider(BaseProvider):
     """France TV provider implementation with robust error handling and fallbacks"""
     
     # Class attributes for BaseProvider
     provider_name = "francetv"
     base_url = "https://www.france.tv"
+    country = "fr"
     
     def __init__(self, request: Optional[Request] = None):
         # Initialize base class (handles credentials, session, proxy_config, mediaflow)
@@ -100,7 +101,7 @@ class FranceTVProvider(BaseFrenchProvider):
                     if api_metadata.get('logo'):
                         show_metadata['logo'] = api_metadata['logo']
             except Exception as e:
-                safe_print(f"[FranceTV] Warning: Could not fetch API metadata for {show_id}: {e}")
+                safe_print(f"⚠️ [FranceTV] Warning: Could not fetch API metadata for {show_id}: {e}")
                 # Continue with static metadata
             
             shows.append(show_metadata)
@@ -148,7 +149,7 @@ class FranceTVProvider(BaseFrenchProvider):
             return metadata
             
         except Exception as e:
-            safe_print(f"[FranceTV] Error getting show API metadata: {e}")
+            safe_print(f"❌ [FranceTV] Error getting show API metadata: {e}")
             return None
     
     def _get_channel_images(self, channel_id: str) -> Dict[str, str]:
@@ -200,7 +201,7 @@ class FranceTVProvider(BaseFrenchProvider):
             return {'poster': poster_url, 'logo': logo_url}
             
         except Exception as e:
-            safe_print(f"[FranceTV] Error getting channel images for {channel_id}: {e}")
+            safe_print(f"❌ [FranceTV] Error getting channel images for {channel_id}: {e}")
             return {'poster': '', 'logo': ''}
     
     def get_live_channels(self) -> List[Dict]:
@@ -268,7 +269,7 @@ class FranceTVProvider(BaseFrenchProvider):
     
     def get_live_stream_url(self, channel_id: str) -> Optional[Dict]:
         """Get live stream URL for a specific channel with robust error handling and fallbacks"""
-        safe_print(f"🔍 France TV: Getting live stream for {channel_id}")
+        safe_print(f"🔍 [FranceTV] Getting live stream for {channel_id}")
         try:
             # Extract channel name from ID (e.g., "france-2" from "cutam:fr:francetv:france-2")
             channel_name = channel_id.split(":")[-1]
@@ -299,7 +300,7 @@ class FranceTVProvider(BaseFrenchProvider):
                                     safe_print(f"   Found broadcast ID from mobile API: {broadcast_id}")
                             break
             except Exception as e:
-                safe_print(f"   Mobile API failed: {e}")
+                safe_print(f"   ⚠️ Mobile API failed: {e}")
             
             # If mobile API failed, try front API
             if not broadcast_id:
@@ -325,7 +326,7 @@ class FranceTVProvider(BaseFrenchProvider):
                                         break
                                 break
                 except Exception as e:
-                    safe_print(f"   Front API failed: {e}")
+                    safe_print(f"   ⚠️ Front API failed: {e}")
             
             # Final fallback to constants
             if not broadcast_id:
@@ -333,7 +334,7 @@ class FranceTVProvider(BaseFrenchProvider):
                 safe_print(f"   Using fallback ID: {broadcast_id}")
             
             if not broadcast_id:
-                safe_print(f"   No broadcast ID found for {channel_name}")
+                safe_print(f"   ❌ No broadcast ID found for {channel_name}")
                 return None
             
             # Get video info from API (same as reference)
@@ -463,19 +464,19 @@ class FranceTVProvider(BaseFrenchProvider):
                         ep['episode'] = i
                         ep['episode_number'] = i
                     
-                    safe_print(f"[FranceTV] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
+                    safe_print(f"✅ [FranceTV] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
                     return episodes
                 else:
-                    safe_print(f"[FranceTV] No episodes found in API response for {actual_show_id}")
+                    safe_print(f"⚠️ [FranceTV] No episodes found in API response for {actual_show_id}")
             else:
-                safe_print(f"[FranceTV] API failed or no result for {actual_show_id}")
+                safe_print(f"❌ [FranceTV] API failed or no result for {actual_show_id}")
             
             # Fallback: return a placeholder episode
-            safe_print(f"[FranceTV] Using fallback episode for {actual_show_id}")
+            safe_print(f"⚠️ [FranceTV] Using fallback episode for {actual_show_id}")
             return [self._create_fallback_episode(actual_show_id)]
                 
         except Exception as e:
-            safe_print(f"[FranceTV] Error getting show episodes: {e}")
+            safe_print(f"❌ [FranceTV] Error getting show episodes: {e}")
             # Fallback: return a placeholder episode
             return [self._create_fallback_episode(actual_show_id)]
     
@@ -610,7 +611,7 @@ class FranceTVProvider(BaseFrenchProvider):
             return episode_meta
             
         except Exception as e:
-            safe_print(f"Error parsing episode: {e}")
+            safe_print(f"❌ [FranceTV] Error parsing episode: {e}")
             return None
     
     def get_episode_stream_url(self, episode_id: str) -> Optional[Dict]:
@@ -640,7 +641,7 @@ class FranceTVProvider(BaseFrenchProvider):
                 
                 video_url = video_info.get('url')
                 if not video_url:
-                    safe_print("No video URL found")
+                    safe_print("❌ [FranceTV] No video URL found")
                     return None
                 
                 # Get the actual stream URL
@@ -661,14 +662,14 @@ class FranceTVProvider(BaseFrenchProvider):
                             "manifest_type": "hls"
                         }
                 
-                safe_print("Failed to get stream URL")
+                safe_print("❌ [FranceTV] Failed to get stream URL")
                 return None
             else:
-                safe_print(f"Failed to get video info or API failed")
+                safe_print(f"❌ [FranceTV] Failed to get video info or API failed")
                 return None
                 
         except Exception as e:
-            safe_print(f"Error getting episode stream: {e}")
+            safe_print(f"❌ [FranceTV] Error getting episode stream: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -677,7 +678,7 @@ class FranceTVProvider(BaseFrenchProvider):
         """Resolve stream URL for a given stream ID"""
         # This method needs to be implemented based on the specific stream ID format
         # For now, return None as a placeholder
-        safe_print(f"FranceTVProvider: resolve_stream not implemented for {stream_id}")
+        safe_print(f"⚠️ [FranceTV] resolve_stream not implemented for {stream_id}")
         return None
 
 def test_francetv_provider():

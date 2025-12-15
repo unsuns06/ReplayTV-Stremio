@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-08T18:43:59.506904",
+  "timestamp": "2025-12-15T16:28:11.730122",
   "provider": "cbc",
   "tests": {
     "get_programs": {
@@ -40,9 +40,10 @@
       ]
     },
     "get_episode_stream_url": {
-      "status": "WARN",
+      "status": "PASS",
       "episode_id": "cutam:ca:cbc:dragons-den:episode-10-1",
-      "note": "Stream returned None"
+      "has_url": true,
+      "manifest_type": "hls"
     }
   }
 }
