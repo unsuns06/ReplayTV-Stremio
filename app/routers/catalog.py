@@ -68,6 +68,8 @@ def _log_json_decode_details(prefix: str, exc: Exception):
         logger.error(f"Env CREDENTIALS_JSON is {env_present}")
 
 
+from app.config.provider_config import get_provider_by_catalog_id, get_live_providers
+
 @router.get("/catalog/{type}/{id}.json")
 async def get_catalog(type: str, id: str, request: Request):
     """Get catalog data with comprehensive error logging"""
@@ -81,128 +83,50 @@ async def get_catalog(type: str, id: str, request: Request):
         # Combine channels from all French providers
         all_channels = []
         
-        # France.tv channels
-        try:
-            logger.info("🇫🇷 Getting France.tv channels...")
-            francetv = ProviderFactory.create_provider("francetv", request)
-            francetv_channels = francetv.get_live_channels()
-            logger.info(f"✅ France.tv returned {len(francetv_channels)} channels")
-            all_channels.extend(francetv_channels)
-        except Exception as e:
-            logger.error(f"❌ Error getting France.tv channels: {e}")
-            _log_json_decode_details("France.tv channels:", e)
-            logger.error(f"   Error type: {type(e).__name__}")
-            logger.error("   Full traceback:")
-            logger.error(traceback.format_exc())
-            # Continue with other providers
+        # Get all live-enabled providers dynamically
+        live_provider_keys = get_live_providers()
         
-        # TF1 channels
-        try:
-            logger.info("📺 Getting TF1 channels...")
-            mytf1 = ProviderFactory.create_provider("mytf1", request)
-            mytf1_channels = mytf1.get_live_channels()
-            logger.info(f"✅ TF1 returned {len(mytf1_channels)} channels")
-            all_channels.extend(mytf1_channels)
-        except Exception as e:
-            logger.error(f"❌ Error getting TF1 channels: {e}")
-            _log_json_decode_details("TF1 channels:", e)
-            logger.error(f"   Error type: {type(e).__name__}")
-            logger.error("   Full traceback:")
-            logger.error(traceback.format_exc())
-            # Continue with other providers
-        
-        # Note: 6play live channels not currently supported (returns empty list)
+        for p_key in live_provider_keys:
+            # Skip 6play as mentioned in original code (not supported yet)
+            if p_key == "6play": 
+                continue
+                
+            try:
+                logger.info(f"📺 Getting {p_key} channels...")
+                provider = ProviderFactory.create_provider(p_key, request)
+                channels = provider.get_live_channels()
+                logger.info(f"✅ {p_key} returned {len(channels)} channels")
+                all_channels.extend(channels)
+            except Exception as e:
+                logger.error(f"❌ Error getting {p_key} channels: {e}")
+                _log_json_decode_details(f"{p_key} channels:", e)
+                # Continue with other providers
         
         logger.info(f"📊 Total channels returned: {len(all_channels)}")
         return CatalogResponse(metas=all_channels)
     
-    # Return France 2 TV show replays with enhanced metadata
-    elif type == "series" and id == "fr-francetv-replay":
-        logger.info("📺 Processing France TV replay shows request")
-        try:
-            francetv = ProviderFactory.create_provider("francetv", request)
-            shows = francetv.get_programs()
-            logger.info(f"✅ France TV returned {len(shows)} shows")
-            
-            # The provider now returns enhanced metadata, so we can use it directly
-            return CatalogResponse(metas=shows)
-            
-        except Exception as e:
-            logger.error(f"❌ Error getting France TV replay shows: {e}")
-            _log_json_decode_details("France TV replay:", e)
-            logger.error("   Full traceback:")
-            logger.error(traceback.format_exc())
-            
-            # Fallback to programs.json (single source of truth)
-            logger.info("🔄 Using fallback France TV shows from programs.json")
-            fallback_shows = _build_fallback_shows_from_programs("francetv", request)
-            return CatalogResponse(metas=fallback_shows)
-    
-    # Return TF1+ TV show replays
-    elif type == "series" and id == "fr-mytf1-replay":
-        logger.info("📺 Processing TF1+ replay shows request")
-        try:
-            mytf1 = ProviderFactory.create_provider("mytf1", request)
-            shows = mytf1.get_programs()
-            logger.info(f"✅ TF1+ returned {len(shows)} shows")
-            
-            # The provider now returns enhanced metadata, so we can use it directly
-            return CatalogResponse(metas=shows)
-            
-        except Exception as e:
-            logger.error(f"❌ Error getting TF1+ replay shows: {e}")
-            _log_json_decode_details("TF1+ replay:", e)
-            logger.error("   Full traceback:")
-            logger.error(traceback.format_exc())
-            
-            # Fallback to programs.json (single source of truth)
-            logger.info("🔄 Using fallback TF1+ shows from programs.json")
-            fallback_shows = _build_fallback_shows_from_programs("mytf1", request)
-            return CatalogResponse(metas=fallback_shows)
-    
-    # Return 6play TV show replays
-    elif type == "series" and id == "fr-6play-replay":
-        logger.info("📺 Processing 6play replay shows request")
-        try:
-            sixplay = ProviderFactory.create_provider("6play", request)
-            shows = sixplay.get_programs()
-            logger.info(f"✅ 6play returned {len(shows)} shows")
-            
-            # The provider now returns enhanced metadata, so we can use it directly
-            return CatalogResponse(metas=shows)
-            
-        except Exception as e:
-            logger.error(f"❌ Error getting 6play replay shows: {e}")
-            _log_json_decode_details("6play replay:", e)
-            logger.error("   Full traceback:")
-            logger.error(traceback.format_exc())
-            
-            # Fallback to programs.json (single source of truth)
-            logger.info("🔄 Using fallback 6play shows from programs.json")
-            fallback_shows = _build_fallback_shows_from_programs("6play", request)
-            return CatalogResponse(metas=fallback_shows)
-    
-    # Return CBC Dragon's Den series
-    elif type == "series" and id == "ca-cbc-dragons-den":
-        logger.info("📺 Processing CBC Dragon's Den request")
-        try:
-            cbc = ProviderFactory.create_provider("cbc", request)
-            shows = cbc.get_programs()
-            logger.info(f"✅ CBC returned {len(shows)} shows")
-            
-            # The provider now returns enhanced metadata, so we can use it directly
-            return CatalogResponse(metas=shows)
-            
-        except Exception as e:
-            logger.error(f"❌ Error getting CBC Dragon's Den: {e}")
-            _log_json_decode_details("CBC Dragon's Den:", e)
-            logger.error("   Full traceback:")
-            logger.error(traceback.format_exc())
-            
-            # Fallback to programs.json (single source of truth)
-            logger.info("🔄 Using fallback CBC shows from programs.json")
-            fallback_shows = _build_fallback_shows_from_programs("cbc", request)
-            return CatalogResponse(metas=fallback_shows)
+    # Handle Series Catalogs Dynamically
+    if type == "series":
+        provider_key = get_provider_by_catalog_id(id)
+        
+        if provider_key:
+            logger.info(f"📺 Processing {provider_key} catalog request: {id}")
+            try:
+                provider = ProviderFactory.create_provider(provider_key, request)
+                shows = provider.get_programs()
+                logger.info(f"✅ {provider_key} returned {len(shows)} shows")
+                return CatalogResponse(metas=shows)
+                
+            except Exception as e:
+                logger.error(f"❌ Error getting {provider_key} shows: {e}")
+                _log_json_decode_details(f"{provider_key} replay:", e)
+                logger.error("   Full traceback:")
+                logger.error(traceback.format_exc())
+                
+                # Fallback to programs.json
+                logger.info(f"🔄 Using fallback {provider_key} shows from programs.json")
+                fallback_shows = _build_fallback_shows_from_programs(provider_key, request)
+                return CatalogResponse(metas=fallback_shows)
     
     logger.warning(f"⚠️ Unknown catalog request: type={type}, id={id}")
     return CatalogResponse(metas=[])

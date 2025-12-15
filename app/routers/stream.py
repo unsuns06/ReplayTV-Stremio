@@ -128,19 +128,10 @@ def _handle_series_stream(provider_key: str, id: str, request: Request) -> Strea
         episode_id = id
         logger.info(f"🎬 Getting stream for specific episode: {episode_id}")
         
-        # CBC-specific debug logging
-        if provider_key == "cbc":
-            try:
-                debug_info = provider.debug_episode_stream(episode_id)
-                for step in debug_info.get("steps", []):
-                    logger.info(f"DEBUG: {step}")
-            except Exception:
-                pass
-        
         stream_info = provider.get_episode_stream_url(episode_id)
         
-        # Determine if we need IP headers (some providers handle it internally)
-        include_ip = provider_key in ["mytf1", "cbc"]  # Providers that need IP forwarding
+        # Determine if we need IP headers using provider property
+        include_ip = provider.needs_ip_forwarding
         
         return _build_stream_response(stream_info, provider_name, include_ip_headers=include_ip)
         

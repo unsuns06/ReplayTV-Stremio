@@ -27,6 +27,14 @@ class CBCProvider(BaseProvider):
     provider_name = "cbc"
     base_url = "https://gem.cbc.ca"
     country = "ca"
+
+    @property
+    def provider_key(self) -> str:
+        return "cbc"
+    
+    @property
+    def needs_ip_forwarding(self) -> bool:
+        return True
     
     def __init__(self, request: Optional[Request] = None):
         # Call parent class init for session, api_client, credentials

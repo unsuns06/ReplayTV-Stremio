@@ -29,6 +29,10 @@ class FranceTVProvider(BaseProvider):
     provider_name = "francetv"
     base_url = "https://www.france.tv"
     country = "fr"
+
+    @property
+    def provider_key(self) -> str:
+        return "francetv"
     
     def __init__(self, request: Optional[Request] = None):
         # Initialize base class (handles credentials, session, proxy_config, mediaflow)

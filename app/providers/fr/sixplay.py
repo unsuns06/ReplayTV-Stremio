@@ -35,6 +35,10 @@ class SixPlayProvider(BaseProvider):
     provider_name = "6play"
     base_url = "https://www.6play.fr"
     country = "fr"
+
+    @property
+    def provider_key(self) -> str:
+        return "6play"
     
     def __init__(self, request=None):
         # Initialize base class (handles credentials, session, mediaflow, proxy_config)

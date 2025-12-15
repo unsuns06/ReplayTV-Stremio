@@ -66,6 +66,20 @@ class BaseProvider(ABC):
         self._init_mediaflow()
 
     @property
+    @abstractmethod
+    def provider_key(self) -> str:
+        """Unique identifier key for the provider (e.g., 'francetv', 'cbc')."""
+        pass
+        
+    @property
+    def needs_ip_forwarding(self) -> bool:
+        """
+        Whether this provider requires client IP forwarding headers.
+        Defaults to False. Override in subclasses if True.
+        """
+        return False
+        
+    @property
     def log_prefix(self) -> str:
         """Get formatted logging prefix with provider display name."""
         display_names = {

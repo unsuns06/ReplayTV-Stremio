@@ -62,6 +62,14 @@ class MyTF1Provider(BaseProvider):
     provider_name = "mytf1"
     base_url = "https://www.tf1.fr"
     country = "fr"
+
+    @property
+    def provider_key(self) -> str:
+        return "mytf1"
+        
+    @property
+    def needs_ip_forwarding(self) -> bool:
+        return True
     
     def __init__(self, request: Optional[Request] = None):
         # Initialize base class (handles credentials, session, proxy_config, mediaflow)

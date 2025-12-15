@@ -130,27 +130,30 @@ async def log_requests_and_responses(request: Request, call_next):
         # Log the response
         process_time = (datetime.now() - start_time).total_seconds()
         logger.info(f"✅ RESPONSE: {response.status_code} in {process_time:.3f}s")
-        # Attempt to log the response content for debugging
-        try:
-            # Read the response body (works for StreamingResponse, JSONResponse, etc.)
-            if hasattr(response, "body_iterator"):
-                # For StreamingResponse, we can't access the body directly
-                logger.info("   Response Content: <streaming or generator response, not directly loggable>")
-            elif hasattr(response, "body"):
-                # For JSONResponse and similar
-                content = response.body
-                if isinstance(content, bytes):
-                    try:
-                        content_str = content.decode("utf-8")
-                    except Exception:
+        
+        # Only log response content on error (4xx, 5xx) to save memory/CPU
+        if response.status_code >= 400:
+            try:
+                # Read the response body (works for StreamingResponse, JSONResponse, etc.)
+                if hasattr(response, "body_iterator"):
+                    # For StreamingResponse, we can't access the body directly
+                    logger.info("   Response Content: <streaming or generator response, not directly loggable>")
+                elif hasattr(response, "body"):
+                    # For JSONResponse and similar
+                    content = response.body
+                    if isinstance(content, bytes):
+                        try:
+                            content_str = content.decode("utf-8")
+                        except Exception:
+                            content_str = str(content)
+                    else:
                         content_str = str(content)
+                    # Truncate to 500 chars
+                    logger.info(f"   Response Content: {content_str[:500]}{'...' if len(content_str) > 500 else ''}")
                 else:
-                    content_str = str(content)
-                logger.info(f"   Response Content: {content_str[:2000]}{'...' if len(content_str) > 2000 else ''}")
-            else:
-                logger.info("   Response Content: <unknown response type>")
-        except Exception as e:
-            logger.error(f"   Could not log response content: {e}")
+                    logger.info("   Response Content: <unknown response type>")
+            except Exception as e:
+                logger.error(f"   Could not log response content: {e}")
         
         return response
         
