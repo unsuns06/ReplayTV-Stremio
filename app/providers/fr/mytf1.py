@@ -62,6 +62,13 @@ class MyTF1Provider(BaseProvider):
     provider_name = "mytf1"
     base_url = "https://www.tf1.fr"
     country = "fr"
+    
+    # Metadata
+    display_name = "TF1+"
+    id_prefix = "cutam:fr:mytf1"
+    episode_marker = "episode:"
+    catalog_id = "fr-mytf1-replay"
+    supports_live = True
 
     @property
     def provider_key(self) -> str:

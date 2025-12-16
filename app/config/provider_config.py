@@ -1,50 +1,30 @@
 """
 Centralized provider configuration registry.
 Eliminates duplicate provider configuration across routers.
+Dyanmically built from the provider registry to ensure single source of truth.
 """
 
 from typing import Dict, List, Any, Optional
+from app.providers.registry import PROVIDER_CLASSES
 
 
-# Centralized provider registry - single source of truth
-PROVIDER_REGISTRY: Dict[str, Dict[str, Any]] = {
-    "francetv": {
-        "provider_name": "francetv",
-        "display_name": "France TV",
-        "id_prefix": "cutam:fr:francetv",
-        "country": "fr",
-        "episode_marker": "episode:",
-        "catalog_id": "fr-francetv-replay",
-        "supports_live": True,
-    },
-    "mytf1": {
-        "provider_name": "mytf1",
-        "display_name": "TF1+",
-        "id_prefix": "cutam:fr:mytf1",
-        "country": "fr",
-        "episode_marker": "episode:",
-        "catalog_id": "fr-mytf1-replay",
-        "supports_live": True,
-    },
-    "6play": {
-        "provider_name": "6play",
-        "display_name": "6play",
-        "id_prefix": "cutam:fr:6play",
-        "country": "fr",
-        "episode_marker": "episode:",
-        "catalog_id": "fr-6play-replay",
-        "supports_live": False,
-    },
-    "cbc": {
-        "provider_name": "cbc",
-        "display_name": "CBC",
-        "id_prefix": "cutam:ca:cbc",
-        "country": "ca",
-        "episode_marker": "episode-",
-        "catalog_id": "ca-cbc-dragons-den",
-        "supports_live": False,
-    },
-}
+def _build_registry() -> Dict[str, Dict[str, Any]]:
+    """Build the provider registry from registered classes."""
+    registry = {}
+    for key, cls in PROVIDER_CLASSES.items():
+        registry[key] = {
+            "provider_name": cls.provider_name,
+            "display_name": cls.display_name,
+            "id_prefix": cls.id_prefix,
+            "country": cls.country,
+            "episode_marker": cls.episode_marker,
+            "catalog_id": cls.catalog_id,
+            "supports_live": cls.supports_live,
+        }
+    return registry
+
+# Centralized provider registry - single source of truth (Dynamically Built)
+PROVIDER_REGISTRY: Dict[str, Dict[str, Any]] = _build_registry()
 
 
 def get_provider_config(provider_key: str) -> Optional[Dict[str, Any]]:

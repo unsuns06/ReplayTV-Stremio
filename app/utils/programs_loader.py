@@ -9,10 +9,7 @@ import json
 import os
 from typing import Dict, List, Optional
 from app.utils.safe_print import safe_print
-
-
-# Cache for loaded programs
-_programs_cache: Optional[Dict] = None
+from app.utils.cache import cache
 
 
 def _get_programs_file_path() -> str:
@@ -24,17 +21,17 @@ def _get_programs_file_path() -> str:
 
 def _load_programs() -> Dict:
     """Load programs from JSON file with caching."""
-    global _programs_cache
-    
-    if _programs_cache is not None:
-        return _programs_cache
+    cached_data = cache.get("programs_data")
+    if cached_data:
+        return cached_data
     
     file_path = _get_programs_file_path()
     
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            _programs_cache = data
+            # Cache for 1 hour
+            cache.set("programs_data", data, ttl=3600)
             safe_print(f"✅ [ProgramsLoader] Loaded {len(data.get('shows', []))} shows from programs.json")
             return data
     except FileNotFoundError:
@@ -109,6 +106,5 @@ def get_all_programs() -> List[Dict]:
 
 def reload_programs() -> None:
     """Force reload of programs.json (clears cache)."""
-    global _programs_cache
-    _programs_cache = None
+    cache.delete("programs_data")
     safe_print("🔄 [ProgramsLoader] Programs cache cleared")

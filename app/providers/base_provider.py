@@ -33,6 +33,13 @@ class BaseProvider(ABC):
     base_url: str = ""
     country: str = ""
     
+    # Metadata Configuration (Subclasses must override)
+    display_name: str = "Unknown Provider"
+    id_prefix: str = ""
+    episode_marker: str = "episode:"
+    catalog_id: str = ""
+    supports_live: bool = False
+    
     def __init__(self, request=None):
         """
         Initialize base provider.

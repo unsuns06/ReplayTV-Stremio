@@ -29,6 +29,13 @@ class FranceTVProvider(BaseProvider):
     provider_name = "francetv"
     base_url = "https://www.france.tv"
     country = "fr"
+    
+    # Metadata
+    display_name = "France TV"
+    id_prefix = "cutam:fr:francetv"
+    episode_marker = "episode:"
+    catalog_id = "fr-francetv-replay"
+    supports_live = True
 
     @property
     def provider_key(self) -> str:

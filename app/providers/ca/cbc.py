@@ -27,6 +27,13 @@ class CBCProvider(BaseProvider):
     provider_name = "cbc"
     base_url = "https://gem.cbc.ca"
     country = "ca"
+    
+    # Metadata
+    display_name = "CBC"
+    id_prefix = "cutam:ca:cbc"
+    episode_marker = "episode-"
+    catalog_id = "ca-cbc-dragons-den"
+    supports_live = False
 
     @property
     def provider_key(self) -> str:

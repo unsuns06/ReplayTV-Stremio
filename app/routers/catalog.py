@@ -80,27 +80,37 @@ async def get_catalog(type: str, id: str, request: Request):
     # Get live TV channels
     if type == "channel" and id == "fr-live":
         logger.info("📺 Processing live TV channels request")
-        # Combine channels from all French providers
-        all_channels = []
-        
+        import asyncio
+        from starlette.concurrency import run_in_threadpool
+
         # Get all live-enabled providers dynamically
         live_provider_keys = get_live_providers()
         
-        for p_key in live_provider_keys:
+        async def fetch_provider_channels(p_key: str):
             # Skip 6play as mentioned in original code (not supported yet)
             if p_key == "6play": 
-                continue
-                
+                return []
+            
             try:
                 logger.info(f"📺 Getting {p_key} channels...")
                 provider = ProviderFactory.create_provider(p_key, request)
-                channels = provider.get_live_channels()
+                # Run blocking I/O in thread pool
+                channels = await run_in_threadpool(provider.get_live_channels)
                 logger.info(f"✅ {p_key} returned {len(channels)} channels")
-                all_channels.extend(channels)
+                return channels
             except Exception as e:
                 logger.error(f"❌ Error getting {p_key} channels: {e}")
                 _log_json_decode_details(f"{p_key} channels:", e)
-                # Continue with other providers
+                return []
+
+        # Create tasks for all providers
+        tasks = [fetch_provider_channels(key) for key in live_provider_keys]
+        
+        # Run in parallel
+        results = await asyncio.gather(*tasks)
+        
+        # Flatten results
+        all_channels = [channel for result in results for channel in result]
         
         logger.info(f"📊 Total channels returned: {len(all_channels)}")
         return CatalogResponse(metas=all_channels)

@@ -35,6 +35,13 @@ class SixPlayProvider(BaseProvider):
     provider_name = "6play"
     base_url = "https://www.6play.fr"
     country = "fr"
+    
+    # Metadata
+    display_name = "6play"
+    id_prefix = "cutam:fr:6play"
+    episode_marker = "episode:"
+    catalog_id = "fr-6play-replay"
+    supports_live = False
 
     @property
     def provider_key(self) -> str:
