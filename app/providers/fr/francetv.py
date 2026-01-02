@@ -8,6 +8,7 @@ import html
 import json
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 from urllib.parse import urlencode, quote
 from fastapi import Request
@@ -89,9 +90,24 @@ class FranceTVProvider(BaseProvider):
         return self.api_client.get(url, params=params, headers=headers, max_retries=max_retries)
     
     def get_programs(self) -> List[Dict]:
-        """Get list of replay shows with enhanced metadata"""
+        """Get list of replay shows with enhanced metadata (parallel API fetching)"""
         shows = []
         
+        def fetch_api_metadata(item):
+            """Fetch API metadata for a single show."""
+            show_id, show_info = item
+            api_show_id = show_info.get('api_id') or show_info.get('id', show_id)
+            try:
+                return (show_id, self._get_show_api_metadata(api_show_id))
+            except Exception as e:
+                safe_print(f"⚠️ [FranceTV] Warning: Could not fetch API metadata for {show_id}: {e}")
+                return (show_id, None)
+        
+        # Fetch all API metadata in parallel
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            api_results = dict(executor.map(fetch_api_metadata, self.shows.items()))
+        
+        # Build shows using fetched metadata
         for show_id, show_info in self.shows.items():
             # Get base metadata from our enhanced show info
             show_metadata = metadata_processor.get_show_metadata(
@@ -99,21 +115,15 @@ class FranceTVProvider(BaseProvider):
                 show_info
             )
             
-            # Try to get additional metadata from France TV API with fallback
-            # Use api_id if available (for composite IDs like france-2_envoye-special), otherwise fall back to id
-            api_show_id = show_info.get('api_id') or show_info.get('id', show_id)
-            try:
-                api_metadata = self._get_show_api_metadata(api_show_id)
-                if api_metadata:
-                    show_metadata = metadata_processor.enhance_metadata_with_api(
-                        show_metadata, api_metadata
-                    )
-                    # Apply logo if extracted from API
-                    if api_metadata.get('logo'):
-                        show_metadata['logo'] = api_metadata['logo']
-            except Exception as e:
-                safe_print(f"⚠️ [FranceTV] Warning: Could not fetch API metadata for {show_id}: {e}")
-                # Continue with static metadata
+            # Apply API metadata if available
+            api_metadata = api_results.get(show_id)
+            if api_metadata:
+                show_metadata = metadata_processor.enhance_metadata_with_api(
+                    show_metadata, api_metadata
+                )
+                # Apply logo if extracted from API
+                if api_metadata.get('logo'):
+                    show_metadata['logo'] = api_metadata['logo']
             
             shows.append(show_metadata)
         
@@ -216,7 +226,7 @@ class FranceTVProvider(BaseProvider):
             return {'poster': '', 'logo': ''}
     
     def get_live_channels(self) -> List[Dict]:
-        """Get list of live TV channels from France TV with dynamic images from API"""
+        """Get list of live TV channels from France TV with dynamic images from API (parallel fetching)"""
         channels = []
         
         # France TV live channels configuration
@@ -258,9 +268,17 @@ class FranceTVProvider(BaseProvider):
             }
         ]
         
+        def fetch_images(cfg):
+            """Fetch images for a single channel."""
+            return (cfg["id"], self._get_channel_images(cfg["channel_api_id"]))
+        
+        # Fetch all channel images in parallel
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            image_results = dict(executor.map(fetch_images, channel_configs))
+        
+        # Build channels using fetched images (preserving original order)
         for config in channel_configs:
-            # Try to get dynamic images from API
-            images = self._get_channel_images(config["channel_api_id"])
+            images = image_results.get(config["id"], {})
             
             # Use API images if available, otherwise fallback to static logos
             fallback_url = get_logo_url("fr", config["fallback_logo"], self.request)

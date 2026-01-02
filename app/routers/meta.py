@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Request
+import asyncio
 import os
+from starlette.concurrency import run_in_threadpool
 from typing import Dict, List, Optional, Any
 from app.schemas.stremio import MetaResponse
 from app.providers.common import ProviderFactory
@@ -82,28 +84,39 @@ def _build_series_meta(show_meta: Dict, id_prefix: str, videos: List[Dict]) -> D
     }
 
 
-def _handle_channel_metadata(id: str, request: Request) -> Optional[MetaResponse]:
-    """Search for channel metadata across all channel providers."""
-    for provider_key in CHANNEL_PROVIDERS:
+async def _handle_channel_metadata(id: str, request: Request) -> Optional[MetaResponse]:
+    """Search for channel metadata across all channel providers in parallel."""
+    
+    async def fetch_from_provider(provider_key: str):
+        """Fetch channels from a single provider and find matching channel."""
         try:
             provider = ProviderFactory.create_provider(provider_key, request)
-            channels = provider.get_live_channels()
-            
+            channels = await run_in_threadpool(provider.get_live_channels)
             for channel in channels:
                 if channel["id"] == id:
-                    return MetaResponse(
-                        meta={
-                            "id": channel["id"],
-                            "type": "channel",
-                            "name": channel["name"],
-                            "logo": channel.get("logo", ""),
-                            "poster": channel.get("poster", ""),
-                            "description": channel.get("description", ""),
-                            "videos": []
-                        }
-                    )
+                    return channel
         except Exception as e:
             safe_print(f"Error getting {provider_key} channel metadata: {e}")
+        return None
+
+    # Run all provider fetches in parallel
+    tasks = [fetch_from_provider(key) for key in CHANNEL_PROVIDERS]
+    results = await asyncio.gather(*tasks)
+
+    # Return first matching result
+    for result in results:
+        if result:
+            return MetaResponse(
+                meta={
+                    "id": result["id"],
+                    "type": "channel",
+                    "name": result["name"],
+                    "logo": result.get("logo", ""),
+                    "poster": result.get("poster", ""),
+                    "description": result.get("description", ""),
+                    "videos": []
+                }
+            )
     
     return None
 
@@ -184,7 +197,7 @@ async def get_meta(type: str, id: str, request: Request):
     
     # Handle live TV channel metadata
     if type == "channel":
-        result = _handle_channel_metadata(id, request)
+        result = await _handle_channel_metadata(id, request)
         if result:
             return result
         return MetaResponse(meta={})

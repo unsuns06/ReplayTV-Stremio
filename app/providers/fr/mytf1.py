@@ -22,6 +22,7 @@ import requests
 import time
 import os
 from urllib.parse import urlencode, quote, unquote
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 from fastapi import Request
 from app.utils.credentials import get_provider_credentials, load_credentials
@@ -254,14 +255,26 @@ class MyTF1Provider(BaseProvider):
         return channels
     
     def get_programs(self) -> List[Dict]:
-        """Get list of TF1+ replay shows with enhanced metadata and fallbacks"""
+        """Get list of TF1+ replay shows with enhanced metadata and fallbacks (parallel fetching)"""
         shows = []
         
+        def fetch_metadata(item):
+            """Fetch metadata for a single show."""
+            show_id, show_info = item
+            try:
+                metadata = self._get_show_api_metadata(show_id, show_info)
+                return (show_id, show_info, metadata)
+            except Exception as e:
+                safe_print(f"⚠️ [MyTF1] Warning: Could not fetch metadata for {show_id}: {e}")
+                return (show_id, show_info, {})
+        
         try:
-            # Fetch show metadata from TF1+ API with fallback
-            for show_id, show_info in self.shows.items():
-                show_metadata = self._get_show_api_metadata(show_id, show_info)
-                
+            # Fetch all show metadata in parallel
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                results = list(executor.map(fetch_metadata, self.shows.items()))
+            
+            # Build shows from parallel results
+            for show_id, show_info, show_metadata in results:
                 shows.append({
                     "id": f"cutam:fr:mytf1:{show_id}",
                     "type": "series",
@@ -270,7 +283,7 @@ class MyTF1Provider(BaseProvider):
                     "logo": show_metadata.get("logo", get_logo_url("fr", "tf1", self.request)),
                     "poster": show_metadata.get("poster", get_logo_url("fr", "tf1", self.request)),
                     "fanart": show_metadata.get("fanart"),
-                    "background": show_info.get("background", ""),  # Background image from programs.json
+                    "background": show_info.get("background", ""),
                     "genres": show_info["genres"],
                     "channel": show_info["channel"],
                     "year": show_info["year"],
@@ -287,7 +300,7 @@ class MyTF1Provider(BaseProvider):
                     "description": show_info["description"],
                     "logo": get_logo_url("fr", "tf1", self.request),
                     "poster": get_logo_url("fr", "tf1", self.request),
-                    "background": show_info.get("background", ""),  # Background image from programs.json
+                    "background": show_info.get("background", ""),
                     "genres": show_info["genres"],
                     "channel": show_info["channel"],
                     "year": show_info["year"],

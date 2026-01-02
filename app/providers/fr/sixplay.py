@@ -12,6 +12,7 @@ import random
 import uuid
 import os
 import base64
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials, load_credentials
 from app.auth.sixplay_auth import SixPlayAuth
@@ -138,14 +139,27 @@ class SixPlayProvider(BaseProvider):
 
 
     def get_programs(self) -> List[Dict]:
-        """Get list of 6play replay shows with enhanced metadata"""
+        """Get list of 6play replay shows with enhanced metadata (parallel fetching)"""
         shows = []
         
         # Load shows from external programs.json
         self.shows = get_programs_for_provider('6play')
         
+        def fetch_api_metadata(item):
+            """Fetch API metadata for a single show."""
+            show_id, show_info = item
+            try:
+                return (show_id, self._get_show_api_metadata(show_id, show_info))
+            except Exception as e:
+                safe_print(f"⚠️ [SixPlay] Warning: Could not fetch API metadata for {show_id}: {e}")
+                return (show_id, None)
+        
         try:
-            # Process each show with proper poster and logo handling
+            # Fetch all API metadata in parallel
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                api_results = dict(executor.map(fetch_api_metadata, self.shows.items()))
+            
+            # Build shows using fetched metadata
             for show_id, show_info in self.shows.items():
                 # Create base metadata with the specific poster and logo URLs already set
                 show_metadata = {
@@ -157,21 +171,15 @@ class SixPlayProvider(BaseProvider):
                     'genres': show_info['genres'],
                     'year': show_info['year'],
                     'rating': show_info['rating'],
-                    'logo': show_info['logo'],  # Use the specific logo URL
-                    'poster': show_info['poster'],  # Use the specific poster URL
-                    'background': show_info.get('background', '')  # Background image from programs.json
+                    'logo': show_info['logo'],
+                    'poster': show_info['poster'],
+                    'background': show_info.get('background', '')
                 }
                 
-                # Try to get additional metadata from 6play API (but preserve our poster and logo)
-                try:
-                    api_metadata = self._get_show_api_metadata(show_id, show_info)
-                    if api_metadata:
-                        # Only update fanart from API, keep our specific poster and logo
-                        if 'fanart' in api_metadata:
-                            show_metadata['fanart'] = api_metadata['fanart']
-                        # Note: We don't override poster or logo from API to keep our specific URLs
-                except Exception as e:
-                    safe_print(f"⚠️ [SixPlay] Warning: Could not fetch API metadata for {show_id}: {e}")
+                # Apply API metadata if available (only fanart, preserve poster and logo)
+                api_metadata = api_results.get(show_id)
+                if api_metadata and 'fanart' in api_metadata:
+                    show_metadata['fanart'] = api_metadata['fanart']
                 
                 shows.append(show_metadata)
         except Exception as e:
@@ -187,9 +195,9 @@ class SixPlayProvider(BaseProvider):
                     'genres': show_info['genres'],
                     'year': show_info['year'],
                     'rating': show_info['rating'],
-                    'logo': show_info['logo'],  # Use the specific logo URL
-                    'poster': show_info['poster'],  # Use the specific poster URL
-                    'background': show_info.get('background', '')  # Background image from programs.json
+                    'logo': show_info['logo'],
+                    'poster': show_info['poster'],
+                    'background': show_info.get('background', '')
                 }
                 shows.append(show_metadata)
         
