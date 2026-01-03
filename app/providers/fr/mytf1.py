@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
-"""
-MyTF1 provider implementation
-Hybrid approach with robust error handling, fallbacks, and retry logic
-
-FIXED: French proxy authentication issue
-- Direct requests work with authentication and return 200 + stream URLs
-- French proxy returns 403 even with proper authentication headers
-- ROOT CAUSE: French proxy strips critical headers (Authorization, X-Forwarded-For, etc.)
-- Solution: Try proxy first, but fallback to direct calls when proxy returns non-200 delivery codes
-- This maintains geo-restriction bypass while ensuring authentication works
-
-PROXY LIMITATIONS DISCOVERED:
-- Only forwards: User-Agent, Accept (but modifies values)
-- STRIPS: Authorization, X-Forwarded-For, Referer, Origin, Security headers
-- This explains why authentication fails through proxy
-- Direct calls work perfectly with full header set
-"""
+"""MyTF1 provider - handles TF1+ live and replay streaming with proxy fallback and DRM support."""
 
 import json
 import requests
@@ -36,25 +20,6 @@ from app.utils.api_client import ProviderAPIClient
 from app.utils.programs_loader import get_programs_for_provider
 from app.providers.base_provider import BaseProvider
 
-
-
-def force_decode_tf1_replay_url(original_url: str) -> str:
-    """
-    Force decode TF1 replay URLs to prevent double-encoding issues when routing through proxy.
-    
-    This is critical for TF1 replay content as the mediainfo URLs often contain encoded parameters
-    that need to be properly decoded before being passed through the French IP proxy.
-    
-    Args:
-        original_url (str): The original URL with potential encoding
-        
-    Returns:
-        str: The force-decoded URL ready for proxy routing
-    """
-    safe_print(f"✅ [MyTF1] URL Decoder: Original URL: {original_url}")
-    decoded_url = unquote(original_url)
-    safe_print(f"✅ [MyTF1] URL Decoder: Force-decoded URL: {decoded_url}")
-    return decoded_url
 
 class MyTF1Provider(BaseProvider):
     """MyTF1 provider implementation with robust error handling and fallbacks"""
@@ -121,6 +86,140 @@ class MyTF1Provider(BaseProvider):
         if method.upper() == 'POST':
             return self.api_client.post(url, params=params, headers=merged_headers, data=data, max_retries=max_retries)
         return self.api_client.get(url, params=params, headers=merged_headers, max_retries=max_retries)
+    
+    def _build_stream_headers(self, include_auth: bool = True) -> Dict:
+        """Build common headers for video stream requests."""
+        headers = {
+            "User-Agent": get_random_windows_ua(),
+            "referer": self.base_url,
+            "origin": self.base_url,
+            "accept-language": "fr-FR,fr;q=0.9,en;q=0.8,en-US;q=0.7",
+            "accept": "application/json, text/plain, */*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Charset": "UTF-8,*;q=0.5",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "Sec-GPC": "1",
+            "DNT": "1",
+            "Upgrade-Insecure-Requests": "1",
+        }
+        if include_auth and self.auth_token:
+            headers["authorization"] = f"Bearer {self.auth_token}"
+        return headers
+
+    def _fetch_with_proxy_fallback(self, url: str, params: Dict, headers: Dict, stream_type: str = "stream") -> Optional[Dict]:
+        """Fetch URL trying proxy first, then direct as fallback."""
+        dest_with_params = url + ("?" + urlencode(params) if params else "")
+        proxy_base = self.proxy_config.get_proxy('fr_default')
+        proxied_url = proxy_base + quote(dest_with_params, safe="")
+        
+        safe_print(f"✅ [MyTF1] Trying TF1 {stream_type} through French proxy: {proxy_base[:50]}...")
+        data_try = self._safe_api_call(proxied_url, headers=headers, max_retries=2)
+        safe_print(f"✅ *** FINAL PROXY URL ({stream_type}): {proxied_url}")
+        
+        if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
+            delivery_country = data_try.get('delivery', {}).get('country', 'UNKNOWN')
+            delivery_code = data_try.get('delivery', {}).get('code', 500)
+            if delivery_country != 'US' and delivery_code == 200:
+                safe_print(f"✅ [MyTF1] French proxy successful for {stream_type} - Country: {delivery_country}, Code: {delivery_code}")
+                return data_try
+            safe_print(f"❌ [MyTF1] Proxy returned code {delivery_code} or US country - trying direct")
+        else:
+            safe_print(f"❌ [MyTF1] French proxy failed for {stream_type}")
+        
+        safe_print(f"✅ [MyTF1] Making DIRECT request: {url}")
+        safe_print(f"✅ *** FINAL DIRECT URL ({stream_type}): {url}")
+        return self._safe_api_call(url, headers=headers, params=params)
+
+    def _extract_drm_info(self, delivery: Dict, video_id: str) -> tuple:
+        """Extract DRM license URL and headers from delivery response."""
+        license_url = None
+        license_headers = {}
+        
+        if 'drms' in delivery and delivery['drms']:
+            drm_info = delivery['drms'][0]
+            safe_print(f"✅ [MyTF1] DRM Info found: {drm_info}")
+            license_url = drm_info.get('url')
+            if not license_url:
+                safe_print("❌ [MyTF1] No license URL in DRM info, using fallback")
+                license_url = self.license_base_url % video_id
+            else:
+                safe_print(f"✅ [MyTF1] License URL from DRM: {license_url}")
+            for header_item in drm_info.get('h', []):
+                header_key = header_item.get('k')
+                header_value = header_item.get('v')
+                if header_key and header_value:
+                    license_headers[header_key] = header_value
+                    safe_print(f"✅ [MyTF1] DRM Header: {header_key} = {header_value}")
+        else:
+            safe_print("❌ [MyTF1] No DRM info found, using fallback license URL")
+            license_url = self.license_base_url % video_id
+        
+        return license_url, license_headers
+
+    def _check_processed_file_locations(self, episode_id: str) -> Optional[Dict]:
+        """Check if a processed DRM-free file exists in RD folder or processor URL."""
+        proxy_config = get_proxy_config()
+        processor_url = proxy_config.get_proxy('nm3u8_processor')
+        if not processor_url:
+            safe_print("❌ [MyTF1] ERROR: nm3u8_processor not configured in credentials.json")
+            return None
+
+        safe_print(f"✅ [MyTF1] Using processor API: {processor_url}")
+        processed_filename = f"{episode_id}.mp4"
+        safe_print(f"✅ [MyTF1] Looking for processed file: {processed_filename}")
+
+        # Check Real-Debrid folder first
+        try:
+            safe_print("✅ [MyTF1] Loading credentials for Real-Debrid check...")
+            all_creds = load_credentials()
+            safe_print(f"✅ [MyTF1] Credentials loaded. Keys: {list(all_creds.keys())}")
+            rd_folder = all_creds.get('realdebridfolder')
+            safe_print(f"✅ [MyTF1] Real-Debrid folder from credentials: {rd_folder}")
+
+            if rd_folder:
+                safe_print(f"✅ [MyTF1] Checking if '{processed_filename}' is listed in RD folder...")
+                rd_headers = {
+                    'User-Agent': get_random_windows_ua(),
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8', 'Accept-Encoding': 'gzip, deflate, br',
+                    'DNT': '1', 'Connection': 'keep-alive', 'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none', 'Cache-Control': 'max-age=0'
+                }
+                try:
+                    folder_response = requests.get(rd_folder, headers=rd_headers, timeout=10)
+                    safe_print(f"✅ [MyTF1] RD Folder HTTP Status: {folder_response.status_code}")
+                    if folder_response.status_code == 200 and processed_filename in folder_response.text:
+                        rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
+                        safe_print(f"✅ [MyTF1] File '{processed_filename}' found in RD folder listing!")
+                        safe_print(f"✅ [MyTF1] Returning RD URL: {rd_file_url}")
+                        return {"url": rd_file_url, "manifest_type": "video", "title": "✅ [RD] DRM-Free Video", "filename": processed_filename}
+                    safe_print(f"⚠️ [MyTF1] File not found in RD folder, checking processor_url...")
+                except Exception as e:
+                    safe_print(f"⚠️ [MyTF1] RD folder request error: {e}, checking processor_url...")
+            else:
+                safe_print("⚠️ [MyTF1] Real-Debrid folder not configured, checking processor_url...")
+        except Exception as e:
+            safe_print(f"❌ [MyTF1] Error checking Real-Debrid: {e}")
+
+        # Check processor_url location
+        processed_url = f"{processor_url}/stream/{processed_filename}"
+        safe_print(f"✅ [MyTF1] Checking processor_url location: {processed_url}")
+        try:
+            check_response = requests.head(processed_url, timeout=5)
+            safe_print(f"✅ [MyTF1] PROCESSOR URL HTTP Status: {check_response.status_code}")
+            if check_response.status_code == 200:
+                safe_print(f"✅ [MyTF1] Processed file already exists: {processed_url}")
+                return {"url": processed_url, "manifest_type": "video", "title": "✅ DRM-Free Video", "filename": processed_filename}
+            safe_print(f"⚠️ [MyTF1] PROCESSOR URL file not found (HTTP {check_response.status_code})")
+        except Exception as e:
+            safe_print(f"⚠️ [MyTF1] Error checking processor_url: {e}")
+
+        return None  # No processed file found
     
     def _authenticate(self) -> bool:
         """Authenticate with TF1+ using provided credentials with robust error handling"""
@@ -208,51 +307,18 @@ class MyTF1Provider(BaseProvider):
             safe_print(f"❌ [MyTF1] Error during MyTF1 authentication: {e}")
         
         return False
-    
 
-    
     def get_live_channels(self) -> List[Dict]:
         """Get list of live TV channels from TF1+"""
-        channels = []
-        
-        # TF1+ live channels (based on source addon)
-        tf1_channels = [
-            {
-                "id": "cutam:fr:mytf1:tf1",
-                "type": "channel",
-                "name": "TF1",
-                "poster": get_logo_url("fr", "tf1", self.request),
-                "logo": get_logo_url("fr", "tf1", self.request),
-                "description": "Première chaîne de télévision privée française"
-            },
-            {
-                "id": "cutam:fr:mytf1:tmc",
-                "type": "channel",
-                "name": "TMC",
-                "poster": get_logo_url("fr", "tmc", self.request),
-                "logo": get_logo_url("fr", "tmc", self.request),
-                "description": "Chaîne de télévision du groupe TF1"
-            },
-            {
-                "id": "cutam:fr:mytf1:tfx",
-                "type": "channel",
-                "name": "TFX",
-                "poster": get_logo_url("fr", "tfx", self.request),
-                "logo": get_logo_url("fr", "tfx", self.request),
-                "description": "Chaîne de divertissement du groupe TF1"
-            },
-            {
-                "id": "cutam:fr:mytf1:tf1-series-films",
-                "type": "channel",
-                "name": "TF1 Séries Films",
-                "poster": get_logo_url("fr", "tf1seriesfilms", self.request),
-                "logo": get_logo_url("fr", "tf1seriesfilms", self.request),
-                "description": "Chaîne dédiée aux séries et films du groupe TF1"
-            }
+        def ch(name, slug, desc):
+            logo = get_logo_url("fr", slug, self.request)
+            return {"id": f"cutam:fr:mytf1:{slug}", "type": "channel", "name": name, "poster": logo, "logo": logo, "description": desc}
+        return [
+            ch("TF1", "tf1", "Première chaîne de télévision privée française"),
+            ch("TMC", "tmc", "Chaîne de télévision du groupe TF1"),
+            ch("TFX", "tfx", "Chaîne de divertissement du groupe TF1"),
+            ch("TF1 Séries Films", "tf1-series-films", "Chaîne dédiée aux séries et films du groupe TF1"),
         ]
-        
-        channels.extend(tf1_channels)
-        return channels
     
     def get_programs(self) -> List[Dict]:
         """Get list of TF1+ replay shows with enhanced metadata and fallbacks (parallel fetching)"""
@@ -548,128 +614,28 @@ class MyTF1Provider(BaseProvider):
     
     def get_channel_stream_url(self, channel_id: str) -> Optional[Dict]:
         """Get stream URL for a specific channel with robust error handling and fallbacks"""
-        # Extract the actual channel name from our ID format
-        channel_name = channel_id.split(":")[-1]  # e.g., "tf1"
+        channel_name = channel_id.split(":")[-1]
 
         try:
             safe_print(f"✅ [MyTF1] Getting stream for channel: {channel_name}")
-
-            # Lazy authentication - only authenticate when needed
             safe_print("✅ [MyTF1] Checking authentication...")
             if not self._authenticated and not self._authenticate():
                 safe_print("❌ [MyTF1] MyTF1 authentication failed")
                 return None
 
-            # TF1 live streams use 'L_' prefix (e.g., 'L_TF1')
             video_id = f'L_{channel_name.upper()}'
             safe_print(f"✅ [MyTF1] Using video ID: {video_id}")
 
-            # Get the actual stream URL using the mediainfo API
-            headers_video_stream = {
-                "User-Agent": get_random_windows_ua(),
-                "authorization": f"Bearer {self.auth_token}",
-                # Help upstream validate request context like a browser
-                "referer": self.base_url,
-                "origin": self.base_url,
-                # Hint FR locale to upstream
-                "accept-language": "fr-FR,fr;q=0.9,en;q=0.8,en-US;q=0.7",
-                # Some stacks require explicit Accept for JSON
-                "accept": "application/json, text/plain, */*",
-                # Additional headers to help with geo-blocking
-                "Accept-Encoding": "gzip, deflate, br",
-                "Accept-Charset": "UTF-8,*;q=0.5",
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                # Additional security headers that might help
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-                "Sec-GPC": "1",
-                # Content Security Policy headers that might be checked
-                "DNT": "1",
-                "Upgrade-Insecure-Requests": "1",
-            }
-            # Params follow reference; LCI could be treated specially but we align to reference pver block
+            headers_video_stream = self._build_stream_headers()
             params = {
-                'context': 'MYTF1',
-                'pver': '5029000',
-                'platform': 'web',
-                'device': 'desktop',
-                'os': 'windows',
-                'osVersion': '10.0',
-                'topDomain': 'www.tf1.fr',  # Use actual TF1 host
-                'playerVersion': '5.29.0',
-                'productName': 'mytf1',
-                'productVersion': '3.37.0',
-                'format': 'hls'  # Try to force HLS format for all channels
+                'context': 'MYTF1', 'pver': '5029000', 'platform': 'web',
+                'device': 'desktop', 'os': 'windows', 'osVersion': '10.0',
+                'topDomain': 'www.tf1.fr', 'playerVersion': '5.29.0',
+                'productName': 'mytf1', 'productVersion': '3.37.0', 'format': 'hls'
             }
-            
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
-            
-            # Try multiple proxy services to avoid geo-blocking
-            dest_with_params = url_json + ("?" + urlencode(params) if params else "")
 
-            # Use primary French proxy service
-            proxy_base = self.proxy_config.get_proxy('fr_default')
-
-            json_parser = None
-
-            # Try the proxy service
-            try:
-                # Use URL encoding (Variant 2) - proven to work best
-                proxied_url = proxy_base + quote(dest_with_params, safe="")
-
-                safe_print(f"✅ [MyTF1] Trying TF1 LIVE stream through French proxy: {proxy_base[:50]}...")
-                data_try = self._safe_api_call(proxied_url, headers=headers_video_stream, max_retries=2)
-                safe_print(f"✅ *** FINAL PROXY URL (LIVE): {proxied_url}")
-
-                # Check if the response is successful and not geo-blocked
-                if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
-                    # Additional check: ensure the country is not US (geo-blocked)
-                    delivery_country = data_try.get('delivery', {}).get('country', 'UNKNOWN')
-                    delivery_code = data_try.get('delivery', {}).get('code', 500)
-
-                    if delivery_country != 'US':
-                        # Check if we got a successful delivery code (200) or acceptable error (403 might be auth-related)
-                        if delivery_code == 200:
-                            json_parser = data_try
-                            safe_print(f"✅ [MyTF1] French proxy successful for live stream - Country: {delivery_country}, Code: {delivery_code}")
-                        else:
-                            # We got a non-200 response (e.g., 403) - proxy might not be forwarding auth correctly
-                            # Try direct call as fallback since direct calls work with authentication
-                            safe_print(f"❌ [MyTF1] French proxy returned non-200 code {delivery_code} - trying direct call")
-                            safe_print(f"✅ [MyTF1] Making DIRECT request for live feed: {url_json}")
-                            safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
-                            json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-                    else:
-                        safe_print("❌ [MyTF1] French proxy returned US country (still geo-blocked)")
-                        # Try direct call as fallback
-                        safe_print("❌ [MyTF1] French proxy failed; trying direct call as fallback...")
-                        safe_print(f"✅ [MyTF1] Making DIRECT request for live feed: {url_json}")
-                        safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
-                        json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-                else:
-                    safe_print("❌ [MyTF1] French proxy failed or returned error code")
-                    # Try direct call as fallback
-                    safe_print("❌ [MyTF1] French proxy failed; trying direct call as fallback...")
-                    safe_print(f"✅ [MyTF1] Making DIRECT request for live feed: {url_json}")
-                    safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
-                    json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-
-            except Exception as e:
-                safe_print(f"❌ [MyTF1] Error with French proxy: {e}")
-                # Try direct call as fallback
-                safe_print("❌ [MyTF1] French proxy failed; trying direct call as fallback...")
-                safe_print(f"✅ [MyTF1] Making DIRECT request for live feed: {url_json}")
-                safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
-                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-
-            # If proxy failed, try direct call as last resort
-            if not json_parser:
-                safe_print("❌ [MyTF1] French proxy failed; trying direct call as last resort...")
-                safe_print(f"✅ [MyTF1] Making DIRECT request for live feed: {url_json}")
-                safe_print(f"✅ *** FINAL DIRECT URL (LIVE): {url_json}")
-                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
+            json_parser = self._fetch_with_proxy_fallback(url_json, params, headers_video_stream, "LIVE")
 
             if json_parser:
                 safe_print(f"✅ [MyTF1] Stream API response received for {video_id}")
@@ -679,94 +645,37 @@ class MyTF1Provider(BaseProvider):
                     video_url = json_parser['delivery']['url']
                     safe_print(f"✅ [MyTF1] Stream URL obtained: {video_url[:50]}...")
 
-                    license_url = None
-                    license_headers = {}
+                    license_url, license_headers = self._extract_drm_info(json_parser['delivery'], video_id)
 
-                    # Enhanced DRM processing for TF1 live streams
-                    if 'drms' in json_parser['delivery'] and json_parser['delivery']['drms']:
-                        drm_info = json_parser['delivery']['drms'][0]
-                        safe_print(f"✅ [MyTF1] DRM Info found: {drm_info}")
-                        
-                        license_url = drm_info.get('url')
-                        if not license_url:
-                            safe_print("❌ [MyTF1] No license URL in DRM info, using fallback")
-                            license_url = self.license_base_url % video_id
-                        else:
-                            safe_print(f"✅ [MyTF1] License URL from DRM: {license_url}")
-                        
-                        # Extract all headers from DRM info (like Kodi plugin does)
-                        for header_item in drm_info.get('h', []):
-                            header_key = header_item.get('k')
-                            header_value = header_item.get('v')
-                            if header_key and header_value:
-                                license_headers[header_key] = header_value
-                                safe_print(f"✅ [MyTF1] DRM Header: {header_key} = {header_value}")
-                    else:
-                        # Fallback to generic license URL if no DRM info is present
-                        safe_print("❌ [MyTF1] No DRM info found, using fallback license URL")
-                        license_url = self.license_base_url % video_id
-
-                    # Prefer HLS if present, else MPD
                     lower_url = (video_url or '').lower()
                     is_hls = lower_url.endswith('.m3u8') or 'hls' in lower_url or 'm3u8' in lower_url
 
-                    # Build MediaFlow URL with DRM support
                     if self.mediaflow_url and self.mediaflow_password:
-                        # Determine endpoint based on stream type
-                        if is_hls:
-                            endpoint = '/proxy/hls/manifest.m3u8'
-                        else:
-                            endpoint = '/proxy/mpd/manifest.m3u8'
-                        
-                        # Build request headers for MediaFlow
+                        endpoint = '/proxy/hls/manifest.m3u8' if is_hls else '/proxy/mpd/manifest.m3u8'
                         mediaflow_headers = {
                             'user-agent': headers_video_stream['User-Agent'],
-                            'referer': self.base_url,
-                            'origin': self.base_url,
+                            'referer': self.base_url, 'origin': self.base_url,
                             'authorization': f"Bearer {self.auth_token}"
                         }
-                        
-                        # Use enhanced MediaFlow utility with DRM support
                         final_url = build_mediaflow_url(
-                            base_url=self.mediaflow_url,
-                            password=self.mediaflow_password,
-                            destination_url=video_url,
-                            endpoint=endpoint,
-                            request_headers=mediaflow_headers,
-                            license_url=license_url,
-                            license_headers=license_headers
+                            base_url=self.mediaflow_url, password=self.mediaflow_password,
+                            destination_url=video_url, endpoint=endpoint, request_headers=mediaflow_headers,
+                            license_url=license_url, license_headers=license_headers
                         )
                         safe_print(f"✅ *** FINAL MEDIAFLOW URL (LIVE): {final_url}")
-                        manifest_type = 'hls' if is_hls else 'mpd'
                     else:
                         final_url = video_url
-                        manifest_type = 'hls' if is_hls else 'mpd'
 
-                    # Extract current program title from API response for enhanced stream title
-                    # API provides: media.programName (e.g., "Chicago Police Department")
-                    # and media.shortTitle (e.g., "Le protecteur" - episode title)
+                    manifest_type = 'hls' if is_hls else 'mpd'
                     current_program = None
                     if 'media' in json_parser:
-                        media_info = json_parser['media']
-                        # Prefer programName, fallback to title
-                        current_program = media_info.get('programName') or media_info.get('title', '')
+                        current_program = json_parser['media'].get('programName') or json_parser['media'].get('title', '')
                         safe_print(f"✅ [MyTF1] Current program: {current_program}")
                     
-                    # Build enhanced stream title: [FORMAT] Current Program Name
                     format_label = 'HLS' if manifest_type == 'hls' else 'MPD'
-                    if current_program:
-                        stream_title = f"[{format_label}] {current_program}"
-                    else:
-                        stream_title = f"[{format_label}] {channel_name.upper()}"
+                    stream_title = f"[{format_label}] {current_program}" if current_program else f"[{format_label}] {channel_name.upper()}"
 
-                    stream_info = {
-                        "url": final_url,
-                        "manifest_type": manifest_type,
-                        "title": stream_title,
-                        "headers": headers_video_stream
-                    }
-                    
-                    # Add license info to stream_info if available
+                    stream_info = {"url": final_url, "manifest_type": manifest_type, "title": stream_title, "headers": headers_video_stream}
                     if license_url:
                         stream_info["licenseUrl"] = license_url
                         if license_headers:
@@ -786,255 +695,39 @@ class MyTF1Provider(BaseProvider):
     
     def get_episode_stream_url(self, episode_id: str) -> Optional[Dict]:
         """Get stream URL for a specific episode (for replay content) with robust error handling"""
-        # Extract the actual episode ID from our format
-        if "episode:" in episode_id:
-            actual_episode_id = episode_id.split("episode:")[-1]
-        else:
-            actual_episode_id = episode_id
+        actual_episode_id = episode_id.split("episode:")[-1] if "episode:" in episode_id else episode_id
 
         try:
             safe_print(f"✅ [MyTF1] Getting replay stream for MyTF1 episode: {actual_episode_id}")
-
-            # Lazy authentication - only authenticate when needed
             safe_print("✅ [MyTF1] Checking authentication...")
             if not self._authenticated and not self._authenticate():
                 safe_print("❌ [MyTF1] MyTF1 authentication failed")
                 return None
 
-            # Use the same approach as the reference plugin for replay content
-            headers_video_stream = {
-                "authorization": f"Bearer {self.auth_token}",
-                "User-Agent": get_random_windows_ua(),
-                "referer": self.base_url,
-                "origin": self.base_url,
-                # Hint FR locale to upstream
-                "accept-language": "fr-FR,fr;q=0.9,en;q=0.8,en-US;q=0.7",
-                # Some stacks require explicit Accept for JSON
-                "accept": "application/json, text/plain, */*",
-                # Additional headers to help with geo-blocking
-                "Accept-Encoding": "gzip, deflate, br",
-                "Accept-Charset": "UTF-8,*;q=0.5",
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                # Additional security headers that might help
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-                "Sec-GPC": "1",
-                # Content Security Policy headers that might be checked
-                "DNT": "1",
-                "Upgrade-Insecure-Requests": "1",
-            }
+            headers_video_stream = self._build_stream_headers()
             params = {
-                'context': 'MYTF1',
-                'pver': '5010000',
-                'platform': 'web',
-                'device': 'desktop',
-                'os': 'linux',
-                'osVersion': 'unknown',
-                'topDomain': 'www.tf1.fr',
-                'playerVersion': '5.19.0',
-                'productName': 'mytf1',
-                'productVersion': '3.22.0',
+                'context': 'MYTF1', 'pver': '5010000', 'platform': 'web',
+                'device': 'desktop', 'os': 'linux', 'osVersion': 'unknown',
+                'topDomain': 'www.tf1.fr', 'playerVersion': '5.19.0',
+                'productName': 'mytf1', 'productVersion': '3.22.0',
             }
-            
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
-            
-            # Try French proxy service for replay streams (CRITICAL for success)
-            dest_with_params = url_json + ("?" + urlencode(params) if params else "")
 
-            # Use primary French proxy service for replay content
-            proxy_base = self.proxy_config.get_proxy('fr_default')
-
-            json_parser = None
-
-            # Try the proxy service for replay content
-            try:
-                # Use URL encoding (Variant 2) - proven to work best and get 200 responses
-                proxied_url = proxy_base + quote(dest_with_params, safe="")
-
-                safe_print(f"✅ [MyTF1] Trying TF1 REPLAY stream through French proxy: {proxy_base[:50]}...")
-                data_try = self._safe_api_call(proxied_url, headers=headers_video_stream, max_retries=2)
-                safe_print(f"✅ *** FINAL PROXY URL (TF1 REPLAY): {proxied_url}")
-
-                # Check if the response is successful and not geo-blocked
-                if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
-                    # Additional check: ensure the country is not US (geo-blocked)
-                    delivery_country = data_try.get('delivery', {}).get('country', 'UNKNOWN')
-                    delivery_code = data_try.get('delivery', {}).get('code', 500)
-
-                    if delivery_country != 'US':
-                        # Check if we got a successful delivery code (200) or acceptable error (403 might be auth-related)
-                        if delivery_code == 200:
-                            json_parser = data_try
-                            safe_print(f"✅ [MyTF1] French proxy successful for TF1 REPLAY - Country: {delivery_country}, Code: {delivery_code}")
-                        else:
-                            # We got a non-200 response (e.g., 403) - proxy might not be forwarding auth correctly
-                            # Try direct call as fallback since direct calls work with authentication
-                            safe_print(f"❌ [MyTF1] French proxy returned non-200 code {delivery_code} - trying direct call")
-                            safe_print(f"✅ [MyTF1] Making DIRECT request for replay feed: {url_json}")
-                            safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
-                            json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-                    else:
-                        safe_print("❌ [MyTF1] French proxy returned US country (still geo-blocked)")
-                        # Try direct call as fallback
-                        safe_print("❌ French proxy failed; trying direct call as fallback...")
-                        safe_print(f"✅ [MyTF1] Making DIRECT request for replay feed: {url_json}")
-                        safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
-                        json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-                else:
-                    safe_print("❌ [MyTF1] French proxy failed or returned error code")
-                    # Try direct call as fallback
-                    safe_print("❌ French proxy failed; trying direct call as fallback...")
-                    safe_print(f"✅ [MyTF1] Making DIRECT request for replay feed: {url_json}")
-                    safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
-                    json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-
-            except Exception as e:
-                safe_print(f"❌ [MyTF1] Error with French proxy: {e}")
-                # Try direct call as fallback
-                safe_print("❌ French proxy failed; trying direct call as fallback...")
-                safe_print(f"✅ [MyTF1] Making DIRECT request for replay feed: {url_json}")
-                safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
-                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
-
-            # CRITICAL: If proxy failed, try direct call as last resort (will likely fail with 403)
-            if not json_parser:
-                safe_print("❌ French proxy failed; trying direct call as last resort (will likely fail)...")
-                safe_print(f"✅ [MyTF1] Making DIRECT request for replay feed: {url_json}")
-                safe_print(f"✅ *** FINAL DIRECT URL (TF1 REPLAY): {url_json}")
-                json_parser = self._safe_api_call(url_json, headers=headers_video_stream, params=params)
+            json_parser = self._fetch_with_proxy_fallback(url_json, params, headers_video_stream, "TF1 REPLAY")
 
             if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
                 video_url = json_parser['delivery']['url']
                 safe_print(f"✅ [MyTF1] Stream URL obtained: {video_url}")
 
-                license_url = None
-                license_headers = {}
+                license_url, license_headers = self._extract_drm_info(json_parser['delivery'], actual_episode_id)
 
-                # Enhanced DRM processing for TF1 replay content (like Kodi plugin)
-                if 'drms' in json_parser['delivery'] and json_parser['delivery']['drms']:
-                    drm_info = json_parser['delivery']['drms'][0]
-                    safe_print(f"✅ [MyTF1] Replay DRM Info found: {drm_info}")
-                    
-                    license_url = drm_info.get('url')
-                    if not license_url:
-                        safe_print("❌ [MyTF1] No license URL in replay DRM info, using fallback")
-                        license_url = self.license_base_url % actual_episode_id
-                    else:
-                        safe_print(f"✅ [MyTF1] Replay License URL from DRM: {license_url}")
-                    
-                    # Extract all headers from DRM info (comprehensive like Kodi)
-                    for header_item in drm_info.get('h', []):
-                        header_key = header_item.get('k')
-                        header_value = header_item.get('v')
-                        if header_key and header_value:
-                            license_headers[header_key] = header_value
-                            safe_print(f"✅ [MyTF1] Replay DRM Header: {header_key} = {header_value}")
-                else:
-                    # Fallback to generic license URL if no DRM info is present
-                    safe_print("❌ [MyTF1] No replay DRM info found, using fallback license URL")
-                    license_url = self.license_base_url % actual_episode_id
-
-                # Check if the stream URL is MPD or HLS
                 is_mpd = video_url.lower().endswith('.mpd') or 'mpd' in video_url.lower()
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
 
-                # Check if processed file already exists (for TF1 replays only)
-                # Get processor URL from proxy config
-                proxy_config = get_proxy_config()
-                processor_url = proxy_config.get_proxy('nm3u8_processor')
-                if not processor_url:
-                    safe_print("❌ [MyTF1] ERROR: nm3u8_processor not configured in credentials.json")
-                    return None
-                
-                safe_print(f"✅ [MyTF1] Using processor API: {processor_url}")
-                processed_filename = f"{actual_episode_id}.mp4"
-                safe_print(f"✅ [MyTF1] Looking for processed file: {processed_filename}")
-                
-                # First check Real-Debrid folder
-                try:
-                    safe_print("✅ [MyTF1] Loading credentials for Real-Debrid check...")
-                    all_creds = load_credentials()
-                    safe_print(f"✅ [MyTF1] Credentials loaded. Keys: {list(all_creds.keys())}")
-                    
-                    rd_folder = all_creds.get('realdebridfolder')
-                    safe_print(f"✅ [MyTF1] Real-Debrid folder from credentials: {rd_folder}")
-                    
-                    if rd_folder:
-                        safe_print(f"✅ [MyTF1] Checking if '{processed_filename}' is listed in RD folder...")
-                        
-                        try:
-                            # Fetch the folder listing page with browser-like headers
-                            rd_headers = {
-                                'User-Agent': get_random_windows_ua(),
-                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                                'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-                                'Accept-Encoding': 'gzip, deflate, br',
-                                'DNT': '1',
-                                'Connection': 'keep-alive',
-                                'Upgrade-Insecure-Requests': '1',
-                                'Sec-Fetch-Dest': 'document',
-                                'Sec-Fetch-Mode': 'navigate',
-                                'Sec-Fetch-Site': 'none',
-                                'Cache-Control': 'max-age=0'
-                            }
-                            folder_response = requests.get(rd_folder, headers=rd_headers, timeout=10)
-                            safe_print(f"✅ [MyTF1] RD Folder HTTP Status: {folder_response.status_code}")
-                            
-                            if folder_response.status_code == 200:
-                                # Check if filename appears in the folder listing
-                                folder_content = folder_response.text
-                                if processed_filename in folder_content:
-                                    rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
-                                    safe_print(f"✅ [MyTF1] File '{processed_filename}' found in RD folder listing!")
-                                    safe_print(f"✅ [MyTF1] Returning RD URL: {rd_file_url}")
-                                    return {
-                                        "url": rd_file_url,
-                                        "manifest_type": "video",
-                                        "title": "✅ [RD] DRM-Free Video",
-                                        "filename": processed_filename
-                                    }
-                                else:
-                                    safe_print(f"⚠️ [MyTF1] File '{processed_filename}' NOT found in RD folder listing, will check processor_url")
-                            else:
-                                safe_print(f"⚠️ [MyTF1] Could not access RD folder (HTTP {folder_response.status_code}), checking processor_url...")
-                        except Exception: # requests.exceptions.Timeout
-                            safe_print(f"⚠️ [MyTF1] RD folder request timed out, checking processor_url...")
-                        except Exception as e:
-                            safe_print(f"❌ [MyTF1] RD folder request error: {e}, checking processor_url...")
-                    else:
-                        safe_print("⚠️ [MyTF1] Real-Debrid folder not configured in credentials, checking processor_url...")
-                except Exception as e:
-                    safe_print(f"❌ [MyTF1] Error checking Real-Debrid: {e}")
-                    safe_print(f"❌ [MyTF1] Proceeding to processor_url check as fallback...")
-                
-                # Then check processor_url location
-                processed_url = f"{processor_url}/stream/{processed_filename}"
-                safe_print(f"✅ [MyTF1] Checking processor_url location: {processed_url}")
-
-                
-                processed_file_exists = False
-                try:
-                    check_response = requests.head(processed_url, timeout=5)
-                    safe_print(f"✅ [MyTF1] PROCESSOR URL HTTP Status: {check_response.status_code}")
-                    
-                    if check_response.status_code == 200:
-                        # File exists - return immediately
-                        safe_print(f"✅ [MyTF1] Processed file already exists: {processed_url}")
-                        processed_file_exists = True
-                        return {
-                            "url": processed_url,
-                            "manifest_type": "video",
-                            "title": "✅ DRM-Free Video",
-                            "filename": processed_filename
-                        }
-                    else:
-                        safe_print(f"⚠️ [MyTF1] PROCESSOR URL file not found (HTTP {check_response.status_code})")
-                except Exception as e:
-                    # Error checking file - proceed with normal flow
-                    safe_print(f"⚠️ [MyTF1] Error checking processor_url: {e}")
-                    pass
+                # Check if a processed DRM-free file already exists
+                existing_file = self._check_processed_file_locations(actual_episode_id)
+                if existing_file:
+                    return existing_file
 
                 # For DRM-protected MPD streams (replays only), use external DASH proxy
                 if is_mpd and license_url:

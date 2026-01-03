@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-08T18:44:23.311637",
+  "timestamp": "2026-01-03T16:16:22.514309",
   "provider": "mytf1",
   "tests": {
     "get_live_channels": {
@@ -44,24 +44,24 @@
       "count": 50,
       "sample_episodes": [
         {
-          "id": "cutam:fr:mytf1:episode:fc0cd546-d1a9-4ccd-af06-238aad494ad4",
-          "title": "Sept \u00e0 huit du dimanche 7 d\u00e9cembre 2025"
+          "id": "cutam:fr:mytf1:episode:d40ba350-ca86-457f-a916-8c19ede40feb",
+          "title": "Sept \u00e0 huit Life du dimanche 29 juin 2025"
         },
         {
-          "id": "cutam:fr:mytf1:episode:fdcbf226-0867-47bb-97fe-32cb41348b8f",
-          "title": "Sept \u00e0 huit Life du dimanche 7 d\u00e9cembre 2025"
+          "id": "cutam:fr:mytf1:episode:d1a07aad-11e9-43aa-bec3-7c6f8a31412d",
+          "title": "Sept \u00e0 huit du dimanche 29 juin 2025"
         },
         {
-          "id": "cutam:fr:mytf1:episode:9460b263-05c0-4661-8e43-651bef0919c0",
-          "title": "Sept \u00e0 huit du dimanche 30 novembre 2025"
+          "id": "cutam:fr:mytf1:episode:a1f696d2-1fbc-4d9f-874b-37a70a93a7d4",
+          "title": "Sept \u00e0 huit Life du dimanche 6 juillet 2025"
         },
         {
-          "id": "cutam:fr:mytf1:episode:2d660cf6-45be-41da-b07d-b72d431f7315",
-          "title": "Sept \u00e0 huit Life du dimanche 30 novembre 2025"
+          "id": "cutam:fr:mytf1:episode:3b1e7441-23ec-4a08-b8b7-79d4ffe05b6d",
+          "title": "Sept \u00e0 huit du dimanche 6 juillet 2025"
         },
         {
-          "id": "cutam:fr:mytf1:episode:fde36989-5f13-44be-9252-83a20c47ac3c",
-          "title": "Sept \u00e0 huit du dimanche 23 novembre 2025"
+          "id": "cutam:fr:mytf1:episode:beca07a7-f39e-45c2-8f06-778f5bb2508f",
+          "title": "Sept \u00e0 huit Life du dimanche 13 juillet 2025"
         }
       ]
     },

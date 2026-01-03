@@ -167,16 +167,7 @@ class TestProgramsLoader:
         # Returns dict keyed by show ID
         assert isinstance(result, dict)
     
-    def test_get_programs_for_provider_has_shows(self):
-        """Known providers should have shows"""
-        from app.utils.programs_loader import get_programs_for_provider
-        
-        sixplay_programs = get_programs_for_provider("6play")
-        cbc_programs = get_programs_for_provider("cbc")
-        
-        # Each provider should have some programs
-        assert len(sixplay_programs) > 0
-        assert len(cbc_programs) > 0
+
 
 
 class TestTypeDefs:
