@@ -705,71 +705,35 @@ class SixPlayProvider(BaseProvider):
 
     def _normalize_decryption_key(self, raw_key: Optional[str], key_id_hex: Optional[str]) -> Optional[str]:
         """Extract the matching hex key from various key string formats."""
-        if not raw_key:
-            return None
-        value = raw_key.strip()
-        if not value:
-            return None
+        if not raw_key or not raw_key.strip(): return None
+        value, target_kid = raw_key.strip(), key_id_hex.lower() if key_id_hex else None
 
-        target_kid = key_id_hex.lower() if key_id_hex else None
+        def match(kid, key):
+            k_hex = self._ensure_hex_key(key)
+            if not k_hex: return None
+            if not target_kid: return k_hex
+            norm_kid = self._normalize_key_id(kid)
+            return k_hex if norm_kid and norm_kid.lower() == target_kid else None
 
-        def match_candidate(kid_candidate: Optional[str], key_candidate: Optional[str]) -> Optional[str]:
-            key_hex = self._ensure_hex_key(key_candidate)
-            if not key_hex:
-                return None
-            if not target_kid:
-                return key_hex
-            kid_hex = self._normalize_key_id(kid_candidate)
-            if kid_hex and kid_hex.lower() == target_kid:
-                return key_hex
-            return None
-
-        # Try JSON payloads first
+        # Try JSON
         try:
             data = json.loads(value)
-            keys = []
-            if isinstance(data, dict):
-                keys = data.get('keys') or []
-            elif isinstance(data, list):
-                keys = data
-            if isinstance(keys, list):
-                for item in keys:
-                    if not isinstance(item, dict):
-                        continue
-                    key_hex = match_candidate(item.get('kid') or item.get('keyid'), item.get('k') or item.get('key'))
-                    if key_hex:
-                        return key_hex
-                if len(keys) == 1:
-                    key_hex = self._ensure_hex_key(keys[0].get('k') or keys[0].get('key'))
-                    if key_hex:
-                        return key_hex
-        except json.JSONDecodeError:
-            pass
+            keys = (data.get('keys') or []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+            for item in (k for k in keys if isinstance(k, dict)):
+                if (found := match(item.get('kid') or item.get('keyid'), item.get('k') or item.get('key'))): return found
+            if len(keys) == 1 and isinstance(keys[0], dict) and (found := self._ensure_hex_key(keys[0].get('k') or keys[0].get('key'))): return found
+        except json.JSONDecodeError: pass
 
-        normalized = (
-            value.replace('\r\n', ',')
-            .replace('\n', ',')
-            .replace('\r', ',')
-            .replace(';', ',')
-            .replace('|', ',')
-        )
-        fallback_key = None
-
-        for segment in normalized.split(','):
-            piece = segment.strip()
-            if not piece:
-                continue
-            if ':' in piece:
-                kid_part, key_part = piece.split(':', 1)
-                key_hex = match_candidate(kid_part, key_part)
-                if key_hex:
-                    return key_hex
-            else:
-                candidate = self._ensure_hex_key(piece)
-                if candidate and not fallback_key:
-                    fallback_key = candidate
-
-        return fallback_key
+        # Try text format
+        normalized = value.replace('\r\n', ',').replace('\n', ',').replace('\r', ',').replace(';', ',').replace('|', ',')
+        fallback = None
+        for segment in (s.strip() for s in normalized.split(',') if s.strip()):
+            if ':' in segment:
+                kid_part, key_part = segment.split(':', 1)
+                if (found := match(kid_part, key_part)): return found
+            elif (candidate := self._ensure_hex_key(segment)) and not fallback:
+                fallback = candidate
+        return fallback
 
     @staticmethod
     def _hex_to_base64url(hex_value: Optional[str]) -> Optional[str]:
@@ -782,87 +746,39 @@ class SixPlayProvider(BaseProvider):
         except Exception:
             return None
 
-    def _build_mediaflow_clearkey_stream(
-        self,
-        original_mpd_url: str,
-        base_headers: Dict[str, str],
-        key_id_hex: Optional[str],
-        key_hex: Optional[str],
-        is_live: bool = False,
-    ) -> Optional[Dict]:
+    def _build_mediaflow_clearkey_stream(self, original_mpd_url: str, base_headers: Dict[str, str], key_id_hex: Optional[str], key_hex: Optional[str], is_live: bool = False) -> Optional[Dict]:
         """Create a MediaFlow ClearKey MPD stream if configuration allows."""
-        if not key_id_hex or not key_hex:
-            return None
+        if not key_id_hex or not key_hex: return None
         if not self.mediaflow_url or not self.mediaflow_password:
             safe_print(f"⚠️ [SixPlay] MediaFlow configuration missing for ClearKey streaming")
             return None
         try:
-            processed_mpd_url = get_processed_mpd_url_for_mediaflow(
-                original_mpd_url,
-                auth_token=self.login_token if self.login_token else None,
-            )
+            processed_mpd_url = get_processed_mpd_url_for_mediaflow(original_mpd_url, auth_token=self.login_token if self.login_token else None)
+            mediaflow_headers = {'user-agent': base_headers.get('User-Agent', get_random_windows_ua()), 'origin': self.base_url, 'referer': self.base_url}
+            if self.login_token: mediaflow_headers['authorization'] = f'Bearer {self.login_token}'
 
-            mediaflow_headers = {
-                'user-agent': base_headers.get('User-Agent', get_random_windows_ua()),
-                'origin': self.base_url,
-                'referer': self.base_url,
-            }
-            if self.login_token:
-                mediaflow_headers['authorization'] = f'Bearer {self.login_token}'
-
-            key_id_param = self._hex_to_base64url(key_id_hex) or key_id_hex
-            key_param = self._hex_to_base64url(key_hex) or key_hex
-
-            extra_params = {
-                'key_id': key_id_param,
-                'key': key_param,
-            }
-
-            mediaflow_url = build_mediaflow_url(
-                base_url=self.mediaflow_url,
-                password=self.mediaflow_password,
-                destination_url=processed_mpd_url,
-                endpoint='/proxy/mpd/manifest.m3u8',
-                request_headers=mediaflow_headers,
-                extra_params=extra_params,
-            )
-
-            safe_print(f"✅ [SixPlay] MediaFlow ClearKey URL prepared: {mediaflow_url}")
-
-            return {
-                'url': mediaflow_url,
-                'manifest_type': 'mpd',
-                'externalUrl': original_mpd_url,
-                'is_live': is_live,
-            }
+            extra = {'key_id': self._hex_to_base64url(key_id_hex) or key_id_hex, 'key': self._hex_to_base64url(key_hex) or key_hex}
+            mf_url = build_mediaflow_url(base_url=self.mediaflow_url, password=self.mediaflow_password, destination_url=processed_mpd_url, endpoint='/proxy/mpd/manifest.m3u8', request_headers=mediaflow_headers, extra_params=extra)
+            
+            safe_print(f"✅ [SixPlay] MediaFlow ClearKey URL prepared: {mf_url}")
+            return {'url': mf_url, 'manifest_type': 'mpd', 'externalUrl': original_mpd_url, 'is_live': is_live}
         except Exception as e:
             safe_print(f"❌ [SixPlay] MediaFlow ClearKey setup failed: {e}")
             return None
     def _analyze_available_formats(self, video_assets: List[Dict]) -> Dict:
         """Analyze available video formats from assets and return format information"""
-        formats = {
-            'hls': {'available': False, 'asset_types': [], 'qualities': []},
-            'mpd': {'available': False, 'asset_types': [], 'qualities': []}
-        }
-        
+        formats = {'hls': {'available': False, 'asset_types': [], 'qualities': []}, 'mpd': {'available': False, 'asset_types': [], 'qualities': []}}
         for asset in video_assets:
-            asset_type = asset.get('type', '')
-            quality = asset.get('video_quality', 'sd').lower()
+            atype, qual = asset.get('type', ''), asset.get('video_quality', 'sd').lower()
+            if 'http_h264' in atype:
+                key = 'hls'
+            elif 'dashcenc' in atype or 'mpd' in atype:
+                key = 'mpd'
+            else: continue
             
-            # Check for HLS formats
-            if 'http_h264' in asset_type:
-                formats['hls']['available'] = True
-                formats['hls']['asset_types'].append(asset_type)
-                if quality not in formats['hls']['qualities']:
-                    formats['hls']['qualities'].append(quality)
-            
-            # Check for MPD/DASH formats
-            elif 'dashcenc' in asset_type or 'mpd' in asset_type:
-                formats['mpd']['available'] = True
-                formats['mpd']['asset_types'].append(asset_type)
-                if quality not in formats['mpd']['qualities']:
-                    formats['mpd']['qualities'].append(quality)
-        
+            formats[key]['available'] = True
+            formats[key]['asset_types'].append(atype)
+            if qual not in formats[key]['qualities']: formats[key]['qualities'].append(qual)
         return formats
 
     def _determine_best_format(self, available_formats: Dict, is_live: bool = False) -> Dict:
