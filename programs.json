@@ -48,9 +48,27 @@
         "Magazine",
         "Actualité"
       ],
-      "logo": "https://images.6play.fr/v2/images/4654324/raw",
-      "poster": "https://images-fio.6play.fr/v2/images/4654325/raw",
-      "background": "https://images-fio.6play.fr/v2/images/4654323/raw",
+      "logo": "https://images.6play.fr/v2/images/4666282/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4865289/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4348895/raw",
+      "year": 2025,
+      "rating": "Tout public",
+      "enabled": true
+    },
+    {
+      "provider": "6play",
+      "slug": "66-minutes-grand-format",
+      "name": "66 minutes Grand Format",
+      "description": "Magazine d'information de M6",
+      "channel": "M6",
+      "genres": [
+        "Information",
+        "Magazine",
+        "Actualité"
+      ],
+      "logo": "https://images-fio.6play.fr/v2/images/4865585/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4856840/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4856837/raw",
       "year": 2025,
       "rating": "Tout public",
       "enabled": true
@@ -96,7 +114,7 @@
       "slug": "sept-a-huit",
       "name": "Sept à huit",
       "description": "Magazine d'information de TF1",
-      "channel": "TF1",
+      "channel": "LCI",
       "genres": [
         "News",
         "Documentary",

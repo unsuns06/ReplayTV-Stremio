@@ -406,52 +406,65 @@ class MyTF1Provider(BaseProvider):
             # Get the channel for this show
             show_channel = self.shows[actual_show_id]['channel']
             channel_filter = show_channel.lower()
+            show_name_lower = self.shows[actual_show_id]['name'].lower()
             
-            # First, get the program ID for the show
-            program_params = {
-                'id': '483ce0f',
-                'variables': f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{channel_filter}"}},"offset":0,"limit":500}}'
-            }
+            # Try to find the program — first with channel filter, then without (fallback for channel migrations)
+            program_id = None
+            program_slug = None
             
-            # TF1 GraphQL programs - Use DIRECT raw URL only (no proxy)
-            safe_print(f"✅ [MyTF1] Making DIRECT GraphQL programs request (raw URL): {self.api_url}")
-            data = self._safe_api_call(self.api_url, headers=headers, params=program_params, max_retries=3)
-            
-            if data and 'data' in data and 'programs' in data['data']:
-                program_id = None
-                program_slug = None
+            for attempt, ch_filter in enumerate([channel_filter, None]):
+                filter_label = ch_filter or "ALL channels"
+                if ch_filter:
+                    variables = f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{ch_filter}"}},"offset":0,"limit":500}}'
+                else:
+                    variables = '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{},"offset":0,"limit":500}'
                 
-                # Find the specific show in the programs list
-                for program in data['data']['programs']['items']:
-                    if program.get('name', '').lower() == self.shows[actual_show_id]['name'].lower():
-                        program_id = program.get('id')
-                        program_slug = program.get('slug')
-                        break
+                program_params = {
+                    'id': '483ce0f',
+                    'variables': variables
+                }
+                
+                safe_print(f"✅ [MyTF1] GraphQL programs request (filter: {filter_label}): {self.api_url}")
+                data = self._safe_api_call(self.api_url, headers=headers, params=program_params, max_retries=3)
+                
+                if data and 'data' in data and 'programs' in data['data']:
+                    for program in data['data']['programs']['items']:
+                        if program.get('name', '').lower() == show_name_lower:
+                            program_id = program.get('id')
+                            program_slug = program.get('slug')
+                            if attempt == 1:
+                                # Found on fallback — log the actual channel for awareness
+                                actual_ch = program.get('mainChannel', {}).get('label', 'unknown')
+                                safe_print(f"⚠️ [MyTF1] Show '{self.shows[actual_show_id]['name']}' found on '{actual_ch}' instead of '{show_channel}' — channel may have changed")
+                            break
                 
                 if program_id and program_slug:
-                    # Get episodes for the show
-                    episodes = self._get_show_episodes(program_slug, program_id, headers)
-                    if episodes:
-                        # Filter episodes based on subscription access
-                        available_episodes = self._filter_available_episodes(episodes)
-                        
-                        # Sort episodes by released date ascending (oldest first, newest last)
-                        # Stremio expects videos sorted chronologically with newest episode having highest number
-                        available_episodes.sort(key=lambda ep: ep.get('released', '') or '')
-                        
-                        # Re-number episodes after sorting (1, 2, 3... with 1 being oldest)
-                        for i, ep in enumerate(available_episodes):
-                            ep['episode'] = i + 1
-                            ep['episode_number'] = i + 1
-                        
-                        safe_print(f"✅ [MyTF1] Found {len(available_episodes)} episodes (sorted chronologically)")
-                        return available_episodes
-                    else:
-                        safe_print(f"❌ [MyTF1] No episodes found for program: {program_slug}")
+                    break
+                elif attempt == 0:
+                    safe_print(f"⚠️ [MyTF1] Program not found on channel '{channel_filter}', retrying without channel filter...")
+            
+            if program_id and program_slug:
+                # Get episodes for the show
+                episodes = self._get_show_episodes(program_slug, program_id, headers)
+                if episodes:
+                    # Filter episodes based on subscription access
+                    available_episodes = self._filter_available_episodes(episodes)
+                    
+                    # Sort episodes by released date ascending (oldest first, newest last)
+                    # Stremio expects videos sorted chronologically with newest episode having highest number
+                    available_episodes.sort(key=lambda ep: ep.get('released', '') or '')
+                    
+                    # Re-number episodes after sorting (1, 2, 3... with 1 being oldest)
+                    for i, ep in enumerate(available_episodes):
+                        ep['episode'] = i + 1
+                        ep['episode_number'] = i + 1
+                    
+                    safe_print(f"✅ [MyTF1] Found {len(available_episodes)} episodes (sorted chronologically)")
+                    return available_episodes
                 else:
-                    safe_print(f"❌ [MyTF1] Program not found for show: {actual_show_id} on channel: {channel_filter}")
+                    safe_print(f"❌ [MyTF1] No episodes found for program: {program_slug}")
             else:
-                safe_print("❌ [MyTF1] Failed to get TF1+ programs or API failed")
+                safe_print(f"❌ [MyTF1] Program not found for show: {actual_show_id} (tried channel '{channel_filter}' and all channels)")
             
             # Fallback: return a placeholder episode
             safe_print(f"✅ [MyTF1] Using fallback episode for {actual_show_id}")
@@ -930,51 +943,59 @@ class MyTF1Provider(BaseProvider):
     def _get_show_api_metadata(self, show_id: str, show_info: Dict) -> Dict:
         """Get show metadata from TF1+ API with error handling and fallbacks"""
         try:
-            # Use the same API call as the reference plugin
-            params = {
-                'id': '483ce0f',
-                'variables': '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{"channel":"%s"},"offset":0,"limit":500}' % show_info['channel'].lower()
-            }
             headers = {
                 'content-type': 'application/json',
                 'referer': 'https://www.tf1.fr/programmes-tv'
             }
-
-            # TF1 GraphQL programs metadata - Use DIRECT raw URL only (no proxy)
-            safe_print(f"✅ [MyTF1] Making DIRECT GraphQL programs metadata request (raw URL): {self.api_url}")
-            data = self._safe_api_call(self.api_url, headers=headers, params=params, max_retries=3)
             
-            if data and 'data' in data and 'programs' in data['data'] and 'items' in data['data']['programs']:
-                programs = data['data']['programs']['items']
+            channel_filter = show_info['channel'].lower()
+            
+            # Try with channel filter first, then without (fallback for channel migrations)
+            for ch_filter in [channel_filter, None]:
+                if ch_filter:
+                    variables = '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{"channel":"%s"},"offset":0,"limit":500}' % ch_filter
+                else:
+                    variables = '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{},"offset":0,"limit":500}'
                 
-                # Find the specific show
-                for program in programs:
-                    program_name = program.get('name', '')
-                    if show_id in program_name.lower() or show_info['name'].lower() in program_name.lower():
-                        # Extract images from decoration (same as reference plugin)
-                        if 'decoration' in program:
-                            decoration = program['decoration']
-                            
-                            # Get poster image
-                            poster = None
-                            if 'image' in decoration and 'sources' in decoration['image']:
-                                poster = decoration['image']['sources'][0].get('url', '')
-                            
-                            # Get fanart/background
-                            fanart = None
-                            if 'background' in decoration and 'sources' in decoration['background']:
-                                fanart = decoration['background']['sources'][0].get('url', '')
-                            
-                            # Get logo (use poster as logo if available)
-                            logo = poster if poster else get_logo_url("fr", "tf1", self.request)
-                            
-                            safe_print(f"✅ [MyTF1] Found show metadata for {show_id}: poster={poster[:50] if poster else 'N/A'}..., fanart={fanart[:50] if fanart else 'N/A'}...")
-                            
-                            return {
-                                "poster": poster,
-                                "fanart": fanart,
-                                "logo": logo
-                            }
+                params = {
+                    'id': '483ce0f',
+                    'variables': variables
+                }
+
+                safe_print(f"✅ [MyTF1] GraphQL metadata request (filter: {ch_filter or 'ALL'}): {self.api_url}")
+                data = self._safe_api_call(self.api_url, headers=headers, params=params, max_retries=3)
+                
+                if data and 'data' in data and 'programs' in data['data'] and 'items' in data['data']['programs']:
+                    programs = data['data']['programs']['items']
+                    
+                    # Find the specific show
+                    for program in programs:
+                        program_name = program.get('name', '')
+                        if show_id in program_name.lower() or show_info['name'].lower() in program_name.lower():
+                            # Extract images from decoration (same as reference plugin)
+                            if 'decoration' in program:
+                                decoration = program['decoration']
+                                
+                                # Get poster image
+                                poster = None
+                                if 'image' in decoration and 'sources' in decoration['image']:
+                                    poster = decoration['image']['sources'][0].get('url', '')
+                                
+                                # Get fanart/background
+                                fanart = None
+                                if 'background' in decoration and 'sources' in decoration['background']:
+                                    fanart = decoration['background']['sources'][0].get('url', '')
+                                
+                                # Get logo (use poster as logo if available)
+                                logo = poster if poster else get_logo_url("fr", "tf1", self.request)
+                                
+                                safe_print(f"✅ [MyTF1] Found show metadata for {show_id}: poster={poster[:50] if poster else 'N/A'}..., fanart={fanart[:50] if fanart else 'N/A'}...")
+                                
+                                return {
+                                    "poster": poster,
+                                    "fanart": fanart,
+                                    "logo": logo
+                                }
             
             safe_print(f"❌ [MyTF1] No show metadata found for {show_id}")
             return {}

@@ -857,8 +857,8 @@ class SixPlayProvider(BaseProvider):
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'x-algolia-api-key': '6ef59fc6d78ac129339ab9c35edd41fa', 'x-algolia-application-id': 'NHACVIVXXK',
             }
-            show_search_mapping = {'capital': 'Capital', '66-minutes': '66 minutes', '66-minutes-le-doc': '66 minutes : le doc', 'zone-interdite': 'Zone interdite', 'enquete-exclusive': 'Enquête exclusive'}
-            search_term = show_search_mapping.get(show_id, show_id)
+            show_search_mapping = {'capital': 'Capital', '66-minutes': '66 minutes', '66-minutes-le-doc': '66 minutes : le doc', '66-minutes-grand-format': '66 minutes : grand format', 'zone-interdite': 'Zone interdite', 'enquete-exclusive': 'Enquête exclusive'}
+            search_term = show_search_mapping.get(show_id, show_id.replace('-', ' '))
             search_data = {'requests': [{'indexName': 'rtlmutu_prod_bedrock_layout_items_v2_m6web_main', 'query': search_term, 'params': 'clickAnalytics=true&hitsPerPage=10&facetFilters=[["metadata.item_type:program"], ["metadata.platforms_assets:m6group_web"]]'}]}
             
             response = None
@@ -877,14 +877,23 @@ class SixPlayProvider(BaseProvider):
             
             data = response.json()
             partial_match = None
+            
+            def _normalize(s):
+                """Normalize string for comparison: lowercase, strip punctuation/hyphens/extra spaces."""
+                import re as _re
+                return _re.sub(r'\s+', ' ', s.lower().replace('-', ' ').replace(':', ' ').replace('  ', ' ')).strip()
+            
+            norm_search = _normalize(search_term)
+            
             for result in data.get('results', []):
                 for hit in result.get('hits', []):
                     title = hit['item']['itemContent']['title']
                     program_id = str(hit['content']['id'])
-                    if title.lower() == search_term.lower():
+                    norm_title = _normalize(title)
+                    if norm_title == norm_search:
                         safe_print(f"✅ [SixPlay] Found exact match for {show_id}: '{title}' (ID: {program_id})")
                         return program_id
-                    if not partial_match and search_term.lower() in title.lower():
+                    if not partial_match and (norm_search in norm_title or norm_title in norm_search):
                         partial_match = (program_id, title)
             
             if partial_match:
