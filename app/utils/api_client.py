@@ -111,7 +111,7 @@ class ProviderAPIClient(RobustHTTPClient):
             try:
                 current_headers = self._prepare_headers(headers)
                 
-                safe_print(f"🔍 [{self.provider_name}] {method} attempt {attempt + 1}/{retries}: {url[:80]}...")
+                safe_print(f"🔍 [{self.provider_name}] {method} attempt {attempt + 1}/{retries}: {url}")
                 
                 if method.upper() == 'POST':
                     if json_data:
