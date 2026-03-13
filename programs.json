@@ -21,24 +21,6 @@
     },
     {
       "provider": "6play",
-      "slug": "66-minutes-le-doc",
-      "name": "66 minutes le Doc",
-      "description": "Magazine d'investigation de M6",
-      "channel": "M6",
-      "genres": [
-        "Investigation",
-        "Magazine",
-        "Documentaire"
-      ],
-      "logo": "https://images.6play.fr/v2/images/4248692/raw",
-      "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
-      "background": "https://images-fio.6play.fr/v2/images/4248690/raw",
-      "year": 2024,
-      "rating": "Tous publics",
-      "enabled": true
-    },
-    {
-      "provider": "6play",
       "slug": "66-minutes",
       "name": "66 minutes",
       "description": "Magazine d'information de M6",
@@ -107,6 +89,24 @@
       "background": "https://images-fio.6play.fr/v2/images/4654306/raw",
       "year": 2025,
       "rating": "Tout public",
+      "enabled": true
+    },
+    {
+      "provider": "6play",
+      "slug": "66-minutes-le-doc",
+      "name": "66 minutes le Doc",
+      "description": "Magazine d'investigation de M6",
+      "channel": "M6",
+      "genres": [
+        "Investigation",
+        "Magazine",
+        "Documentaire"
+      ],
+      "logo": "https://images.6play.fr/v2/images/4248692/raw",
+      "poster": "https://images-fio.6play.fr/v2/images/4248693/raw",
+      "background": "https://images-fio.6play.fr/v2/images/4248690/raw",
+      "year": 2024,
+      "rating": "Tous publics",
       "enabled": true
     },
     {

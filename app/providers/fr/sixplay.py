@@ -849,58 +849,152 @@ class SixPlayProvider(BaseProvider):
             return {}
     
     def _find_program_id(self, show_id: str) -> Optional[str]:
-        """Find the program ID for a given show ID using Algolia search"""
+        """Find the program ID for a given show using the 6play programs API.
+
+        Strategy:
+        1. Look up the show's display name from programs.json (e.g. "66 minutes").
+        2. Query the 6play programs API filtered by the first letter of that name
+           (inspired by the Catch-up TV & More plugin's URL_ALL_PROGRAMS approach).
+        3. Match the API's ``title`` against the show name (exact then partial).
+        4. Fall back to Algolia search if the programs API fails.
+        """
+
+        # ------------------------------------------------------------------
+        # Resolve the human-readable show name from programs.json
+        # ------------------------------------------------------------------
+        show_name = None
+        if show_id in self.shows:
+            show_name = self.shows[show_id].get('name')
+        if not show_name:
+            # Derive a reasonable search term from the slug
+            show_name = show_id.replace('-', ' ')
+
+        def _normalize(s: str) -> str:
+            """Lowercase, collapse hyphens/colons/extra spaces for comparison."""
+            return re.sub(r'\s+', ' ', s.lower().replace('-', ' ').replace(':', ' ')).strip()
+
+        norm_search = _normalize(show_name)
+
+        # ------------------------------------------------------------------
+        # Strategy 1 – 6play programs API (universal, no hard-coded mapping)
+        # ------------------------------------------------------------------
         try:
-            algolia_hosts = ['nhacvivxxk-dsn.algolia.net', 'NHACVIVXXK-1.algolianet.com', 'NHACVIVXXK-2.algolianet.com', 'NHACVIVXXK-3.algolianet.com']
+            first_letter = show_name[0].lower() if show_name else 'a'
+            # '@' is used by the API for names starting with a digit / special char
+            if not first_letter.isalpha():
+                first_letter = '@'
+
+            programs_url = (
+                "https://android.middleware.6play.fr/6play/v2/platforms/"
+                "m6group_androidmob/services/6play/programs"
+            )
+            params = {
+                'limit': '999',
+                'offset': '0',
+                'csa': '6',
+                'firstLetter': first_letter,
+                'with': 'rights',
+            }
+            headers = {
+                'User-Agent': get_random_windows_ua(),
+                'x-customer-name': 'm6web',
+            }
+
+            safe_print(f"🔍 [SixPlay] Searching programs API for '{show_name}' (letter={first_letter})")
+            response = self.session.get(
+                programs_url,
+                params=params,
+                headers=merge_ip_headers(headers),
+                timeout=10,
+            )
+
+            if response.status_code == 200:
+                programs = response.json()
+                partial_match = None
+
+                for prog in programs:
+                    prog_title = prog.get('title', '')
+                    prog_id = str(prog.get('id', ''))
+                    norm_title = _normalize(prog_title)
+
+                    if norm_title == norm_search:
+                        safe_print(f"✅ [SixPlay] Programs API exact match: '{prog_title}' (ID: {prog_id})")
+                        return prog_id
+                    if not partial_match and (norm_search in norm_title or norm_title in norm_search):
+                        partial_match = (prog_id, prog_title)
+
+                if partial_match:
+                    safe_print(f"✅ [SixPlay] Programs API partial match: '{partial_match[1]}' (ID: {partial_match[0]})")
+                    return partial_match[0]
+
+                safe_print(f"⚠️ [SixPlay] Programs API returned no match for '{show_name}', trying Algolia…")
+            else:
+                safe_print(f"⚠️ [SixPlay] Programs API HTTP {response.status_code}, trying Algolia…")
+        except Exception as e:
+            safe_print(f"⚠️ [SixPlay] Programs API error: {e}, trying Algolia…")
+
+        # ------------------------------------------------------------------
+        # Strategy 2 – Algolia search (fallback)
+        # ------------------------------------------------------------------
+        try:
+            algolia_hosts = [
+                'nhacvivxxk-dsn.algolia.net',
+                'NHACVIVXXK-1.algolianet.com',
+                'NHACVIVXXK-2.algolianet.com',
+                'NHACVIVXXK-3.algolianet.com',
+            ]
             search_headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'x-algolia-api-key': '6ef59fc6d78ac129339ab9c35edd41fa', 'x-algolia-application-id': 'NHACVIVXXK',
+                'x-algolia-api-key': '6ef59fc6d78ac129339ab9c35edd41fa',
+                'x-algolia-application-id': 'NHACVIVXXK',
             }
-            show_search_mapping = {'capital': 'Capital', '66-minutes': '66 minutes', '66-minutes-le-doc': '66 minutes : le doc', '66-minutes-grand-format': '66 minutes : grand format', 'zone-interdite': 'Zone interdite', 'enquete-exclusive': 'Enquête exclusive'}
-            search_term = show_search_mapping.get(show_id, show_id.replace('-', ' '))
-            search_data = {'requests': [{'indexName': 'rtlmutu_prod_bedrock_layout_items_v2_m6web_main', 'query': search_term, 'params': 'clickAnalytics=true&hitsPerPage=10&facetFilters=[["metadata.item_type:program"], ["metadata.platforms_assets:m6group_web"]]'}]}
-            
+            search_data = {
+                'requests': [{
+                    'indexName': 'rtlmutu_prod_bedrock_layout_items_v2_m6web_main',
+                    'query': show_name,
+                    'params': 'clickAnalytics=true&hitsPerPage=10&facetFilters=[["metadata.item_type:program"], ["metadata.platforms_assets:m6group_web"]]',
+                }]
+            }
+
             response = None
             for host in algolia_hosts:
                 try:
                     safe_print(f"🔍 [SixPlay] Trying Algolia host: {host}")
-                    response = requests.post(f'https://{host}/1/indexes/*/queries', headers=merge_ip_headers(search_headers), json=search_data, timeout=5)
+                    response = requests.post(
+                        f'https://{host}/1/indexes/*/queries',
+                        headers=merge_ip_headers(search_headers),
+                        json=search_data,
+                        timeout=5,
+                    )
                     if response.status_code == 200:
                         break
                 except Exception as e:
                     safe_print(f"⚠️ [SixPlay] Error with Algolia host {host}: {e}")
-            
+
             if not response or response.status_code != 200:
                 safe_print(f"❌ [SixPlay] All Algolia hosts failed or returned error")
                 return None
-            
+
             data = response.json()
             partial_match = None
-            
-            def _normalize(s):
-                """Normalize string for comparison: lowercase, strip punctuation/hyphens/extra spaces."""
-                import re as _re
-                return _re.sub(r'\s+', ' ', s.lower().replace('-', ' ').replace(':', ' ').replace('  ', ' ')).strip()
-            
-            norm_search = _normalize(search_term)
-            
+
             for result in data.get('results', []):
                 for hit in result.get('hits', []):
                     title = hit['item']['itemContent']['title']
                     program_id = str(hit['content']['id'])
                     norm_title = _normalize(title)
                     if norm_title == norm_search:
-                        safe_print(f"✅ [SixPlay] Found exact match for {show_id}: '{title}' (ID: {program_id})")
+                        safe_print(f"✅ [SixPlay] Algolia exact match: '{title}' (ID: {program_id})")
                         return program_id
                     if not partial_match and (norm_search in norm_title or norm_title in norm_search):
                         partial_match = (program_id, title)
-            
+
             if partial_match:
-                safe_print(f"✅ [SixPlay] Found partial match for {show_id}: '{partial_match[1]}' (ID: {partial_match[0]})")
+                safe_print(f"✅ [SixPlay] Algolia partial match: '{partial_match[1]}' (ID: {partial_match[0]})")
                 return partial_match[0]
-            
-            safe_print(f"❌ [SixPlay] No program ID found for show {show_id}")
+
+            safe_print(f"❌ [SixPlay] No program ID found for show '{show_name}' (slug={show_id})")
             return None
         except Exception as e:
             safe_print(f"❌ [SixPlay] Error finding program ID for {show_id}: {e}")
