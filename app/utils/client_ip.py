@@ -6,6 +6,70 @@ import ipaddress
 _client_ip_ctx: ContextVar[Optional[str]] = ContextVar("client_ip", default=None)
 
 
+def extract_request_ip(headers: "MappingLike", client_host: Optional[str] = None) -> Optional[str]:
+    """Extract the viewer IP from an incoming HTTP request.
+
+    Checks headers in priority order, handling signed JWT tokens, CDN headers,
+    and the raw ASGI client address as a last resort.
+
+    Args:
+        headers: A mapping of header name → value (case-insensitive lookup preferred).
+        client_host: The raw ``request.client.host`` value (may be a private IP).
+
+    Returns:
+        Normalised public IP string, or ``None`` if no usable IP is found.
+    """
+    def _h(name: str) -> Optional[str]:
+        return headers.get(name) or headers.get(name.lower()) or headers.get(name.upper())
+
+    # 1. Signed token (highest priority — contains the user's real external IP)
+    token = _h("x-ip-token")
+    if token:
+        ip = _decode_ip_token(token)
+        if ip:
+            return normalize_ip(ip)
+
+    # 2. CDN / proxy forwarding headers
+    xff = _h("x-forwarded-for")
+    if xff:
+        ip = normalize_ip(xff.split(",")[0].strip())
+        if ip:
+            return ip
+
+    for header in ("cf-connecting-ip", "x-real-ip"):
+        val = _h(header)
+        if val:
+            ip = normalize_ip(val.strip())
+            if ip:
+                return ip
+
+    # 3. Direct connection IP (may be a private/loopback address in proxied setups)
+    if client_host:
+        return normalize_ip(client_host)
+
+    return None
+
+
+def _decode_ip_token(token: str) -> Optional[str]:
+    """Decode the ``ip`` claim from an unsigned JWT-shaped token header.
+
+    The token is NOT verified — it is trusted as far as the proxy chain is
+    trusted (same assumption used throughout this addon for IP forwarding).
+    """
+    try:
+        import json as _json
+        import base64
+        parts = token.split(".")
+        if len(parts) != 3:
+            return None
+        pad = "=" * (-len(parts[1]) % 4)
+        payload = _json.loads(base64.urlsafe_b64decode(parts[1] + pad).decode("utf-8", errors="ignore"))
+        return payload.get("ip")
+    except Exception:
+        return None
+
+
+# Alias kept for legacy callers inside main.py
 def set_client_ip(ip: Optional[str]) -> None:
     """Set the current viewer/client IP for this request context."""
     _client_ip_ctx.set(ip)

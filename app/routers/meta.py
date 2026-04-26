@@ -7,7 +7,12 @@ from app.schemas.stremio import MetaResponse
 from app.providers.common import ProviderFactory
 from app.utils.safe_print import safe_print
 from app.utils.programs_loader import get_programs_for_provider
+from app.utils.cache import cache
+from app.utils.cache_keys import CacheKeys
 from app.config.provider_config import PROVIDER_REGISTRY, get_live_providers
+
+EPISODES_CACHE_TTL = 600   # 10 minutes
+CHANNELS_CACHE_TTL = 300   # 5 minutes
 
 router = APIRouter()
 
@@ -18,7 +23,7 @@ SERIES_PROVIDERS = PROVIDER_REGISTRY
 CHANNEL_PROVIDERS = get_live_providers()
 
 
-def _get_show_metadata_from_programs(provider_name: str, show_slug: str, static_base: str) -> Optional[Dict]:
+def _get_show_metadata_from_programs(provider_name: str, show_slug: str, static_base: str) -> Optional[Dict[str, Any]]:
     """Get show metadata from programs.json for a specific show."""
     programs = get_programs_for_provider(provider_name)
     if show_slug in programs:
@@ -38,7 +43,7 @@ def _get_show_metadata_from_programs(provider_name: str, show_slug: str, static_
     return None
 
 
-def _build_video_data(episode: Dict, show_meta: Dict, index: int) -> Dict:
+def _build_video_data(episode: Dict[str, Any], show_meta: Dict[str, Any], index: int) -> Dict[str, Any]:
     """Build video data dict from episode and show metadata."""
     video_data = {
         "id": episode["id"],
@@ -66,7 +71,7 @@ def _build_video_data(episode: Dict, show_meta: Dict, index: int) -> Dict:
     return video_data
 
 
-def _build_series_meta(show_meta: Dict, id_prefix: str, videos: List[Dict]) -> Dict:
+def _build_series_meta(show_meta: Dict[str, Any], id_prefix: str, videos: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Build series metadata dict from show metadata and videos."""
     return {
         "id": f"{id_prefix}:{show_meta['id']}",
@@ -89,14 +94,19 @@ async def _handle_channel_metadata(id: str, request: Request) -> Optional[MetaRe
     
     async def fetch_from_provider(provider_key: str):
         """Fetch channels from a single provider and find matching channel."""
-        try:
-            provider = ProviderFactory.create_provider(provider_key, request)
-            channels = await run_in_threadpool(provider.get_live_channels)
-            for channel in channels:
-                if channel["id"] == id:
-                    return channel
-        except Exception as e:
-            safe_print(f"Error getting {provider_key} channel metadata: {e}")
+        cache_key = CacheKeys.channels(provider_key)
+        channels = cache.get(cache_key)
+        if channels is None:
+            try:
+                provider = ProviderFactory.create_provider(provider_key, request)
+                channels = await run_in_threadpool(provider.get_live_channels)
+                cache.set(cache_key, channels, ttl=CHANNELS_CACHE_TTL)
+            except Exception as e:
+                safe_print(f"Error getting {provider_key} channel metadata: {e}")
+                return None
+        for channel in channels:
+            if channel["id"] == id:
+                return channel
         return None
 
     # Run all provider fetches in parallel
@@ -147,9 +157,13 @@ def _handle_series_metadata(
         if not show_meta:
             return MetaResponse(meta={})
         
-        # Get episodes for the show
+        # Get episodes for the show (cached)
         series_id = f"{id_prefix}:{show_id}"
-        episodes = provider.get_episodes(series_id)
+        episodes_cache_key = CacheKeys.episodes(series_id)
+        episodes = cache.get(episodes_cache_key)
+        if episodes is None:
+            episodes = provider.get_episodes(series_id)
+            cache.set(episodes_cache_key, episodes, ttl=EPISODES_CACHE_TTL)
         
         # Convert episodes to Stremio video format
         videos = [_build_video_data(ep, show_meta, i) for i, ep in enumerate(episodes)]

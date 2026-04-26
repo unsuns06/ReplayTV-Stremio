@@ -3,25 +3,26 @@
 France TV provider implementation
 Hybrid approach with robust error handling, fallbacks, and retry logic
 """
+import logging
 
 import html
 import json
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
+
 from typing import Dict, List, Optional
 from urllib.parse import urlencode, quote
 from fastapi import Request
 from app.utils.credentials import get_provider_credentials
-from app.utils.metadata import metadata_processor
-from app.utils.safe_print import safe_print
-from app.utils.client_ip import merge_ip_headers
+from app.providers.fr.metadata import metadata_processor, image_extractor
 from app.utils.base_url import get_base_url, get_logo_url
 
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.api_client import ProviderAPIClient
 from app.utils.programs_loader import get_programs_for_provider
 from app.providers.base_provider import BaseProvider
+
+logger = logging.getLogger(__name__)
 
 class FranceTVProvider(BaseProvider):
     """France TV provider implementation with robust error handling and fallbacks"""
@@ -38,9 +39,6 @@ class FranceTVProvider(BaseProvider):
     catalog_id = "fr-francetv-replay"
     supports_live = True
 
-    @property
-    def provider_key(self) -> str:
-        return "francetv"
     
     def __init__(self, request: Optional[Request] = None):
         # Initialize base class (handles credentials, session, proxy_config, mediaflow)
@@ -85,10 +83,6 @@ class FranceTVProvider(BaseProvider):
             }
         }
     
-    def _safe_api_call(self, url: str, params: Dict = None, headers: Dict = None, max_retries: int = 3) -> Optional[Dict]:
-        """Delegate to shared ProviderAPIClient."""
-        return self.api_client.get(url, params=params, headers=headers, max_retries=max_retries)
-    
     def get_programs(self) -> List[Dict]:
         """Get list of replay shows with enhanced metadata (parallel API fetching)"""
         shows = []
@@ -100,12 +94,11 @@ class FranceTVProvider(BaseProvider):
             try:
                 return (show_id, self._get_show_api_metadata(api_show_id))
             except Exception as e:
-                safe_print(f"⚠️ [FranceTV] Warning: Could not fetch API metadata for {show_id}: {e}")
+                logger.warning(f"⚠️ [FranceTV] Warning: Could not fetch API metadata for {show_id}: {e}")
                 return (show_id, None)
         
         # Fetch all API metadata in parallel
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            api_results = dict(executor.map(fetch_api_metadata, self.shows.items()))
+        api_results = dict(self._parallel_map(fetch_api_metadata, self.shows.items()))
         
         # Build shows using fetched metadata
         for show_id, show_info in self.shows.items():
@@ -136,7 +129,7 @@ class FranceTVProvider(BaseProvider):
             api_url = f"{self.api_front}/standard/publish/taxonomies/{show_api_id}"
             params = {'platform': 'apps'}
             
-            data = self._safe_api_call(api_url, params=params)
+            data = self.api_client.get(api_url, params=params)
             if not data:
                 return None
             
@@ -145,32 +138,18 @@ class FranceTVProvider(BaseProvider):
             description = data.get('description', '')
             text = data.get('seo', '')  # SEO field often contains rich text
             
-            # Extract program logo from media_image patterns (type: "logo")
-            # The API returns patterns with urls for different widths: w:450, w:300, w:150
-            logo_url = None
-            for pattern in images:
-                if pattern.get('type') == 'logo' and 'urls' in pattern:
-                    pattern_urls = pattern['urls']
-                    # Prefer w:450 for higher quality, fallback to w:300 or w:150
-                    relative_url = pattern_urls.get('w:450') or pattern_urls.get('w:300') or pattern_urls.get('w:150')
-                    if relative_url and relative_url.startswith('/'):
-                        logo_url = f"https://www.france.tv{relative_url}"
-                    elif relative_url:
-                        logo_url = relative_url
-                    break
-            
-            # Get additional metadata
+            extracted = image_extractor.extract(images, {"logo": "logo"})
             metadata = {
                 'images': images,
                 'description': description,
                 'text': text,
-                'logo': logo_url,
+                'logo': extracted.get('logo'),
             }
             
             return metadata
             
         except Exception as e:
-            safe_print(f"❌ [FranceTV] Error getting show API metadata: {e}")
+            logger.error(f"❌ [FranceTV] Error getting show API metadata: {e}")
             return None
     
     def _get_channel_images(self, channel_id: str) -> Dict[str, str]:
@@ -186,43 +165,16 @@ class FranceTVProvider(BaseProvider):
             api_url = f"{self.api_front}/standard/publish/taxonomies/{channel_id}"
             params = {'platform': 'apps'}
             
-            data = self._safe_api_call(api_url, params=params)
+            data = self.api_client.get(api_url, params=params)
             if not data:
                 return {'poster': '', 'logo': ''}
             
             images = data.get('media_image', {}).get('patterns', []) if 'media_image' in data else []
-            
-            poster_url = ''
-            logo_url = ''
-            
-            for pattern in images:
-                pattern_type = pattern.get('type', '')
-                pattern_urls = pattern.get('urls', {})
-                
-                # Extract vignette_3x4 (w:1024) for poster
-                if 'vignette_3x4' in pattern_type:
-                    relative_url = pattern_urls.get('w:1024') or pattern_urls.get('w:400')
-                    if relative_url and relative_url.startswith('/'):
-                        poster_url = f"https://www.france.tv{relative_url}"
-                    elif relative_url:
-                        poster_url = relative_url
-                
-                # Extract logo (w:450) for logo
-                if pattern_type == 'logo':
-                    relative_url = pattern_urls.get('w:450') or pattern_urls.get('w:300') or pattern_urls.get('w:150')
-                    if relative_url and relative_url.startswith('/'):
-                        logo_url = f"https://www.france.tv{relative_url}"
-                    elif relative_url:
-                        logo_url = relative_url
-                
-                # Break early if we have both
-                if poster_url and logo_url:
-                    break
-            
-            return {'poster': poster_url, 'logo': logo_url}
+            extracted = image_extractor.extract(images, {"poster": "vignette_3x4", "logo": "logo"})
+            return {'poster': extracted.get('poster', ''), 'logo': extracted.get('logo', '')}
             
         except Exception as e:
-            safe_print(f"❌ [FranceTV] Error getting channel images for {channel_id}: {e}")
+            logger.error(f"❌ [FranceTV] Error getting channel images for {channel_id}: {e}")
             return {'poster': '', 'logo': ''}
     
     def get_live_channels(self) -> List[Dict]:
@@ -273,8 +225,7 @@ class FranceTVProvider(BaseProvider):
             return (cfg["id"], self._get_channel_images(cfg["channel_api_id"]))
         
         # Fetch all channel images in parallel
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            image_results = dict(executor.map(fetch_images, channel_configs))
+        image_results = dict(self._parallel_map(fetch_images, channel_configs))
         
         # Build channels using fetched images (preserving original order)
         for config in channel_configs:
@@ -296,74 +247,69 @@ class FranceTVProvider(BaseProvider):
         
         return channels
     
-    def get_live_stream_url(self, channel_id: str) -> Optional[Dict]:
-        """Get live stream URL for a specific channel with robust error handling and fallbacks"""
-        safe_print(f"🔍 [FranceTV] Getting live stream for {channel_id}")
+    def _get_broadcast_id(self, channel_name: str) -> tuple:
+        """Look up the live broadcast ID and current programme title for *channel_name*.
+
+        Tries three sources in order:
+        1. Mobile API  (``api-mobile.yatta.francetv.fr``)
+        2. Front API   (``api-front.yatta.francetv.fr``)
+        3. Hard-coded ``fallback_channels`` dict
+
+        Returns:
+            ``(broadcast_id, current_program_title)`` — either value may be ``None``.
+        """
+        broadcast_id = None
+        current_program_title = None
+
         try:
-            # Extract channel name from ID (e.g., "france-2" from "cutam:fr:francetv:france-2")
-            channel_name = channel_id.split(":")[-1]
-            safe_print(f"   Channel name: {channel_name}")
-            
-            # First try to get broadcast ID and current program info from mobile API
-            broadcast_id = None
-            current_program_title = None
+            data = self.api_client.get(
+                f"{self.api_mobile}/apps/channels/{channel_name}",
+                params={'platform': 'apps'},
+            )
+            if data:
+                for collection in data.get('collections', []):
+                    if collection.get('type') == 'live':
+                        items = collection.get('items', [])
+                        if items:
+                            current_program_title = items[0].get('title', '')
+                            ch = items[0].get('channel', {})
+                            if ch.get('si_id'):
+                                broadcast_id = ch['si_id']
+                        break
+        except Exception as e:
+            logger.error(f"   ⚠️ Mobile API failed: {e}")
+
+        if not broadcast_id:
             try:
-                params = {'platform': 'apps'}
-                api_url = f"{self.api_mobile}/apps/channels/{channel_name}"
-                safe_print(f"   Mobile API URL: {api_url}")
-                
-                data = self._safe_api_call(api_url, params=params)
+                data = self.api_client.get(f"{self.api_front}/standard/edito/directs")
                 if data:
-                    # Look for live collection
-                    for collection in data.get('collections', []):
-                        if collection.get('type') == 'live':
-                            items = collection.get('items', [])
-                            if items:
-                                # Get current program title
-                                current_program_title = items[0].get('title', '')
-                                safe_print(f"   Current program: {current_program_title}")
-                                
-                                # Get broadcast ID
-                                if items[0].get('channel') and items[0]['channel'].get('si_id'):
-                                    broadcast_id = items[0]['channel']['si_id']
-                                    safe_print(f"   Found broadcast ID from mobile API: {broadcast_id}")
+                    for live in data.get('result', []):
+                        if live.get('channel') == channel_name:
+                            collections = live.get('collection', [])
+                            if collections and not current_program_title:
+                                current_program_title = collections[0].get('title', '')
+                            for m in (collections[0].get('content_has_medias', []) if collections else []):
+                                if 'si_direct_id' in m.get('media', {}):
+                                    broadcast_id = m['media']['si_direct_id']
+                                    break
                             break
             except Exception as e:
-                safe_print(f"   ⚠️ Mobile API failed: {e}")
-            
-            # If mobile API failed, try front API
+                logger.error(f"   ⚠️ Front API failed: {e}")
+
+        if not broadcast_id:
+            broadcast_id = self.fallback_channels.get(channel_name, {}).get('id')
+
+        return broadcast_id, current_program_title
+
+    def get_live_stream_url(self, channel_id: str) -> Optional[Dict]:
+        """Get live stream URL for a specific channel with robust error handling and fallbacks"""
+        logger.debug(f"🔍 [FranceTV] Getting live stream for {channel_id}")
+        try:
+            channel_name = channel_id.split(":")[-1]
+            broadcast_id, current_program_title = self._get_broadcast_id(channel_name)
+
             if not broadcast_id:
-                try:
-                    live_json_url = f"{self.api_front}/standard/edito/directs"
-                    safe_print(f"   Front API URL: {live_json_url}")
-                    
-                    data = self._safe_api_call(live_json_url)
-                    if data:
-                        for live in data.get('result', []):
-                            if live.get('channel') == channel_name:
-                                # Try to get program title from collection
-                                collections = live.get('collection', [])
-                                if collections and not current_program_title:
-                                    current_program_title = collections[0].get('title', '')
-                                
-                                medias = collections[0].get('content_has_medias', []) if collections else []
-                                for m in medias:
-                                    media = m.get('media', {})
-                                    if 'si_direct_id' in media:
-                                        broadcast_id = media['si_direct_id']
-                                        safe_print(f"   Found broadcast ID from front API: {broadcast_id}")
-                                        break
-                                break
-                except Exception as e:
-                    safe_print(f"   ⚠️ Front API failed: {e}")
-            
-            # Final fallback to constants
-            if not broadcast_id:
-                broadcast_id = self.fallback_channels.get(channel_name, {}).get('id')
-                safe_print(f"   Using fallback ID: {broadcast_id}")
-            
-            if not broadcast_id:
-                safe_print(f"   ❌ No broadcast ID found for {channel_name}")
+                logger.error(f"   ❌ No broadcast ID found for {channel_name}")
                 return None
             
             # Get video info from API (same as reference)
@@ -376,12 +322,12 @@ class FranceTVProvider(BaseProvider):
                 'offline': 'false',
             }
             
-            safe_print(f"   Video API URL: {video_url}")
-            video_data = self._safe_api_call(video_url, params=params, max_retries=2)
-            
+            logger.debug(f"   Video API URL: {video_url}")
+            video_data = self.api_client.get(video_url, params=params, max_retries=2)
+
             if video_data and 'video' in video_data:
                 video_info = video_data['video']
-                safe_print(f"   Video info keys: {list(video_info.keys())}")
+                logger.debug(f"   Video info keys: {list(video_info.keys())}")
                 
                 # Handle token field like reference implementation
                 token_field = video_info.get('token', {})
@@ -394,7 +340,7 @@ class FranceTVProvider(BaseProvider):
                     # older style string token
                     url_token = token_field or "https://hdfauth.ftven.fr/esi/TA"
                 
-                safe_print(f"   Using token URL: {url_token}")
+                logger.debug(f"   Using token URL: {url_token}")
                 
                 # Get the actual stream URL
                 token_params = {
@@ -402,8 +348,8 @@ class FranceTVProvider(BaseProvider):
                     'url': video_info.get('url', '')
                 }
                 
-                safe_print(f"   Token API params: {token_params}")
-                token_data = self._safe_api_call(url_token, params=token_params, max_retries=2)
+                logger.debug(f"   Token API params: {token_params}")
+                token_data = self.api_client.get(url_token, params=token_params, max_retries=2)
                 
                 if token_data and 'url' in token_data:
                     final_url = token_data['url']
@@ -412,33 +358,33 @@ class FranceTVProvider(BaseProvider):
                         # Determine manifest type
                         manifest_type = 'hls' if 'hls' in video_info.get('format', []) else 'mpd'
                         format_label = 'HLS' if manifest_type == 'hls' else 'MPD'
-                        
+
                         # Build enhanced title: [FORMAT] Current Program Name
                         # Falls back to channel name if no EPG data available
                         if current_program_title:
                             stream_title = f"[{format_label}] {current_program_title}"
                         else:
                             stream_title = f"[{format_label}] {channel_name.upper()}"
-                        
+
                         result = {
                             "url": final_url,
                             "manifest_type": manifest_type,
                             "title": stream_title
                         }
-                        safe_print(f"   ✅ Returning result: {result}")
+                        logger.debug(f"   ✅ Returning result: {result}")
                         return result
                     else:
-                        safe_print(f"   ❌ No final URL in token response")
+                        logger.error(f"   ❌ No final URL in token response")
                 else:
-                    safe_print(f"   ❌ Token API failed or no URL found")
+                    logger.error(f"   ❌ Token API failed or no URL found")
             else:
-                safe_print(f"   ❌ No 'video' key in response or API failed")
+                logger.error(f"   ❌ No 'video' key in response or API failed")
             
-            safe_print(f"   ❌ Returning None")
+            logger.error(f"   ❌ Returning None")
             return None
             
         except Exception as e:
-            safe_print(f"❌ Error getting live stream for {channel_id}: {e}")
+            logger.error(f"❌ Error getting live stream for {channel_id}: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -470,7 +416,7 @@ class FranceTVProvider(BaseProvider):
                 'sort': "begin_date:desc"
             }
             
-            data = self._safe_api_call(api_url, params=params)
+            data = self.api_client.get(api_url, params=params)
             
             if data and 'result' in data:
                 episodes = []
@@ -493,19 +439,19 @@ class FranceTVProvider(BaseProvider):
                         ep['episode'] = i
                         ep['episode_number'] = i
                     
-                    safe_print(f"✅ [FranceTV] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
+                    logger.debug(f"✅ [FranceTV] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
                     return episodes
                 else:
-                    safe_print(f"⚠️ [FranceTV] No episodes found in API response for {actual_show_id}")
+                    logger.warning(f"⚠️ [FranceTV] No episodes found in API response for {actual_show_id}")
             else:
-                safe_print(f"❌ [FranceTV] API failed or no result for {actual_show_id}")
+                logger.error(f"❌ [FranceTV] API failed or no result for {actual_show_id}")
             
             # Fallback: return a placeholder episode
-            safe_print(f"⚠️ [FranceTV] Using fallback episode for {actual_show_id}")
+            logger.warning(f"⚠️ [FranceTV] Using fallback episode for {actual_show_id}")
             return [self._create_fallback_episode(actual_show_id)]
                 
         except Exception as e:
-            safe_print(f"❌ [FranceTV] Error getting show episodes: {e}")
+            logger.error(f"❌ [FranceTV] Error getting show episodes: {e}")
             # Fallback: return a placeholder episode
             return [self._create_fallback_episode(actual_show_id)]
     
@@ -640,7 +586,7 @@ class FranceTVProvider(BaseProvider):
             return episode_meta
             
         except Exception as e:
-            safe_print(f"❌ [FranceTV] Error parsing episode: {e}")
+            logger.error(f"❌ [FranceTV] Error parsing episode: {e}")
             return None
     
     def get_episode_stream_url(self, episode_id: str) -> Optional[Dict]:
@@ -663,14 +609,14 @@ class FranceTVProvider(BaseProvider):
                 'offline': 'false',
             }
             
-            video_data = self._safe_api_call(video_url, params=params, max_retries=2)
+            video_data = self.api_client.get(video_url, params=params, max_retries=2)
             
             if video_data and 'video' in video_data:
                 video_info = video_data['video']
                 
                 video_url = video_info.get('url')
                 if not video_url:
-                    safe_print("❌ [FranceTV] No video URL found")
+                    logger.error("❌ [FranceTV] No video URL found")
                     return None
                 
                 # Get the actual stream URL
@@ -680,7 +626,7 @@ class FranceTVProvider(BaseProvider):
                     'url': video_url
                 }
                 
-                token_data = self._safe_api_call(token_url, params=token_params, max_retries=2)
+                token_data = self.api_client.get(token_url, params=token_params, max_retries=2)
                 
                 if token_data and 'url' in token_data:
                     final_url = token_data['url']
@@ -691,77 +637,70 @@ class FranceTVProvider(BaseProvider):
                             "manifest_type": "hls"
                         }
                 
-                safe_print("❌ [FranceTV] Failed to get stream URL")
+                logger.error("❌ [FranceTV] Failed to get stream URL")
                 return None
             else:
-                safe_print(f"❌ [FranceTV] Failed to get video info or API failed")
+                logger.error(f"❌ [FranceTV] Failed to get video info or API failed")
                 return None
                 
         except Exception as e:
-            safe_print(f"❌ [FranceTV] Error getting episode stream: {e}")
+            logger.error(f"❌ [FranceTV] Error getting episode stream: {e}")
             import traceback
             traceback.print_exc()
             return None
 
-    def resolve_stream(self, stream_id: str) -> Optional[Dict]:
-        """Resolve stream URL for a given stream ID"""
-        # This method needs to be implemented based on the specific stream ID format
-        # For now, return None as a placeholder
-        safe_print(f"⚠️ [FranceTV] resolve_stream not implemented for {stream_id}")
-        return None
-
 def test_francetv_provider():
     """Test the France TV provider"""
-    safe_print("🔍 Testing France TV provider...")
+    logger.debug("🔍 Testing France TV provider...")
     
     provider = FranceTVProvider()
     
     # Test getting replay shows
-    safe_print("\n1️⃣ Testing replay shows...")
+    logger.debug("\n1️⃣ Testing replay shows...")
     shows = provider.get_programs()
     
     if shows:
-        safe_print(f"✅ Found {len(shows)} shows:")
+        logger.debug(f"✅ Found {len(shows)} shows:")
         for show in shows:
-            safe_print(f"   - {show['name']}: {show['id']}")
-            safe_print(f"     Poster: {show.get('poster', 'N/A')}")
-            safe_print(f"     Fanart: {show.get('fanart', 'N/A')}")
-            safe_print(f"     Genres: {show.get('genres', [])}")
+            logger.debug(f"   - {show['name']}: {show['id']}")
+            logger.debug(f"     Poster: {show.get('poster', 'N/A')}")
+            logger.debug(f"     Fanart: {show.get('fanart', 'N/A')}")
+            logger.debug(f"     Genres: {show.get('genres', [])}")
         
         # Test getting episodes for the first show
         if shows:
             first_show = shows[0]
-            safe_print(f"\n2️⃣ Testing episodes for {first_show['name']}...")
+            logger.debug(f"\n2️⃣ Testing episodes for {first_show['name']}...")
             
             episodes = provider.get_episodes(first_show['id'])
             
             if episodes:
-                safe_print(f"✅ Found {len(episodes)} episodes:")
+                logger.debug(f"✅ Found {len(episodes)} episodes:")
                 for episode in episodes[:3]:  # Show first 3 episodes
-                    safe_print(f"   - {episode['title']}: {episode['id']}")
-                    safe_print(f"     Poster: {episode.get('poster', 'N/A')}")
-                    safe_print(f"     Fanart: {episode.get('fanart', 'N/A')}")
-                    safe_print(f"     Description: {episode.get('description', 'N/A')[:100]}...")
+                    logger.debug(f"   - {episode['title']}: {episode['id']}")
+                    logger.debug(f"     Poster: {episode.get('poster', 'N/A')}")
+                    logger.debug(f"     Fanart: {episode.get('fanart', 'N/A')}")
+                    logger.debug(f"     Description: {episode.get('description', 'N/A')[:100]}...")
                 
                 # Test getting stream URL for the first episode
                 if episodes:
                     first_episode = episodes[0]
-                    safe_print(f"\n3️⃣ Testing stream URL for episode: {first_episode['title']}...")
+                    logger.debug(f"\n3️⃣ Testing stream URL for episode: {first_episode['title']}...")
                     
                     stream_info = provider.get_episode_stream_url(first_episode['id'])
                     
                     if stream_info:
-                        safe_print(f"✅ Stream info retrieved:")
-                        safe_print(f"   URL: {stream_info['url'][:100] if stream_info['url'] else 'N/A'}...")
-                        safe_print(f"   Manifest Type: {stream_info.get('manifest_type', 'unknown')}")
+                        logger.debug(f"✅ Stream info retrieved:")
+                        logger.debug(f"   URL: {stream_info['url'][:100] if stream_info['url'] else 'N/A'}...")
+                        logger.debug(f"   Manifest Type: {stream_info.get('manifest_type', 'unknown')}")
                     else:
-                        safe_print("❌ Failed to get stream info")
+                        logger.error("❌ Failed to get stream info")
             else:
-                safe_print("❌ No episodes found")
+                logger.error("❌ No episodes found")
     else:
-        safe_print("❌ No shows found")
+        logger.error("❌ No shows found")
     
-    safe_print("\n🔍 Test complete!")
+    logger.debug("\n🔍 Test complete!")
 
 if __name__ == "__main__":
     test_francetv_provider()

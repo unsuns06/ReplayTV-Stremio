@@ -6,6 +6,7 @@ Run again AFTER refactoring to verify no regressions.
 """
 
 import sys
+import pytest
 import os
 import json
 from datetime import datetime
@@ -25,6 +26,8 @@ RESULTS = {
 def log(msg):
     """Print with timestamp"""
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+
+@pytest.mark.integration
 
 def test_get_programs():
     """Test: Get list of programs/shows"""
@@ -57,6 +60,8 @@ def test_get_programs():
         RESULTS["tests"]["get_programs"] = {"status": "FAIL", "error": str(e)}
         return False, None
 
+@pytest.mark.integration
+
 def test_get_episodes(show_id: str = None):
     """Test: Get episodes for a specific show"""
     if not show_id:
@@ -88,6 +93,8 @@ def test_get_episodes(show_id: str = None):
         log(f"❌ get_episodes FAILED: {e}")
         RESULTS["tests"]["get_episodes"] = {"status": "FAIL", "show_id": show_id, "error": str(e)}
         return False, None
+
+@pytest.mark.integration
 
 def test_get_episode_stream_url(episode_id: str = None):
     """Test: Get stream URL for specific episode"""

@@ -8,7 +8,7 @@ from typing import Dict, Optional, Tuple, Any
 
 from app.utils.safe_print import safe_print
 from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
-from app.utils.sixplay_mpd_processor import extract_drm_info_from_mpd
+from app.utils.drm.sixplay_mpd_processor import extract_drm_info_from_mpd
 
 
 def extract_pssh_from_mpd(

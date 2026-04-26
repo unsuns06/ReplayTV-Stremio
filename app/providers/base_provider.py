@@ -3,18 +3,25 @@ Base provider class with common functionality.
 All providers should inherit from this class.
 """
 
+import logging
 import os
 import requests
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 from urllib.parse import quote, urlencode
+
+_T = TypeVar("_T")
+_PARALLEL_FETCH_WORKERS = 5   # max threads for parallel metadata / image fetches
 
 from app.utils.credentials import get_provider_credentials, load_credentials
 from app.utils.api_client import ProviderAPIClient
 from app.utils.user_agent import get_random_windows_ua
-from app.utils.safe_print import safe_print
 from app.utils.proxy_config import get_proxy_config
-from app.schemas.type_defs import StreamInfo, EpisodeInfo, ShowInfo
+from app.utils.client_ip import make_ip_headers, merge_ip_headers as _merge_ip_util
+from app.schemas.type_defs import EpisodeInfo, LiveChannelInfo, ShowInfo, StreamInfo
+
+logger = logging.getLogger(__name__)
 
 
 class BaseProvider(ABC):
@@ -73,12 +80,6 @@ class BaseProvider(ABC):
         self._init_mediaflow()
 
     @property
-    @abstractmethod
-    def provider_key(self) -> str:
-        """Unique identifier key for the provider (e.g., 'francetv', 'cbc')."""
-        pass
-        
-    @property
     def needs_ip_forwarding(self) -> bool:
         """
         Whether this provider requires client IP forwarding headers.
@@ -98,13 +99,23 @@ class BaseProvider(ABC):
         name = display_names.get(self.provider_name, self.provider_name.capitalize())
         return f"[{name}]"
     
+    def _parallel_map(self, fn: Callable[..., _T], items) -> List[_T]:
+        """Apply *fn* to every item in *items* using a thread pool.
+
+        Wraps the repeated ``ThreadPoolExecutor`` boilerplate so subclasses can
+        write ``self._parallel_map(fetch_fn, items)`` instead of the 3-line
+        executor pattern.
+        """
+        with ThreadPoolExecutor(max_workers=_PARALLEL_FETCH_WORKERS) as executor:
+            return list(executor.map(fn, items))
+
     def _init_mediaflow(self):
         """Initialize MediaFlow proxy configuration."""
         self.mediaflow_url, self.mediaflow_password = self._load_mediaflow_config()
         if self.mediaflow_url and self.mediaflow_password:
-            safe_print(f"✅ {self.log_prefix} MediaFlow configured")
+            logger.debug("✅ %s MediaFlow configured", self.log_prefix)
         else:
-            safe_print(f"⚠️ {self.log_prefix} MediaFlow not configured")
+            logger.debug("⚠️ %s MediaFlow not configured", self.log_prefix)
     
     def _load_mediaflow_config(self) -> tuple:
         """Load MediaFlow proxy configuration."""
@@ -125,58 +136,22 @@ class BaseProvider(ABC):
         proxy_base = self.proxy_config.get_proxy(proxy_key)
         if proxy_base:
             return proxy_base + quote(destination_url, safe='')
-        safe_print(f"⚠️ {self.log_prefix} Proxy '{proxy_key}' not configured")
+        logger.debug("⚠️ %s Proxy '%s' not configured", self.log_prefix, proxy_key)
         return None
-    
-    def _check_processed_file(self, episode_id: str) -> Optional[Dict]:
-        """Check if DRM-free processed file exists in RD folder or processor."""
-        processor_url = self.proxy_config.get_proxy('nm3u8_processor')
-        if not processor_url:
-            return None
-        
-        processed_filename = f"{episode_id}.mp4"
-        
-        # Check Real-Debrid folder first
-        try:
-            all_creds = load_credentials()
-            rd_folder = all_creds.get('realdebridfolder')
-            if rd_folder:
-                rd_headers = {'User-Agent': get_random_windows_ua()}
-                response = requests.get(rd_folder, headers=rd_headers, timeout=10)
-                if response.status_code == 200 and processed_filename in response.text:
-                    rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
-                    safe_print(f"✅ {self.log_prefix} Found in RD: {processed_filename}")
-                    return {"url": rd_file_url, "manifest_type": "video", "title": "✅ [RD] DRM-Free Video"}
-        except Exception:
-            pass
-        
-        # Check processor URL
-        try:
-            processed_url = f"{processor_url}/stream/{processed_filename}"
-            check_response = requests.head(processed_url, timeout=5)
-            if check_response.status_code == 200:
-                safe_print(f"✅ {self.log_prefix} Found processed: {processed_filename}")
-                return {"url": processed_url, "manifest_type": "video", "title": "✅ DRM-Free Video"}
-        except Exception:
-            pass
-        
-        return None
-    
-    def _fetch_with_proxy_fallback(self, url: str, params: Dict = None, 
+
+    def _fetch_with_proxy_fallback(self, url: str, params: Dict = None,
                                     headers: Dict = None, proxy_key: str = 'fr_default') -> Optional[Dict]:
         """Try geo-proxy first, fallback to direct call on failure."""
         dest_with_params = url + ("?" + urlencode(params) if params else "")
         proxied_url = self._get_geo_proxy_url(dest_with_params, proxy_key)
-        
-        # Try proxy first
+
         if proxied_url:
             data = self.api_client.get(proxied_url, headers=headers, max_retries=1)
             if data and data.get('delivery', {}).get('code', 500) == 200:
-                safe_print(f"✅ {self.log_prefix} Proxy success")
+                logger.debug("✅ %s Proxy success", self.log_prefix)
                 return data
-        
-        # Fallback to direct
-        safe_print(f"⚠️ {self.log_prefix} Proxy failed, trying direct")
+
+        logger.debug("⚠️ %s Proxy failed, trying direct", self.log_prefix)
         return self.api_client.get(url, params=params, headers=headers, max_retries=2)
     
     def _build_stream_headers(self, auth_token: str = None) -> Dict:
@@ -192,6 +167,20 @@ class BaseProvider(ABC):
             headers["authorization"] = f"Bearer {auth_token}"
         return headers
     
+    def _build_ip_headers(self, extra: Optional[Dict] = None) -> Dict:
+        """Return IP-forwarding headers for the current request context."""
+        headers = make_ip_headers()
+        if extra:
+            headers.update(extra)
+        return headers
+
+    def _merge_ip_headers(self, headers: Dict, extra: Optional[Dict] = None) -> Dict:
+        """Merge IP-forwarding headers into an existing headers dict."""
+        result = _merge_ip_util(headers)
+        if extra:
+            result.update(extra)
+        return result
+
     def _sort_episodes_chronologically(self, episodes: List[Dict]) -> List[Dict]:
         """Sort episodes by date (oldest first) and re-number them."""
         episodes.sort(key=lambda ep: ep.get('released', '') or ep.get('broadcast_date', '') or '')
@@ -219,12 +208,8 @@ class BaseProvider(ABC):
         """Get stream URL for a specific episode"""
         pass
     
-    def get_live_channels(self) -> List[Dict[str, Any]]:
-        """
-        Get list of live channels.
-        Override in subclasses that support live channels.
-        Default implementation returns empty list.
-        """
+    def get_live_channels(self) -> List[LiveChannelInfo]:
+        """Get list of live channels. Override in subclasses that support live channels."""
         return []
     
     def get_channel_stream_url(self, channel_id: str) -> Optional[StreamInfo]:

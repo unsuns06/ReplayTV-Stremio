@@ -8,12 +8,23 @@ import os
 import traceback
 import logging
 from datetime import datetime
-from app.utils.client_ip import set_client_ip, normalize_ip
+from app.utils.client_ip import set_client_ip, normalize_ip, extract_request_ip
 from app.utils.credentials import load_credentials
 
 # Configure comprehensive logging with Unicode support
 import sys
 import tempfile
+
+# Map LOG_LEVEL env var to Python logging levels
+_LOG_LEVEL_STR = os.getenv('LOG_LEVEL', 'info').lower()
+_LOG_LEVEL_MAP = {
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warning': logging.WARNING,
+    'error': logging.ERROR,
+    'critical': logging.CRITICAL,
+}
+_LOG_LEVEL = _LOG_LEVEL_MAP.get(_LOG_LEVEL_STR, logging.INFO)
 
 # Robust logging configuration with fallback when file writing is not permitted
 LOG_FILE_PATH = os.getenv('LOG_FILE', os.path.join(tempfile.gettempdir(), 'server_debug.log'))
@@ -43,7 +54,7 @@ if LOG_TO_FILE:
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=_LOG_LEVEL,
     handlers=handlers
 )
 logger = logging.getLogger(__name__)
@@ -66,23 +77,6 @@ app.add_middleware(
     expose_headers=["*"],  # Expose all headers to clients
 )
 
-# Helper: decode viewer IP from a signed token header (if present)
-def _ip_from_token(token: str):
-    try:
-        parts = token.split('.')
-        if len(parts) != 3:
-            return None
-        import json as _json
-        import base64
-        def _b64url_decode(s: str) -> bytes:
-            pad = '=' * (-len(s) % 4)
-            return base64.urlsafe_b64decode(s + pad)
-        payload_b = _b64url_decode(parts[1])
-        payload = _json.loads(payload_b.decode('utf-8', errors='ignore'))
-        return payload.get('ip')
-    except Exception:
-        return None
-
 # Custom middleware for comprehensive error logging
 @app.middleware("http")
 async def log_requests_and_responses(request: Request, call_next):
@@ -96,28 +90,10 @@ async def log_requests_and_responses(request: Request, call_next):
 
     # Extract and store viewer IP for downstream requests
     try:
-        headers = request.headers
-        ip_token = headers.get('x-ip-token') or headers.get('X-IP-Token')
-        xff = headers.get('x-forwarded-for') or headers.get('X-Forwarded-For')
-        cfip = headers.get('cf-connecting-ip') or headers.get('CF-Connecting-IP')
-        xreal = headers.get('x-real-ip') or headers.get('X-Real-IP')
-        client_conn_ip = request.client.host if request.client else None
-
-        viewer_ip = None
-        # Prefer signed token if present
-        if ip_token:
-            viewer_ip = _ip_from_token(ip_token)
-        if not viewer_ip and xff:
-            viewer_ip = xff.split(',')[0].strip()
-        elif not viewer_ip and cfip:
-            viewer_ip = cfip.strip()
-        elif not viewer_ip and xreal:
-            viewer_ip = xreal.strip()
-        elif not viewer_ip and client_conn_ip:
-            viewer_ip = client_conn_ip
-
-        viewer_ip = normalize_ip(viewer_ip)
-
+        viewer_ip = extract_request_ip(
+            headers=request.headers,
+            client_host=request.client.host if request.client else None,
+        )
         set_client_ip(viewer_ip)
         logger.info(f"   Viewer-IP: {viewer_ip}")
     except Exception as e:
@@ -261,6 +237,27 @@ async def manifest():
 async def root():
     return {"message": "Catch-up TV & More for Stremio API"}
 
+@app.get("/health")
+async def health():
+    """Health check endpoint for deployment monitoring."""
+    from app.config.provider_config import PROVIDER_REGISTRY
+    from app.utils.cache import cache as _cache
+    providers_status = {}
+    try:
+        creds = load_credentials()
+        for key in PROVIDER_REGISTRY:
+            providers_status[key] = "configured" if creds.get(key) else "unconfigured"
+    except Exception as e:
+        providers_status = {"error": str(e)}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "log_level": _LOG_LEVEL_STR.upper(),
+        "providers": providers_status,
+        "cache": _cache.stats(),
+    }
+
+
 @app.get("/debug/logs")
 async def get_debug_logs():
     """Endpoint to view recent debug logs"""
@@ -292,7 +289,7 @@ async def get_debug_status():
             "ADDON_BASE_URL": os.getenv('ADDON_BASE_URL', 'Not set'),
             "HOST": os.getenv('HOST', '127.0.0.1'),
             "PORT": os.getenv('PORT', '7860'),
-            "LOG_LEVEL": "INFO"
+            "LOG_LEVEL": _LOG_LEVEL_STR.upper()
         },
         "logging": {
             "file_enabled": FILE_LOG_ENABLED,

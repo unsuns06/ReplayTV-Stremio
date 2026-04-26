@@ -22,6 +22,6 @@ if __name__ == "__main__":
         host=host,
         port=port,
         reload=True,
-        log_level="debug",
+        log_level=log_level,
         access_log=True
     )

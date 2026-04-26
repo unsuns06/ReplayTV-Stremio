@@ -3,6 +3,7 @@
 6play provider implementation
 Hybrid approach with robust error handling, fallbacks, and retry logic
 """
+import logging
 
 import json
 import requests
@@ -12,22 +13,22 @@ import random
 import uuid
 import os
 import base64
-from concurrent.futures import ThreadPoolExecutor
+
 from typing import Dict, List, Optional, Tuple
 from app.utils.credentials import get_provider_credentials, load_credentials
 from app.auth.sixplay_auth import SixPlayAuth
-from app.utils.metadata import metadata_processor
-from app.utils.client_ip import merge_ip_headers
+from app.providers.fr.metadata import metadata_processor
 from app.utils.sixplay_mpd_processor import create_mediaflow_compatible_mpd, extract_drm_info_from_mpd
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
 from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
 from app.utils.nm3u8_drm_processor import process_drm_simple
-from app.utils.safe_print import safe_print
 from app.utils.proxy_config import get_proxy_config
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.programs_loader import get_programs_for_provider
 from app.providers.base_provider import BaseProvider
+
+logger = logging.getLogger(__name__)
 
 class SixPlayProvider(BaseProvider):
     """6play provider implementation with robust error handling and fallbacks"""
@@ -44,9 +45,6 @@ class SixPlayProvider(BaseProvider):
     catalog_id = "fr-6play-replay"
     supports_live = False
 
-    @property
-    def provider_key(self) -> str:
-        return "6play"
     
     def __init__(self, request=None):
         # Initialize base class (handles credentials, session, mediaflow, proxy_config)
@@ -89,13 +87,13 @@ class SixPlayProvider(BaseProvider):
                 self.account_id = preset_account_id
                 self.login_token = preset_login_token
                 self._authenticated = True
-                safe_print("✅ [SixPlay] Using preset 6play account_id/login_token from credentials")
+                logger.debug("✅ [SixPlay] Using preset 6play account_id/login_token from credentials")
                 return True
 
             # If no credentials provided, allow unauthenticated access (HLS-only paths may still work)
             if not username or not password:
-                safe_print("⚠️ [SixPlay] No 6play credentials found; continuing without authentication")
-                safe_print("⚠️ [SixPlay] Note: DRM content will not be accessible without valid credentials")
+                logger.warning("⚠️ [SixPlay] No 6play credentials found; continuing without authentication")
+                logger.warning("⚠️ [SixPlay] Note: DRM content will not be accessible without valid credentials")
                 self._authenticated = True  # Mark as 'handled' so callers can proceed to non-DRM paths
                 return True
 
@@ -107,17 +105,17 @@ class SixPlayProvider(BaseProvider):
                 if auth_data:
                     self.account_id, self.login_token = auth_data
                     self._authenticated = True
-                    safe_print(f"✅ [SixPlay] 6play authentication succeeded")
-                    safe_print(f"🔑 [SixPlay] Account ID: {self.account_id}")
-                    safe_print(f"🔑 [SixPlay] JWT Token: {self.login_token[:20]}...")
+                    logger.debug(f"✅ [SixPlay] 6play authentication succeeded")
+                    logger.debug(f"🔑 [SixPlay] Account ID: {self.account_id}")
+                    logger.debug(f"🔑 [SixPlay] JWT Token: {self.login_token[:20]}...")
                     return True
 
-            safe_print("❌ [SixPlay] 6play authentication failed")
+            logger.error("❌ [SixPlay] 6play authentication failed")
             # Still mark as handled to allow non-DRM content access
             self._authenticated = True
             return False
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Authentication error: {e}")
+            logger.error(f"❌ [SixPlay] Authentication error: {e}")
             # Mark as handled but authentication failed
             self._authenticated = True
             return False
@@ -165,12 +163,11 @@ class SixPlayProvider(BaseProvider):
             try:
                 return (show_id, self._get_show_api_metadata(show_id, show_info))
             except Exception as e:
-                safe_print(f"⚠️ [SixPlay] Warning: Could not fetch API metadata for {show_id}: {e}")
+                logger.warning(f"⚠️ [SixPlay] Warning: Could not fetch API metadata for {show_id}: {e}")
                 return (show_id, None)
         
         try:
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                api_results = dict(executor.map(fetch_api_metadata, self.shows.items()))
+            api_results = dict(self._parallel_map(fetch_api_metadata, self.shows.items()))
             
             for show_id, show_info in self.shows.items():
                 show_metadata = self._build_show_metadata(show_id, show_info)
@@ -179,7 +176,7 @@ class SixPlayProvider(BaseProvider):
                     show_metadata['fanart'] = api_metadata['fanart']
                 shows.append(show_metadata)
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error fetching show metadata: {e}")
+            logger.error(f"❌ [SixPlay] Error fetching show metadata: {e}")
             for show_id, show_info in self.shows.items():
                 shows.append(self._build_show_metadata(show_id, show_info))
         
@@ -194,7 +191,7 @@ class SixPlayProvider(BaseProvider):
             actual_show_id = show_id
         
         try:
-            safe_print(f"🔍 [SixPlay] Getting episodes for 6play show: {actual_show_id}")
+            logger.debug(f"🔍 [SixPlay] Getting episodes for 6play show: {actual_show_id}")
             
             # Use the same approach as the reference plugin
             # First, check if we have the program ID in our configuration (robustness fix)
@@ -202,14 +199,14 @@ class SixPlayProvider(BaseProvider):
             if actual_show_id in self.shows:
                 program_id = self.shows[actual_show_id].get('api_id')
                 if program_id:
-                    safe_print(f"✅ [SixPlay] Using hardcoded program ID: {program_id}")
+                    logger.debug(f"✅ [SixPlay] Using hardcoded program ID: {program_id}")
 
             if not program_id:
                 # First, we need to find the program ID for the show
                 program_id = self._find_program_id(actual_show_id)
             
             if not program_id:
-                safe_print(f"❌ [SixPlay] No program ID found for show: {actual_show_id}")
+                logger.error(f"❌ [SixPlay] No program ID found for show: {actual_show_id}")
                 return []
             
             # Get episodes using the program ID
@@ -224,38 +221,38 @@ class SixPlayProvider(BaseProvider):
                 for i, ep in enumerate(episodes):
                     ep['episode'] = i + 1
                 
-                safe_print(f"✅ [SixPlay] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
+                logger.debug(f"✅ [SixPlay] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
             else:
-                safe_print(f"⚠️ [SixPlay] No episodes found for {actual_show_id}")
+                logger.warning(f"⚠️ [SixPlay] No episodes found for {actual_show_id}")
             
             return episodes
             
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error getting episodes for {actual_show_id}: {e}")
+            logger.error(f"❌ [SixPlay] Error getting episodes for {actual_show_id}: {e}")
             return []
     def _check_processed_file(self, episode_id: str) -> Optional[Dict]:
         """Check if processed file exists in RD or processor URL. Returns stream dict if found."""
         proxy_config = get_proxy_config()
         processor_url = proxy_config.get_proxy('nm3u8_processor')
         if not processor_url:
-            safe_print("❌ [SixPlay] ERROR: nm3u8_processor not configured in credentials.json")
+            logger.error("❌ [SixPlay] ERROR: nm3u8_processor not configured in credentials.json")
             return None
         
-        safe_print(f"✅ [SixPlay] Using processor API: {processor_url}")
+        logger.debug(f"✅ [SixPlay] Using processor API: {processor_url}")
         processed_filename = f"{episode_id}.mp4"
         processed_url = f"{processor_url}/stream/{processed_filename}"
-        safe_print(f"🔍 [SixPlay] Looking for processed file: {processed_filename}")
+        logger.debug(f"🔍 [SixPlay] Looking for processed file: {processed_filename}")
         
         # Check Real-Debrid folder first
         try:
-            safe_print("🔍 [SixPlay] Loading credentials for Real-Debrid check...")
+            logger.debug("🔍 [SixPlay] Loading credentials for Real-Debrid check...")
             all_creds = load_credentials()
-            safe_print(f"✅ [SixPlay] Credentials loaded. Keys: {list(all_creds.keys())}")
+            logger.debug(f"✅ [SixPlay] Credentials loaded. Keys: {list(all_creds.keys())}")
             rd_folder = all_creds.get('realdebridfolder')
-            safe_print(f"🔍 [SixPlay] Real-Debrid folder from credentials: {rd_folder}")
+            logger.debug(f"🔍 [SixPlay] Real-Debrid folder from credentials: {rd_folder}")
             
             if rd_folder:
-                safe_print(f"🔍 [SixPlay] Checking if '{processed_filename}' is listed in RD folder...")
+                logger.debug(f"🔍 [SixPlay] Checking if '{processed_filename}' is listed in RD folder...")
                 try:
                     rd_headers = {
                         'User-Agent': get_random_windows_ua(),
@@ -267,37 +264,37 @@ class SixPlayProvider(BaseProvider):
                         'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'none', 'Cache-Control': 'max-age=0'
                     }
                     folder_response = requests.get(rd_folder, headers=rd_headers, timeout=10)
-                    safe_print(f"🔍 [SixPlay] RD Folder HTTP Status: {folder_response.status_code}")
+                    logger.debug(f"🔍 [SixPlay] RD Folder HTTP Status: {folder_response.status_code}")
                     
                     if folder_response.status_code == 200 and processed_filename in folder_response.text:
                         rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
-                        safe_print(f"✅ [SixPlay] File '{processed_filename}' found in RD folder listing!")
-                        safe_print(f"✅ [SixPlay] Returning RD URL: {rd_file_url}")
+                        logger.debug(f"✅ [SixPlay] File '{processed_filename}' found in RD folder listing!")
+                        logger.debug(f"✅ [SixPlay] Returning RD URL: {rd_file_url}")
                         return {"url": rd_file_url, "manifest_type": "video", "title": "✅ [RD] DRM-Free Video", "filename": processed_filename}
                     else:
-                        safe_print(f"⚠️ [SixPlay] File '{processed_filename}' NOT found in RD folder listing, will check processor_url")
+                        logger.warning(f"⚠️ [SixPlay] File '{processed_filename}' NOT found in RD folder listing, will check processor_url")
                 except requests.exceptions.Timeout:
-                    safe_print(f"⚠️ [SixPlay] RD folder request timed out, checking processor_url...")
+                    logger.warning(f"⚠️ [SixPlay] RD folder request timed out, checking processor_url...")
                 except requests.exceptions.RequestException as e:
-                    safe_print(f"❌ [SixPlay] RD folder request error: {e}, checking processor_url...")
+                    logger.error(f"❌ [SixPlay] RD folder request error: {e}, checking processor_url...")
             else:
-                safe_print("⚠️ [SixPlay] Real-Debrid folder not configured in credentials, checking processor_url...")
+                logger.warning("⚠️ [SixPlay] Real-Debrid folder not configured in credentials, checking processor_url...")
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error checking Real-Debrid: {e}")
-            safe_print(f"🔍 [SixPlay] Proceeding to processor_url check as fallback...")
+            logger.error(f"❌ [SixPlay] Error checking Real-Debrid: {e}")
+            logger.debug(f"🔍 [SixPlay] Proceeding to processor_url check as fallback...")
         
         # Check processor URL
-        safe_print(f"🔍 [SixPlay] Checking processor_url location: {processed_url}")
+        logger.debug(f"🔍 [SixPlay] Checking processor_url location: {processed_url}")
         try:
             check_response = requests.head(processed_url, timeout=5)
-            safe_print(f"🔍 [SixPlay] PROCESSOR URL HTTP Status: {check_response.status_code}")
+            logger.debug(f"🔍 [SixPlay] PROCESSOR URL HTTP Status: {check_response.status_code}")
             if check_response.status_code == 200:
-                safe_print(f"✅ [SixPlay] Processed file already exists: {processed_url}")
+                logger.debug(f"✅ [SixPlay] Processed file already exists: {processed_url}")
                 return {"url": processed_url, "manifest_type": "video", "title": "✅ DRM-Free Video", "filename": processed_filename}
             else:
-                safe_print(f"⚠️ [SixPlay] PROCESSOR file not found (HTTP {check_response.status_code})")
+                logger.warning(f"⚠️ [SixPlay] PROCESSOR file not found (HTTP {check_response.status_code})")
         except Exception as e:
-            safe_print(f"⚠️ [SixPlay] Error checking processor_url: {e}")
+            logger.error(f"⚠️ [SixPlay] Error checking processor_url: {e}")
         
         return None
 
@@ -310,7 +307,7 @@ class SixPlayProvider(BaseProvider):
             actual_episode_id = episode_id
         
         try:
-            safe_print(f"🔍 [SixPlay] Getting replay stream for 6play episode: {actual_episode_id}")
+            logger.debug(f"🔍 [SixPlay] Getting replay stream for 6play episode: {actual_episode_id}")
 
             # Check if processed file already exists (RD or processor)
             existing_file = self._check_processed_file(actual_episode_id)
@@ -319,14 +316,14 @@ class SixPlayProvider(BaseProvider):
 
             # Lazy authentication - only authenticate when needed
             if not self._authenticated and not self._authenticate():
-                safe_print("❌ [SixPlay] 6play authentication failed")
+                logger.error("❌ [SixPlay] 6play authentication failed")
                 return None
             
             # Use the same approach as the reference plugin for replay content
             headers_video_stream = {
                 "User-Agent": get_random_windows_ua(),
             }
-            headers_video_stream = merge_ip_headers(headers_video_stream)
+            headers_video_stream = self._merge_ip_headers(headers_video_stream)
             
             # Get video info using the same API call as the reference plugin
             url_json = f"https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/videos/{actual_episode_id}?csa=6&with=clips,freemiumpacks"
@@ -336,7 +333,7 @@ class SixPlayProvider(BaseProvider):
             
             if response.status_code == 200:
                 json_parser = response.json()
-                safe_print(f"✅ [SixPlay] Video API response received for {actual_episode_id}")
+                logger.debug(f"✅ [SixPlay] Video API response received for {actual_episode_id}")
                 
                 # Extract video assets (same as reference plugin)
                 if 'clips' in json_parser and json_parser['clips']:
@@ -344,21 +341,21 @@ class SixPlayProvider(BaseProvider):
                     
                     if video_assets:
                         # Dynamic format detection - analyze available assets to determine best format
-                        safe_print(f"🔍 Analyzing {len(video_assets)} available assets for optimal format...")
+                        logger.debug(f"🔍 Analyzing {len(video_assets)} available assets for optimal format...")
                         
                         # Analyze available asset types
                         available_formats = self._analyze_available_formats(video_assets)
-                        safe_print(f"📊 Available formats: {available_formats}")
+                        logger.debug(f"📊 Available formats: {available_formats}")
                         
                         # Determine best format based on server response and client capabilities
                         best_format = self._determine_best_format(available_formats)
-                        safe_print(f"🎯 Selected format: {best_format}")
+                        logger.debug(f"🎯 Selected format: {best_format}")
                         
                         # Get the stream URL for the selected format
                         final_video_url = self._get_final_video_url(video_assets, best_format['asset_type'])
                         
                         if final_video_url:
-                            safe_print(f"✅ {best_format['format_name']} stream found: {final_video_url}")
+                            logger.debug(f"✅ {best_format['format_name']} stream found: {final_video_url}")
                             
                             # Handle HLS streams (no DRM required)
                             if best_format['format_type'] == 'hls':
@@ -374,7 +371,7 @@ class SixPlayProvider(BaseProvider):
 
                                 key_id_hex = self._normalize_key_id((drm_info or {}).get('key_id'))
                                 if key_id_hex:
-                                    safe_print(f"🔑 [SixPlay] MPD default_KID: {key_id_hex}")
+                                    logger.debug(f"🔑 [SixPlay] MPD default_KID: {key_id_hex}")
 
                                 drm_token = None
                                 if self.account_id and self.login_token:
@@ -385,37 +382,37 @@ class SixPlayProvider(BaseProvider):
                                             'Authorization': f'Bearer {self.login_token}',
                                         }
 
-                                        complete_headers = merge_ip_headers(payload_headers)
+                                        complete_headers = self._merge_ip_headers(payload_headers)
 
-                                        safe_print(f"📋 [SixPlay] DRM Token Request Headers:")
+                                        logger.debug(f"📋 [SixPlay] DRM Token Request Headers:")
                                         for header_name, header_value in complete_headers.items():
                                             if header_name.lower() in ['authorization', 'x-auth-token', 'token']:
                                                 masked_value = f"{header_value[:20]}..." if len(str(header_value)) > 20 else "***"
-                                                safe_print(f"📋   {header_name}: {masked_value}")
+                                                logger.debug(f"📋   {header_name}: {masked_value}")
                                             else:
-                                                safe_print(f"📋   {header_name}: {header_value}")
+                                                logger.debug(f"📋   {header_name}: {header_value}")
 
                                         token_url = f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/services/m6replay/users/{self.account_id}/videos/{actual_episode_id}/upfront-token"
-                                        safe_print(f"📋 [SixPlay] DRM Token URL: {token_url}")
+                                        logger.debug(f"📋 [SixPlay] DRM Token URL: {token_url}")
 
                                         token_response = self.session.get(token_url, headers=complete_headers, timeout=10)
 
-                                        safe_print(f"📋 [SixPlay] DRM Token Response:")
-                                        safe_print(f"📋   Status Code: {token_response.status_code}")
-                                        safe_print(f"📋   Response Headers: {dict(token_response.headers)}")
+                                        logger.debug(f"📋 [SixPlay] DRM Token Response:")
+                                        logger.debug(f"📋   Status Code: {token_response.status_code}")
+                                        logger.debug(f"📋   Response Headers: {dict(token_response.headers)}")
 
                                         if token_response.status_code == 200:
                                             token_data = token_response.json()
                                             drm_token = token_data["token"]
-                                            safe_print(f"✅ [SixPlay] DRM token obtained successfully")
-                                            safe_print(f"🔑 [SixPlay] DRM Token Value: {drm_token}")
+                                            logger.debug(f"✅ [SixPlay] DRM token obtained successfully")
+                                            logger.debug(f"🔑 [SixPlay] DRM Token Value: {drm_token}")
                                         else:
-                                            safe_print(f"❌ DRM token request failed: {token_response.status_code}")
-                                            safe_print(f"📋   Response content: {token_response.text[:500]}...")
-                                            safe_print(f"⚠️   Check your 6play credentials and authentication")
+                                            logger.error(f"❌ DRM token request failed: {token_response.status_code}")
+                                            logger.debug(f"📋   Response content: {token_response.text[:500]}...")
+                                            logger.warning(f"⚠️   Check your 6play credentials and authentication")
 
                                     except Exception as e:
-                                        safe_print(f"❌ [SixPlay] DRM setup failed: {e}")
+                                        logger.error(f"❌ [SixPlay] DRM setup failed: {e}")
 
                                 # Build the original DRM stream
                                 original_stream = {
@@ -429,7 +426,7 @@ class SixPlayProvider(BaseProvider):
                                     original_stream["pssh"] = pssh_record.base64_text
                                     original_stream["pssh_system_id"] = pssh_record.system_id
                                     original_stream["pssh_source"] = pssh_record.source
-                                    safe_print(f"✅ [SixPlay] PSSH data included in stream response")
+                                    logger.debug(f"✅ [SixPlay] PSSH data included in stream response")
 
                                     if drm_token:
                                         raw_key = self._extract_widevine_key(pssh_record.base64_text, drm_token)
@@ -437,7 +434,7 @@ class SixPlayProvider(BaseProvider):
                                             normalized_key = self._normalize_decryption_key(raw_key, key_id_hex)
                                             if normalized_key:
                                                 original_stream["decryption_key"] = normalized_key
-                                                safe_print(f"✅ [SixPlay] Widevine decryption key included in stream response")
+                                                logger.debug(f"✅ [SixPlay] Widevine decryption key included in stream response")
 
                                                 self._print_download_command(final_video_url, normalized_key, actual_episode_id)
 
@@ -468,11 +465,11 @@ class SixPlayProvider(BaseProvider):
                                                         "description": "Stream not available - DRM processing could not be started. Please try again later."
                                                     }
                                             else:
-                                                safe_print("❌ Unable to normalize Widevine key for MediaFlow usage")
+                                                logger.error("❌ Unable to normalize Widevine key for MediaFlow usage")
                                         else:
-                                            safe_print("❌ CDRM did not return a Widevine key")
+                                            logger.error("❌ CDRM did not return a Widevine key")
                                 else:
-                                    safe_print(f"⚠️ [SixPlay] No PSSH found in MPD manifest")
+                                    logger.warning(f"⚠️ [SixPlay] No PSSH found in MPD manifest")
 
                                 if drm_token:
                                     license_url = f"https://lic.drmtoday.com/license-proxy-widevine/cenc/|Content-Type=&User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36&Host=lic.drmtoday.com&x-dt-auth-token={drm_token}|R{{SSM}}|JBlicense"
@@ -481,12 +478,12 @@ class SixPlayProvider(BaseProvider):
                                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
                                     }
 
-                                    safe_print("📋 [SixPlay] DRM License Information:")
-                                    safe_print(f"📋   License URL: {license_url}")
-                                    safe_print(f"📋   License Headers: {license_headers}")
-                                    safe_print(f"📋   Video URL: {final_video_url}")
+                                    logger.debug("📋 [SixPlay] DRM License Information:")
+                                    logger.debug(f"📋   License URL: {license_url}")
+                                    logger.debug(f"📋   License Headers: {license_headers}")
+                                    logger.debug(f"📋   Video URL: {final_video_url}")
 
-                                    safe_print("🔍 [SixPlay] Using direct DRM approach with license")
+                                    logger.debug("🔍 [SixPlay] Using direct DRM approach with license")
 
                                     original_stream.update({
                                         "licenseUrl": license_url,
@@ -497,22 +494,22 @@ class SixPlayProvider(BaseProvider):
 
                                     return original_stream
                                 else:
-                                    safe_print(f"⚠️ [SixPlay] No DRM token available - returning basic MPD with PSSH")
+                                    logger.warning(f"⚠️ [SixPlay] No DRM token available - returning basic MPD with PSSH")
                                     return original_stream
                             else:
-                                safe_print(f"⚠️ No {best_format['format_name']} streams found")
+                                logger.warning(f"⚠️ No {best_format['format_name']} streams found")
                         else:
-                            safe_print("⚠️ No MPD streams found either")
+                            logger.warning("⚠️ No MPD streams found either")
                 else:
-                    safe_print(f"❌ 6play API error: {response.status_code}")
+                    logger.error(f"❌ 6play API error: {response.status_code}")
             else:
-                safe_print(f"❌ 6play token error: {token_response.status_code}")
+                logger.error(f"❌ 6play token error: {token_response.status_code}")
             
             # Fallback - return None to indicate failure
             return None
 
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error getting stream for {actual_episode_id}: {e}")
+            logger.error(f"❌ [SixPlay] Error getting stream for {actual_episode_id}: {e}")
 
         return None
 
@@ -582,7 +579,7 @@ class SixPlayProvider(BaseProvider):
                 try:
                     drm_info = extract_drm_info_from_mpd(mpd_text) or {}
                 except Exception as e:
-                    safe_print(f"⚠️ [SixPlay] Failed to parse DRM info: {e}")
+                    logger.warning(f"⚠️ [SixPlay] Failed to parse DRM info: {e}")
 
             if not pssh_record and drm_info.get('widevine_pssh'):
                 try:
@@ -592,43 +589,98 @@ class SixPlayProvider(BaseProvider):
                     pass
 
             if pssh_record:
-                safe_print(f"✅ [SixPlay] PSSH extracted successfully:")
-                safe_print(f"📋   Base64 PSSH: {pssh_record.base64_text}")
+                logger.debug(f"✅ [SixPlay] PSSH extracted successfully:")
+                logger.debug(f"📋   Base64 PSSH: {pssh_record.base64_text}")
             else:
-                safe_print(f"⚠️ [SixPlay] No PSSH found in MPD manifest")
+                logger.warning(f"⚠️ [SixPlay] No PSSH found in MPD manifest")
             return pssh_record, mpd_text, drm_info
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error extracting PSSH from MPD: {e}")
+            logger.error(f"❌ [SixPlay] Error extracting PSSH from MPD: {e}")
             return None, None, {}
 
     def _extract_widevine_key(self, pssh_value: str, drm_token: str) -> Optional[str]:
-        """Extract Widevine decryption key using CDRM API."""
+        """Extract Widevine decryption key using local pywidevine CDM.
+
+        Sends the license challenge directly to lic.drmtoday.com with the
+        supplied DRM token — no external key-extraction API required.
+        Returns a ``kid:key_hex`` string on success, or None on failure.
+        """
+        import os
         try:
-            safe_print(f"🔑 [SixPlay] Extracting Widevine decryption key...")
-            headers_data = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36', 'x-dt-auth-token': drm_token}
-            payload = {'pssh': pssh_value, 'licurl': 'https://lic.drmtoday.com/license-proxy-widevine/cenc/?specConform=true', 'headers': str(headers_data)}
-            
-            safe_print(f"📋 [SixPlay] CDRM API request payload:")
-            safe_print(f"📋   PSSH: {pssh_value[:50]}...")
-            safe_print(f"📋   License URL: {payload['licurl']}")
-            safe_print(f"📋   Headers: {headers_data}")
-            
-            response = requests.post('https://cdrm-project.com/api/decrypt', headers={'Content-Type': 'application/json'}, json=payload, timeout=30)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if 'message' in result:
-                    safe_print(f"✅ [SixPlay] Widevine decryption key extracted successfully:")
-                    safe_print(f"🔑   Key: {result['message']}")
-                    return result['message']
-                safe_print(f"❌ [SixPlay] No decryption key in CDRM response: {result}")
+            from pywidevine.cdm import Cdm
+            from pywidevine.device import Device
+            from pywidevine.pssh import PSSH
+        except ImportError:
+            logger.error("❌ [SixPlay] pywidevine not installed — cannot extract Widevine key")
+            return None
+
+        # Locate the WVD device file
+        wvd_candidates = [
+            "app/providers/fr/device.wvd",
+            "./device.wvd",
+            os.path.expanduser("~/.pywidevine/device.wvd"),
+        ]
+        device = None
+        for path in wvd_candidates:
+            if os.path.exists(path):
+                try:
+                    device = Device.load(path)
+                    logger.debug(f"✅ [SixPlay] WVD device loaded from {path}")
+                    break
+                except Exception as load_err:
+                    logger.warning(f"⚠️ [SixPlay] Failed to load WVD {path}: {load_err}")
+
+        if not device:
+            logger.error("❌ [SixPlay] No valid WVD device file found")
+            return None
+
+        session_id = None
+        try:
+            logger.debug(f"🔑 [SixPlay] Extracting Widevine key (local pywidevine)...")
+            logger.debug(f"📋   PSSH: {pssh_value[:50]}...")
+
+            pssh = PSSH(pssh_value)
+            cdm = Cdm.from_device(device)
+            session_id = cdm.open()
+
+            challenge = cdm.get_license_challenge(session_id, pssh)
+            logger.debug(f"📋 [SixPlay] License challenge generated: {len(challenge)} bytes")
+
+            license_url = "https://lic.drmtoday.com/license-proxy-widevine/cenc/?specConform=true"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36",
+                "x-dt-auth-token": drm_token,
+                "Content-Type": "application/octet-stream",
+            }
+
+            response = requests.post(license_url, data=challenge, headers=headers, timeout=15)
+            logger.debug(f"📋 [SixPlay] License server: {response.status_code}")
+
+            if response.status_code != 200:
+                logger.error(f"❌ [SixPlay] License server error {response.status_code}: {response.text[:300]}")
                 return None
-            safe_print(f"❌ [SixPlay] CDRM API error: {response.status_code}")
-            safe_print(f"📋   Response: {response.text[:500]}...")
+
+            cdm.parse_license(session_id, response.content)
+
+            for key in cdm.get_keys(session_id):
+                if hasattr(key, 'type') and key.type == 'CONTENT':
+                    kid_hex = str(key.kid).replace('-', '')
+                    key_hex = key.key.hex()
+                    logger.debug(f"✅ [SixPlay] Widevine key extracted: {kid_hex}:{key_hex}")
+                    return f"{kid_hex}:{key_hex}"
+
+            logger.error("❌ [SixPlay] No CONTENT keys found in license response")
             return None
+
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error extracting Widevine key: {e}")
+            logger.error(f"❌ [SixPlay] Widevine key extraction failed: {e}")
             return None
+        finally:
+            if session_id is not None and 'cdm' in locals():
+                try:
+                    cdm.close(session_id)
+                except Exception:
+                    pass
 
     def _print_download_command(self, video_url: str, decryption_key: str, content_id: str):
         """Print N_m3u8DL-RE download command with decryption key.
@@ -645,14 +697,14 @@ class SixPlayProvider(BaseProvider):
             # Truncate URL for display (keep first 100 chars)
             display_url = video_url[:100] + "..." if len(video_url) > 100 else video_url
             
-            safe_print(f"\n📥 N_m3u8DL-RE Download Command:")
-            safe_print(f'./N_m3u8DL-RE "{video_url}" --save-name "{clean_name}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --binary-merge --key {decryption_key}')
-            safe_print(f"\n🔗 URL: {display_url}")
-            safe_print(f"🔑 Key: {decryption_key}")
-            safe_print(f"💾 Save as: {clean_name}")
+            logger.debug(f"\n📥 N_m3u8DL-RE Download Command:")
+            logger.debug(f'./N_m3u8DL-RE "{video_url}" --save-name "{clean_name}" --select-video best --select-audio all --select-subtitle all -mt -M format=mkv --log-level OFF --binary-merge --key {decryption_key}')
+            logger.debug(f"\n🔗 URL: {display_url}")
+            logger.debug(f"🔑 Key: {decryption_key}")
+            logger.debug(f"💾 Save as: {clean_name}")
             
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error printing download command: {e}")
+            logger.error(f"❌ [SixPlay] Error printing download command: {e}")
 
 
     @staticmethod
@@ -750,7 +802,7 @@ class SixPlayProvider(BaseProvider):
         """Create a MediaFlow ClearKey MPD stream if configuration allows."""
         if not key_id_hex or not key_hex: return None
         if not self.mediaflow_url or not self.mediaflow_password:
-            safe_print(f"⚠️ [SixPlay] MediaFlow configuration missing for ClearKey streaming")
+            logger.warning(f"⚠️ [SixPlay] MediaFlow configuration missing for ClearKey streaming")
             return None
         try:
             processed_mpd_url = get_processed_mpd_url_for_mediaflow(original_mpd_url, auth_token=self.login_token if self.login_token else None)
@@ -760,10 +812,10 @@ class SixPlayProvider(BaseProvider):
             extra = {'key_id': self._hex_to_base64url(key_id_hex) or key_id_hex, 'key': self._hex_to_base64url(key_hex) or key_hex}
             mf_url = build_mediaflow_url(base_url=self.mediaflow_url, password=self.mediaflow_password, destination_url=processed_mpd_url, endpoint='/proxy/mpd/manifest.m3u8', request_headers=mediaflow_headers, extra_params=extra)
             
-            safe_print(f"✅ [SixPlay] MediaFlow ClearKey URL prepared: {mf_url}")
+            logger.debug(f"✅ [SixPlay] MediaFlow ClearKey URL prepared: {mf_url}")
             return {'url': mf_url, 'manifest_type': 'mpd', 'externalUrl': original_mpd_url, 'is_live': is_live}
         except Exception as e:
-            safe_print(f"❌ [SixPlay] MediaFlow ClearKey setup failed: {e}")
+            logger.error(f"❌ [SixPlay] MediaFlow ClearKey setup failed: {e}")
             return None
     def _analyze_available_formats(self, video_assets: List[Dict]) -> Dict:
         """Analyze available video formats from assets and return format information"""
@@ -809,17 +861,17 @@ class SixPlayProvider(BaseProvider):
         try:
             program_id = show_info.get('api_id')
             if program_id:
-                safe_print(f"✅ [SixPlay] Using hardcoded program ID for metadata: {program_id}")
+                logger.debug(f"✅ [SixPlay] Using hardcoded program ID for metadata: {program_id}")
             else:
                 program_id = self._find_program_id(show_id)
             
             if not program_id:
-                safe_print(f"[SixPlay] No program ID found for {show_id}, cannot get metadata")
+                logger.debug(f"[SixPlay] No program ID found for {show_id}, cannot get metadata")
                 return {}
             
             url = f"https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/{program_id}?with=links,subcats,rights"
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-            response = self.session.get(url, headers=merge_ip_headers(headers), timeout=10)
+            response = self.session.get(url, headers=self._merge_ip_headers(headers), timeout=10)
             
             if response.status_code == 200:
                 program_data = response.json()
@@ -839,13 +891,13 @@ class SixPlayProvider(BaseProvider):
                                 fanart = f"https://images.6play.fr/v1/images/{img['external_key']}/raw"
                                 break
                 
-                safe_print(f"✅ [SixPlay] Found show metadata for {show_id}: fanart={fanart[:50] if fanart else 'N/A'}...")
+                logger.debug(f"✅ [SixPlay] Found show metadata for {show_id}: fanart={fanart[:50] if fanart else 'N/A'}...")
                 return {"fanart": fanart}
             else:
-                safe_print(f"❌ [SixPlay] Failed to get program data for {show_id}: {response.status_code}")
+                logger.error(f"❌ [SixPlay] Failed to get program data for {show_id}: {response.status_code}")
             return {}
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error fetching show metadata for {show_id}: {e}")
+            logger.error(f"❌ [SixPlay] Error fetching show metadata for {show_id}: {e}")
             return {}
     
     def _find_program_id(self, show_id: str) -> Optional[str]:
@@ -900,11 +952,11 @@ class SixPlayProvider(BaseProvider):
                 'x-customer-name': 'm6web',
             }
 
-            safe_print(f"🔍 [SixPlay] Searching programs API for '{show_name}' (letter={first_letter})")
+            logger.debug(f"🔍 [SixPlay] Searching programs API for '{show_name}' (letter={first_letter})")
             response = self.session.get(
                 programs_url,
                 params=params,
-                headers=merge_ip_headers(headers),
+                headers=self._merge_ip_headers(headers),
                 timeout=10,
             )
 
@@ -918,20 +970,20 @@ class SixPlayProvider(BaseProvider):
                     norm_title = _normalize(prog_title)
 
                     if norm_title == norm_search:
-                        safe_print(f"✅ [SixPlay] Programs API exact match: '{prog_title}' (ID: {prog_id})")
+                        logger.debug(f"✅ [SixPlay] Programs API exact match: '{prog_title}' (ID: {prog_id})")
                         return prog_id
                     if not partial_match and (norm_search in norm_title or norm_title in norm_search):
                         partial_match = (prog_id, prog_title)
 
                 if partial_match:
-                    safe_print(f"✅ [SixPlay] Programs API partial match: '{partial_match[1]}' (ID: {partial_match[0]})")
+                    logger.debug(f"✅ [SixPlay] Programs API partial match: '{partial_match[1]}' (ID: {partial_match[0]})")
                     return partial_match[0]
 
-                safe_print(f"⚠️ [SixPlay] Programs API returned no match for '{show_name}', trying Algolia…")
+                logger.warning(f"⚠️ [SixPlay] Programs API returned no match for '{show_name}', trying Algolia…")
             else:
-                safe_print(f"⚠️ [SixPlay] Programs API HTTP {response.status_code}, trying Algolia…")
+                logger.warning(f"⚠️ [SixPlay] Programs API HTTP {response.status_code}, trying Algolia…")
         except Exception as e:
-            safe_print(f"⚠️ [SixPlay] Programs API error: {e}, trying Algolia…")
+            logger.error(f"⚠️ [SixPlay] Programs API error: {e}, trying Algolia…")
 
         # ------------------------------------------------------------------
         # Strategy 2 – Algolia search (fallback)
@@ -960,20 +1012,20 @@ class SixPlayProvider(BaseProvider):
             response = None
             for host in algolia_hosts:
                 try:
-                    safe_print(f"🔍 [SixPlay] Trying Algolia host: {host}")
+                    logger.debug(f"🔍 [SixPlay] Trying Algolia host: {host}")
                     response = requests.post(
                         f'https://{host}/1/indexes/*/queries',
-                        headers=merge_ip_headers(search_headers),
+                        headers=self._merge_ip_headers(search_headers),
                         json=search_data,
                         timeout=5,
                     )
                     if response.status_code == 200:
                         break
                 except Exception as e:
-                    safe_print(f"⚠️ [SixPlay] Error with Algolia host {host}: {e}")
+                    logger.error(f"⚠️ [SixPlay] Error with Algolia host {host}: {e}")
 
             if not response or response.status_code != 200:
-                safe_print(f"❌ [SixPlay] All Algolia hosts failed or returned error")
+                logger.error(f"❌ [SixPlay] All Algolia hosts failed or returned error")
                 return None
 
             data = response.json()
@@ -985,19 +1037,19 @@ class SixPlayProvider(BaseProvider):
                     program_id = str(hit['content']['id'])
                     norm_title = _normalize(title)
                     if norm_title == norm_search:
-                        safe_print(f"✅ [SixPlay] Algolia exact match: '{title}' (ID: {program_id})")
+                        logger.debug(f"✅ [SixPlay] Algolia exact match: '{title}' (ID: {program_id})")
                         return program_id
                     if not partial_match and (norm_search in norm_title or norm_title in norm_search):
                         partial_match = (program_id, title)
 
             if partial_match:
-                safe_print(f"✅ [SixPlay] Algolia partial match: '{partial_match[1]}' (ID: {partial_match[0]})")
+                logger.debug(f"✅ [SixPlay] Algolia partial match: '{partial_match[1]}' (ID: {partial_match[0]})")
                 return partial_match[0]
 
-            safe_print(f"❌ [SixPlay] No program ID found for show '{show_name}' (slug={show_id})")
+            logger.error(f"❌ [SixPlay] No program ID found for show '{show_name}' (slug={show_id})")
             return None
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error finding program ID for {show_id}: {e}")
+            logger.error(f"❌ [SixPlay] Error finding program ID for {show_id}: {e}")
             return None
     
     def _get_show_episodes(self, program_id: str) -> List[Dict]:
@@ -1010,7 +1062,7 @@ class SixPlayProvider(BaseProvider):
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
             
-            response = self.session.get(url, headers=merge_ip_headers(headers), timeout=10)
+            response = self.session.get(url, headers=self._merge_ip_headers(headers), timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
@@ -1023,11 +1075,11 @@ class SixPlayProvider(BaseProvider):
                 
                 return episodes
             else:
-                safe_print(f"❌ [SixPlay] Failed to get episodes: {response.status_code}")
+                logger.error(f"❌ [SixPlay] Failed to get episodes: {response.status_code}")
                 return []
                 
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error getting show episodes: {e}")
+            logger.error(f"❌ [SixPlay] Error getting show episodes: {e}")
             return []
     
     def _parse_episode(self, video: Dict, episode_number: int) -> Optional[Dict]:
@@ -1061,7 +1113,7 @@ class SixPlayProvider(BaseProvider):
                 episode_info["released"] = released
             return episode_info
         except Exception as e:
-            safe_print(f"❌ [SixPlay] Error parsing episode: {e}")
+            logger.error(f"❌ [SixPlay] Error parsing episode: {e}")
             return None
 
     def resolve_stream(self, stream_id: str) -> Optional[Dict]:
@@ -1087,8 +1139,8 @@ class SixPlayProvider(BaseProvider):
             if re.fullmatch(r"[A-Za-z0-9_]+", stream_id):
                 return self.get_episode_stream_url(stream_id)
 
-            safe_print(f"❌ [SixPlay] Unrecognized stream id format: {stream_id}")
+            logger.error(f"❌ [SixPlay] Unrecognized stream id format: {stream_id}")
             return None
         except Exception as e:
-            safe_print(f"❌ [SixPlay] resolve_stream error for {stream_id}: {e}")
+            logger.error(f"❌ [SixPlay] resolve_stream error for {stream_id}: {e}")
             return None

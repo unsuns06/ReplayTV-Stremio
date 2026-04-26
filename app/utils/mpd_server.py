@@ -8,7 +8,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import requests
 from typing import Optional
-from .sixplay_mpd_processor import create_mediaflow_compatible_mpd
+from app.utils.drm.sixplay_mpd_processor import create_mediaflow_compatible_mpd
 from app.utils.safe_print import safe_print
 
 

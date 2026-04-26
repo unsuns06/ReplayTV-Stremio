@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc *)",
+      "Bash(python -m pytest app/tests/test_utils.py app/tests/test_routers.py -v)",
+      "Bash(python -c \"from app.config.provider_config import PROVIDER_REGISTRY; print\\({k: v.get\\('catalog_id'\\) for k,v in PROVIDER_REGISTRY.items\\(\\)}\\)\")",
+      "Bash(python -m pytest app/tests/test_francetv.py app/tests/test_utils.py app/tests/test_routers.py -v)",
+      "Bash(python app/tests/test_francetv.py)",
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest app/tests/test_francetv.py app/tests/test_utils.py app/tests/test_routers.py -v --tb=no -q)",
+      "Bash(python -m pytest app/tests/test_francetv.py app/tests/test_utils.py app/tests/test_routers.py -q --tb=short)",
+      "Bash(grep -rn \"ttl\\\\|TTL\\\\|3600\\\\|= 60\\\\b\\\\|timeout.*=.*[0-9]\\\\{2,\\\\}\" app/utils/ app/providers/ --include=\"*.py\")",
+      "Bash(python -m pytest app/tests/test_routers.py app/tests/test_utils.py app/tests/test_francetv.py -q --tb=short)",
+      "Bash(python -c \"from pywidevine.cdm import Cdm; from pywidevine.device import Device; from pywidevine.pssh import PSSH; print\\('pywidevine OK'\\)\")",
+      "Bash(python -m pytest app/tests/ -q --tb=short)",
+      "Bash(python -c \"import jsonschema; print\\('jsonschema available:', jsonschema.__version__\\)\")",
+      "Bash(python -m pytest app/tests/test_utils.py app/tests/test_routers.py app/tests/test_francetv.py -q --tb=short)",
+      "Bash(awk '/def get_episode_stream_url/,/^    def [a-z]/ {print NR\": \"$0}' /c/Users/Phantom/Desktop/Projects/ReplayTV-Stremio/app/providers/fr/mytf1.py)",
+      "Bash(python -m pytest \"app/tests/test_routers.py::TestProviderFactorySmoke::test_provider_resolve_stream_uses_base_implementation[francetv]\" -v --tb=long)"
+    ]
+  }
+}

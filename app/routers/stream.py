@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 import logging
 import traceback
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from app.schemas.stremio import StreamResponse, Stream
 from app.providers.common import ProviderFactory
 from app.utils.client_ip import make_ip_headers
@@ -24,7 +24,7 @@ CHANNEL_PROVIDERS = {
 }
 
 
-def _merge_headers(provider_headers: Optional[Dict], include_ip: bool = True) -> Optional[Dict]:
+def _merge_headers(provider_headers: Optional[Dict[str, str]], include_ip: bool = True) -> Optional[Dict[str, str]]:
     """Merge provider headers with viewer IP headers."""
     merged = {}
     if provider_headers:
@@ -34,7 +34,7 @@ def _merge_headers(provider_headers: Optional[Dict], include_ip: bool = True) ->
     return merged if merged else None
 
 
-def _build_stream_from_info(info: Dict, include_ip_headers: bool = True) -> Stream:
+def _build_stream_from_info(info: Dict[str, Any], include_ip_headers: bool = True) -> Stream:
     """Build a Stream object from stream info dictionary."""
     merged_headers = _merge_headers(info.get('headers'), include_ip_headers)
     merged_license_headers = _merge_headers(info.get('licenseHeaders'), include_ip_headers)
@@ -51,17 +51,14 @@ def _build_stream_from_info(info: Dict, include_ip_headers: bool = True) -> Stre
 
 
 def _build_stream_response(
-    stream_info: Union[Dict, List[Dict], None],
+    stream_info: Union[Dict[str, Any], List[Dict[str, Any]], None],
     provider_name: str,
     include_ip_headers: bool = True
 ) -> StreamResponse:
     """Build StreamResponse from provider stream info."""
     if not stream_info:
         logger.warning(f"⚠️ {provider_name} returned no stream info")
-        return StreamResponse(streams=[{
-            "url": "https://example.com/stream-not-available.mp4",
-            "title": "Stream not available"
-        }])
+        return StreamResponse(streams=[])
     
     if isinstance(stream_info, list):
         streams = [_build_stream_from_info(info, include_ip_headers) for info in stream_info]
@@ -100,10 +97,7 @@ def _handle_channel_stream(id: str, request: Request) -> StreamResponse:
         logger.error(f"❌ Error getting {provider_name} stream for channel {id}: {e}")
         logger.error("   Full traceback:")
         logger.error(traceback.format_exc())
-        return StreamResponse(streams=[{
-            "url": "https://example.com/error-stream.mp4",
-            "title": "Error getting stream"
-        }])
+        return StreamResponse(streams=[])
 
 
 def _handle_series_stream(provider_key: str, id: str, request: Request) -> StreamResponse:
@@ -120,10 +114,7 @@ def _handle_series_stream(provider_key: str, id: str, request: Request) -> Strea
         # Check if episode is specified
         if episode_marker not in id:
             logger.warning(f"⚠️ No episode specified in series ID: {id}")
-            return StreamResponse(streams=[{
-                "url": "https://example.com/episode-not-specified.mp4",
-                "title": "Please select a specific episode"
-            }])
+            return StreamResponse(streams=[])
         
         episode_id = id
         logger.info(f"🎬 Getting stream for specific episode: {episode_id}")
@@ -139,10 +130,7 @@ def _handle_series_stream(provider_key: str, id: str, request: Request) -> Strea
         logger.error(f"❌ Error getting {provider_name} stream: {e}")
         logger.error("   Full traceback:")
         logger.error(traceback.format_exc())
-        return StreamResponse(streams=[{
-            "url": "https://example.com/error-stream.mp4",
-            "title": "Error getting stream"
-        }])
+        return StreamResponse(streams=[])
 
 
 @router.get("/stream/{type}/{id}.json")

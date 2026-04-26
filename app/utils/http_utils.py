@@ -2,7 +2,6 @@
 HTTP utilities for robust API calls with comprehensive error handling
 """
 
-import json
 import requests
 import logging
 from typing import Dict, Optional, Any, Union
@@ -10,6 +9,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from app.utils.client_ip import merge_ip_headers
 from app.utils.safe_print import safe_print
+from app.utils.json_parser import safe_json_parse  # noqa: F401 — re-exported for callers
 
 logger = logging.getLogger(__name__)
 
@@ -50,140 +50,8 @@ class RobustHTTPClient:
         return session
     
     def safe_json_parse(self, response: requests.Response, context: str = "") -> Optional[Dict[str, Any]]:
-        """
-        Safely parse JSON response with comprehensive error handling
-        
-        Args:
-            response: The HTTP response object
-            context: Context information for logging (e.g., "France TV API", "TF1 login")
-            
-        Returns:
-            Parsed JSON data or None if parsing fails
-        """
-        try:
-            # Check if response is successful
-            if response.status_code != 200:
-                logger.warning(f"{context} - HTTP {response.status_code}: {response.reason}")
-                return None
-            
-            # Check content type
-            content_type = response.headers.get('content-type', '').lower()
-            
-            # Handle empty responses
-            if not response.text.strip():
-                logger.warning(f"{context} - Empty response received")
-                return None
-            
-            # Handle HTML error pages (common in cloud environments)
-            # But allow responses that include both text/html AND application/json
-            # (FranceTV token endpoint returns "text/html, application/json")
-            if 'text/html' in content_type and 'application/json' not in content_type:
-                logger.warning(f"{context} - Received HTML instead of JSON (likely error page)")
-                logger.debug(f"{context} - HTML content preview: {response.text[:200]}...")
-                return None
-            
-            # Handle JSONP responses (for 6play)
-            text_content = response.text.strip()
-            if text_content.startswith('jsonp_') and text_content.endswith(');'):
-                # Extract JSON from JSONP
-                start_idx = text_content.find('(') + 1
-                end_idx = text_content.rfind(');')
-                text_content = text_content[start_idx:end_idx]
-                logger.debug(f"{context} - Extracted JSON from JSONP wrapper")
-            
-            # Attempt JSON parsing with fallback strategies
-            try:
-                data = json.loads(text_content)
-                logger.debug(f"{context} - Successfully parsed JSON response")
-                return data
-                
-            except json.JSONDecodeError as json_error:
-                # Print detailed JSON error information to console (for immediate debugging)
-                safe_print(f"\n🚨 JSON DECODE ERROR - {context}")
-                safe_print(f"   Error: {json_error}")
-                safe_print(f"   Line: {json_error.lineno}, Column: {json_error.colno}")
-                safe_print(f"   Response Status: {response.status_code}")
-                safe_print(f"   Content-Type: {content_type}")
-                safe_print(f"   URL: {response.url}")
-                
-                # Show more of the problematic content for debugging
-                error_preview = text_content[:1000] if len(text_content) > 1000 else text_content
-                safe_print(f"   Response Content: {error_preview}")
-                
-                # Try to identify common issues
-                if '<html' in text_content.lower():
-                    safe_print("   ⚠️  Response appears to be HTML (error page)")
-                elif 'cloudflare' in text_content.lower():
-                    safe_print("   ⚠️  Cloudflare protection detected")
-                elif 'access denied' in text_content.lower():
-                    safe_print("   ⚠️  Access denied response")
-                elif 'rate limit' in text_content.lower():
-                    safe_print("   ⚠️  Rate limiting detected")
-                elif 'forbidden' in text_content.lower():
-                    safe_print("   ⚠️  Forbidden access")
-                elif 'unauthorized' in text_content.lower():
-                    safe_print("   ⚠️  Unauthorized access")
-                
-                safe_print(f"   📝 Full response headers: {dict(response.headers)}")
-                
-                # Try lenient parsing strategies
-                safe_print("   🔧 Attempting lenient parsing strategies...")
-                
-                # Strategy 1: Try to fix common JSON issues
-                try:
-                    # Fix single quotes to double quotes (common issue)
-                    fixed_content = text_content.replace("'", '"')
-                    # Fix unquoted keys (basic attempt)
-                    import re
-                    fixed_content = re.sub(r'(\w+):', r'"\1":', fixed_content)
-                    data = json.loads(fixed_content)
-                    safe_print("   ✅ Successfully parsed with quote fixing")
-                    logger.info(f"{context} - JSON parsed successfully with quote fixing")
-                    return data
-                except Exception:
-                    pass
-                
-                # Strategy 2: Try to extract JSON from a larger response
-                try:
-                    # Look for JSON-like patterns in the response
-                    import re
-                    json_match = re.search(r'\{.*\}', text_content, re.DOTALL)
-                    if json_match:
-                        potential_json = json_match.group(0)
-                        data = json.loads(potential_json)
-                        safe_print("   ✅ Successfully extracted and parsed JSON from response")
-                        logger.info(f"{context} - JSON extracted and parsed successfully")
-                        return data
-                except Exception:
-                    pass
-                
-                # Strategy 3: Try to handle JSONP-like responses
-                try:
-                    # Remove potential JSONP wrapper
-                    if '(' in text_content and ')' in text_content:
-                        start = text_content.find('{')
-                        end = text_content.rfind('}') + 1
-                        if start != -1 and end > start:
-                            potential_json = text_content[start:end]
-                            data = json.loads(potential_json)
-                            safe_print("   ✅ Successfully parsed JSON after removing wrapper")
-                            logger.info(f"{context} - JSON parsed successfully after removing wrapper")
-                            return data
-                except Exception:
-                    pass
-                
-                safe_print("   ❌ All lenient parsing strategies failed")
-                safe_print("🚨 END JSON DECODE ERROR\n")
-                
-                # Also log to logger for file logging
-                logger.error(f"{context} - JSON Decode Error: {json_error}")
-                logger.error(f"{context} - Full response: {text_content}")
-                
-                return None
-                
-        except Exception as e:
-            logger.error(f"{context} - Unexpected error in JSON parsing: {e}")
-            return None
+        """Safely parse JSON response. Delegates to :func:`app.utils.json_parser.safe_json_parse`."""
+        return safe_json_parse(response, context)
     
     def safe_request(
         self, 

@@ -7,23 +7,35 @@ from app.schemas.stremio import CatalogResponse
 from app.providers.common import ProviderFactory
 from app.utils.base_url import get_logo_url
 from app.utils.programs_loader import get_programs_for_provider
+from app.utils.cache import cache
+from app.utils.cache_keys import CacheKeys
+
+PROGRAMS_CACHE_TTL = 600   # 10 minutes
+CHANNELS_CACHE_TTL = 300   # 5 minutes
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _build_fallback_shows_from_programs(provider_name: str, request: Request):
+_PROVIDER_REGION = {"cbc": "ca"}
+_PROVIDER_DEFAULT_CHANNEL = {"francetv": "france2", "mytf1": "tf1", "6play": "m6", "cbc": "dragonsden"}
+
+
+def _build_fallback_shows_from_programs(provider_name: str, request: Request) -> list:
     """Build fallback show list from programs.json for a specific provider."""
+    region = _PROVIDER_REGION.get(provider_name, "fr")
+    default_channel = _PROVIDER_DEFAULT_CHANNEL.get(provider_name, "france2")
     try:
         programs = get_programs_for_provider(provider_name)
         fallback_shows = []
         for slug, show_info in programs.items():
+            fallback_logo = get_logo_url("fr", default_channel, request)
             fallback_shows.append({
-                "id": f"cutam:{_get_region(provider_name)}:{provider_name}:{slug}",
+                "id": f"cutam:{region}:{provider_name}:{slug}",
                 "type": "series",
                 "name": show_info.get('name', slug),
-                "poster": show_info.get('poster') or get_logo_url("fr", _get_default_channel(provider_name), request),
-                "logo": show_info.get('logo') or get_logo_url("fr", _get_default_channel(provider_name), request),
+                "poster": show_info.get('poster') or fallback_logo,
+                "logo": show_info.get('logo') or fallback_logo,
                 "background": show_info.get('background', ''),
                 "description": show_info.get('description', ''),
                 "genres": show_info.get('genres', []),
@@ -35,21 +47,6 @@ def _build_fallback_shows_from_programs(provider_name: str, request: Request):
     except Exception as e:
         logger.error(f"❌ Error building fallback shows from programs.json: {e}")
         return []
-
-
-def _get_region(provider_name: str) -> str:
-    """Get region code for provider ID format."""
-    return "ca" if provider_name == "cbc" else "fr"
-
-
-def _get_default_channel(provider_name: str) -> str:
-    """Get default channel logo for provider."""
-    return {
-        "francetv": "france2",
-        "mytf1": "tf1",
-        "6play": "m6",
-        "cbc": "dragonsden"
-    }.get(provider_name, "france2")
 
 
 def _log_json_decode_details(prefix: str, exc: Exception):
@@ -88,14 +85,21 @@ async def get_catalog(type: str, id: str, request: Request):
         
         async def fetch_provider_channels(p_key: str):
             # Skip 6play as mentioned in original code (not supported yet)
-            if p_key == "6play": 
+            if p_key == "6play":
                 return []
-            
+
+            cache_key = CacheKeys.channels(p_key)
+            cached = cache.get(cache_key)
+            if cached is not None:
+                logger.info(f"📺 {p_key} channels served from cache ({len(cached)} items)")
+                return cached
+
             try:
                 logger.info(f"📺 Getting {p_key} channels...")
                 provider = ProviderFactory.create_provider(p_key, request)
                 # Run blocking I/O in thread pool
                 channels = await run_in_threadpool(provider.get_live_channels)
+                cache.set(cache_key, channels, ttl=CHANNELS_CACHE_TTL)
                 logger.info(f"✅ {p_key} returned {len(channels)} channels")
                 return channels
             except Exception as e:
@@ -122,8 +126,15 @@ async def get_catalog(type: str, id: str, request: Request):
         if provider_key:
             logger.info(f"📺 Processing {provider_key} catalog request: {id}")
             try:
+                cache_key = CacheKeys.programs(provider_key)
+                shows = cache.get(cache_key)
+                if shows is not None:
+                    logger.info(f"✅ {provider_key} shows served from cache ({len(shows)} items)")
+                    return CatalogResponse(metas=shows)
+
                 provider = ProviderFactory.create_provider(provider_key, request)
                 shows = provider.get_programs()
+                cache.set(cache_key, shows, ttl=PROGRAMS_CACHE_TTL)
                 logger.info(f"✅ {provider_key} returned {len(shows)} shows")
                 return CatalogResponse(metas=shows)
                 

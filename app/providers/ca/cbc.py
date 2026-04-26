@@ -13,12 +13,20 @@ from app.providers.base_provider import BaseProvider
 from app.auth.cbc_auth import CBCAuthenticator
 from app.utils.credentials import load_credentials
 from app.utils.cache import cache
-from app.utils.client_ip import get_client_ip, merge_ip_headers
+from app.utils.client_ip import get_client_ip
 from app.utils.base_url import get_logo_url
 from app.utils.http_utils import http_client
 from app.utils.programs_loader import get_programs_for_provider
 
 logger = logging.getLogger(__name__)
+
+# Cache TTL constants (seconds)
+_AUTH_SUCCESS_TTL = 3600   # 1 hour — re-check auth after token likely expired
+_AUTH_FAILURE_TTL = 300    # 5 minutes — retry sooner after a failure
+_CATALOG_TTL = 7200        # 2 hours — show/episode lists change infrequently
+_EPISODE_TTL = 1800        # 30 minutes — episodes update more often
+_STREAM_TTL = 1800         # 30 minutes — signed URLs have limited lifetime
+
 
 class CBCProvider(BaseProvider):
     """CBC provider for Canadian content including Dragon's Den"""
@@ -31,13 +39,10 @@ class CBCProvider(BaseProvider):
     # Metadata
     display_name = "CBC"
     id_prefix = "cutam:ca:cbc"
-    episode_marker = "episode-"
+    episode_marker = "episode:"
     catalog_id = "ca-cbc-dragons-den"
     supports_live = False
 
-    @property
-    def provider_key(self) -> str:
-        return "cbc"
     
     @property
     def needs_ip_forwarding(self) -> bool:
@@ -75,81 +80,61 @@ class CBCProvider(BaseProvider):
         }
     
     def _get_headers_with_viewer_ip(self, additional_headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
-        """Get headers with viewer IP forwarding for geo-sensitive requests"""
-        try:
-            # Get the viewer's IP from the request context
-            viewer_ip = get_client_ip()
-            if viewer_ip:
-                logger.info(f"🌍 [CBC] Using viewer IP for CBC requests: {viewer_ip}")
-                logger.info(f"🌍 [CBC] IP forwarding headers: X-Forwarded-For={viewer_ip}, X-Real-IP={viewer_ip}, CF-Connecting-IP={viewer_ip}")
-            else:
-                logger.warning("⚠️ [CBC] No viewer IP available for CBC requests - using server IP")
-            
-            # Start with base headers
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            
-            # Add IP forwarding headers
-            ip_headers = merge_ip_headers(ip=viewer_ip)
-            headers.update(ip_headers)
-            
-            # Add any additional headers
-            if additional_headers:
-                headers.update(additional_headers)
-            
-            return headers
-        except Exception as e:
-            logger.error(f"❌ Error getting headers with viewer IP: {e}")
-            # Fallback to base headers
-            return {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+        """Build headers with viewer IP forwarding for geo-sensitive requests."""
+        base = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        viewer_ip = get_client_ip()
+        if viewer_ip:
+            logger.info(f"🌍 [CBC] IP forwarding enabled for viewer IP: {viewer_ip}")
+        else:
+            logger.warning("⚠️ [CBC] No viewer IP available - using server IP")
+        return self._build_ip_headers({**base, **(additional_headers or {})})
     
+    _AUTH_CACHE_KEY = "cbc_auth_status"
+
+    def _check_auth_cache(self) -> bool:
+        """Return True if a valid, non-stale auth entry exists in the cache."""
+        cached = cache.get(self._AUTH_CACHE_KEY)
+        if cached and cached.get('authenticated'):
+            if self.authenticator.is_authenticated():
+                return True
+            logger.warning("⚠️ [CBC] Cached auth status was stale, re-authenticating")
+        return False
+
+    def _store_auth_result(self, success: bool) -> None:
+        """Persist the authentication outcome to cache with an appropriate TTL."""
+        ttl = _AUTH_SUCCESS_TTL if success else _AUTH_FAILURE_TTL
+        cache.set(self._AUTH_CACHE_KEY, {'authenticated': success}, ttl=ttl)
+
     def _authenticate_if_needed(self):
-        """Authenticate with CBC if credentials are available with caching"""
+        """Authenticate with CBC if credentials are available, using caching."""
         try:
-            # Check if we're already authenticated and cache is valid
             if hasattr(self.authenticator, 'is_authenticated') and self.authenticator.is_authenticated():
-                logger.info("✅ [CBC] CBC already authenticated")
+                logger.info("✅ [CBC] Already authenticated")
                 return
-            
-            # Check cache for authentication status
-            auth_cache_key = "cbc_auth_status"
-            cached_auth = cache.get(auth_cache_key)
-            if cached_auth and cached_auth.get('authenticated'):
-                logger.info("✅ [CBC] Using cached CBC authentication status")
-                # Verify the authenticator actually has valid tokens
-                if self.authenticator.is_authenticated():
-                    return
-                else:
-                    logger.warning("⚠️ [CBC] Cached auth status was stale, re-authenticating")
-            
+
+            if self._check_auth_cache():
+                logger.info("✅ [CBC] Using cached authentication status")
+                return
+
             credentials = load_credentials()
             cbc_creds = credentials.get('cbcgem', {})
-            
+
             if cbc_creds.get('login') and cbc_creds.get('password'):
                 logger.info("🔍 [CBC] Authenticating with CBC Gem")
-                success = self.authenticator.login(
-                    cbc_creds['login'], 
-                    cbc_creds['password']
-                )
+                success = self.authenticator.login(cbc_creds['login'], cbc_creds['password'])
+                self._store_auth_result(success)
                 if success:
-                    logger.info("✅ [CBC] CBC authentication successful")
-                    # Cache authentication status for 1 hour
-                    cache.set(auth_cache_key, {'authenticated': True}, ttl=3600)
+                    logger.info("✅ [CBC] Authentication successful")
                 else:
-                    logger.warning("⚠️ [CBC] CBC authentication failed")
-                    # Cache failed authentication for 5 minutes
-                    cache.set(auth_cache_key, {'authenticated': False}, ttl=300)
+                    logger.warning("⚠️ [CBC] Authentication failed")
             else:
-                logger.info("ℹ️ [CBC] No CBC credentials provided, using unauthenticated access")
-                # Cache unauthenticated status for 1 hour
-                cache.set(auth_cache_key, {'authenticated': False}, ttl=3600)
+                logger.info("ℹ️ [CBC] No credentials provided, using unauthenticated access")
+                self._store_auth_result(False)
         except Exception as e:
-            logger.error(f"❌ [CBC] Error during CBC authentication: {e}")
-            # Cache error status for 5 minutes
-            cache.set("cbc_auth_status", {'authenticated': False}, ttl=300)
+            logger.error(f"❌ [CBC] Error during authentication: {e}")
+            self._store_auth_result(False)
     
     def get_shows(self) -> List[Dict[str, Any]]:
         """Get CBC shows/series from programs.json with caching"""
@@ -179,7 +164,7 @@ class CBCProvider(BaseProvider):
                 })
             
             # Cache shows for 2 hours
-            cache.set(cache_key, shows, ttl=7200)
+            cache.set(cache_key, shows, ttl=_CATALOG_TTL)
             logger.info(f"📺 [CBC] Found and cached {len(shows)} CBC shows from programs.json")
             return shows
             
@@ -228,7 +213,7 @@ class CBCProvider(BaseProvider):
 
             
             # Cache programs for 2 hours
-            cache.set(cache_key, programs, ttl=7200)
+            cache.set(cache_key, programs, ttl=_CATALOG_TTL)
             logger.info(f"✅ [CBC] CBC returned and cached {len(programs)} programs from programs.json")
             return programs
             
@@ -268,7 +253,7 @@ class CBCProvider(BaseProvider):
             if episodes:
                 logger.info(f"✅ CBC returned {len(episodes)} episodes for {show_name}")
                 # Cache episodes for 30 minutes
-                cache.set(cache_key, episodes, ttl=1800)
+                cache.set(cache_key, episodes, ttl=_EPISODE_TTL)
                 return episodes
             
             logger.warning(f"⚠️ [CBC] No episodes found for: {show_slug}")
@@ -337,7 +322,7 @@ class CBCProvider(BaseProvider):
             
             # Cache for 2 hours
             if episodes:
-                cache.set(cache_key, episodes, ttl=7200)
+                cache.set(cache_key, episodes, ttl=_CATALOG_TTL)
                 logger.info(f"✅ [CBC] Found {len(episodes)} total episodes for {show_name}")
             
             return episodes
@@ -408,7 +393,7 @@ class CBCProvider(BaseProvider):
                 return None
             
             episode_data = {
-                "id": f"cutam:ca:cbc:{show_slug}:episode-{season_num}-{episode_num}",
+                "id": f"cutam:ca:cbc:{show_slug}:episode:{season_num}:{episode_num}",
                 "title": title,
                 "season": season_num,
                 "episode": episode_num,
@@ -520,7 +505,7 @@ class CBCProvider(BaseProvider):
             stream_info = self._get_stream_from_cbc_api(media_id)
             if stream_info:
                 # Cache stream info for 30 minutes
-                cache.set(cache_key, stream_info, ttl=1800)
+                cache.set(cache_key, stream_info, ttl=_STREAM_TTL)
                 return stream_info
             
             logger.warning(f"⚠️ [CBC] No stream found for episode: {episode_id}")
@@ -534,7 +519,7 @@ class CBCProvider(BaseProvider):
     def _extract_media_id_from_episode_id(self, episode_id: str) -> Optional[str]:
         """Extract CBC media ID from episode ID with dynamic show detection"""
         try:
-            # Parse episode_id format: cutam:ca:cbc:show-slug:episode-S-E
+            # Parse episode_id format: cutam:ca:cbc:show-slug:episode:S:E
             parts = episode_id.split(':')
             if len(parts) >= 5:
                 show_slug = parts[3]
@@ -546,12 +531,12 @@ class CBCProvider(BaseProvider):
             # Get episodes for this show
             episodes = self.get_episodes(series_id)
             
-            # Parse season/episode from ID: ...episode-S-E
-            ep_parts = episode_id.split('-')
-            if len(ep_parts) >= 2:
+            # Parse season/episode from ID: ...episode:S:E
+            colon_parts = episode_id.split(':')
+            if len(colon_parts) >= 7:
                 try:
-                    season_num = int(ep_parts[-2])
-                    episode_num = int(ep_parts[-1])
+                    season_num = int(colon_parts[-2])
+                    episode_num = int(colon_parts[-1])
                     for ep in episodes:
                         if (ep.get('season') == season_num and 
                             ep.get('episode') == episode_num and 
@@ -604,12 +589,10 @@ class CBCProvider(BaseProvider):
             }
             
             # Merge viewer IP headers with authenticated headers
+            final_headers = self._merge_ip_headers(headers)
             viewer_ip = get_client_ip()
-            final_headers = merge_ip_headers(headers, viewer_ip)
-            
             if viewer_ip:
                 logger.info(f"🌍 CBC Media API request using viewer IP: {viewer_ip}")
-                logger.info(f"🌍 Media API IP headers: X-Forwarded-For={viewer_ip}, X-Real-IP={viewer_ip}, CF-Connecting-IP={viewer_ip}")
             else:
                 logger.warning("⚠️ CBC Media API request using server IP (no viewer IP available)")
             

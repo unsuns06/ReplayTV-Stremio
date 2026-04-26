@@ -1,3 +1,8 @@
+"""Singleton loader for geo-proxy configuration.
+
+Proxies are stored in ``credentials.json`` under the ``proxies`` key and can
+be overridden per-proxy with ``PROXY_<NAME_UPPER>`` environment variables.
+"""
 
 import json
 import os
@@ -5,7 +10,16 @@ from threading import Lock
 
 from .safe_print import safe_print
 
+
 class ProxyConfig:
+    """Thread-safe singleton that loads proxy URLs from credentials.json.
+
+    Each proxy is keyed by a short name (e.g. ``fr_default``, ``nm3u8_processor``).
+    An environment variable ``PROXY_<NAME_UPPER>`` always takes precedence over
+    the value in the config file, making it easy to override in containerised
+    deployments without changing the file.
+    """
+
     _instance = None
     _lock = Lock()
 
@@ -24,6 +38,12 @@ class ProxyConfig:
             self.initialized = True
 
     def load_proxies(self):
+        """Load the ``proxies`` dict from the config file.
+
+        Silently falls back to an empty dict when the file is missing or
+        contains invalid JSON so the server can still start without proxy
+        configuration.
+        """
         try:
             with open(self.config_file, 'r') as f:
                 data = json.load(f)
@@ -36,11 +56,16 @@ class ProxyConfig:
             self.proxies = {}
 
     def get_proxy(self, name):
-        """
-        Gets a proxy URL by name.
-        It first checks for an environment variable, then falls back to the config file.
-        The environment variable is expected to be in the format 'PROXY_UPPERCASE_NAME'.
-        For example, for a proxy named 'fr_default', the env var would be 'PROXY_FR_DEFAULT'.
+        """Return a proxy URL by name.
+
+        Checks the ``PROXY_<NAME_UPPER>`` environment variable first, then
+        falls back to the value loaded from the config file.
+
+        Args:
+            name: Proxy key, e.g. ``"fr_default"`` or ``"nm3u8_processor"``.
+
+        Returns:
+            URL string, or ``None`` if the proxy is not configured.
         """
         env_var_name = f"PROXY_{name.upper()}"
         proxy_url = os.getenv(env_var_name)
@@ -50,9 +75,12 @@ class ProxyConfig:
 
     @classmethod
     def get_instance(cls, *args, **kwargs):
+        """Return the singleton instance, creating it on first call."""
         if not cls._instance:
             cls._instance = cls(*args, **kwargs)
         return cls._instance
 
+
 def get_proxy_config():
+    """Return the global :class:`ProxyConfig` singleton."""
     return ProxyConfig.get_instance()
