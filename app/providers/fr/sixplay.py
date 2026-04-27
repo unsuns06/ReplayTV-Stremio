@@ -7,15 +7,13 @@ import logging
 
 import json
 import requests
-import time
 import re
-import random
 import uuid
 import os
 import base64
 
 from typing import Dict, List, Optional, Tuple
-from app.utils.credentials import get_provider_credentials, load_credentials
+from app.utils.credentials import get_provider_credentials
 from app.auth.sixplay_auth import SixPlayAuth
 from app.providers.fr.metadata import metadata_processor
 from app.utils.sixplay_mpd_processor import create_mediaflow_compatible_mpd, extract_drm_info_from_mpd
@@ -23,10 +21,10 @@ from app.utils.mediaflow import build_mediaflow_url
 from app.utils.mpd_server import get_processed_mpd_url_for_mediaflow
 from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
 from app.utils.nm3u8_drm_processor import process_drm_simple
-from app.utils.proxy_config import get_proxy_config
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.programs_loader import get_programs_for_provider
 from app.providers.base_provider import BaseProvider
+from app.providers.fr.common import check_processed_file
 
 logger = logging.getLogger(__name__)
 
@@ -213,14 +211,8 @@ class SixPlayProvider(BaseProvider):
             episodes = self._get_show_episodes(program_id)
             
             if episodes:
-                # Sort episodes by released date ascending (oldest first, newest last)
-                # Stremio expects videos sorted chronologically with newest episode having highest number
-                episodes.sort(key=lambda ep: ep.get('released', '') or ep.get('broadcast_date', '') or '')
-                
-                # Re-number episodes after sorting (1, 2, 3... with 1 being oldest)
-                for i, ep in enumerate(episodes):
-                    ep['episode'] = i + 1
-                
+                # Sort chronologically and re-number (oldest = 1, newest = highest)
+                episodes = self._sort_episodes_chronologically(episodes)
                 logger.debug(f"✅ [SixPlay] Found {len(episodes)} episodes for {actual_show_id} (sorted chronologically)")
             else:
                 logger.warning(f"⚠️ [SixPlay] No episodes found for {actual_show_id}")
@@ -231,72 +223,8 @@ class SixPlayProvider(BaseProvider):
             logger.error(f"❌ [SixPlay] Error getting episodes for {actual_show_id}: {e}")
             return []
     def _check_processed_file(self, episode_id: str) -> Optional[Dict]:
-        """Check if processed file exists in RD or processor URL. Returns stream dict if found."""
-        proxy_config = get_proxy_config()
-        processor_url = proxy_config.get_proxy('nm3u8_processor')
-        if not processor_url:
-            logger.error("❌ [SixPlay] ERROR: nm3u8_processor not configured in credentials.json")
-            return None
-        
-        logger.debug(f"✅ [SixPlay] Using processor API: {processor_url}")
-        processed_filename = f"{episode_id}.mp4"
-        processed_url = f"{processor_url}/stream/{processed_filename}"
-        logger.debug(f"🔍 [SixPlay] Looking for processed file: {processed_filename}")
-        
-        # Check Real-Debrid folder first
-        try:
-            logger.debug("🔍 [SixPlay] Loading credentials for Real-Debrid check...")
-            all_creds = load_credentials()
-            logger.debug(f"✅ [SixPlay] Credentials loaded. Keys: {list(all_creds.keys())}")
-            rd_folder = all_creds.get('realdebridfolder')
-            logger.debug(f"🔍 [SixPlay] Real-Debrid folder from credentials: {rd_folder}")
-            
-            if rd_folder:
-                logger.debug(f"🔍 [SixPlay] Checking if '{processed_filename}' is listed in RD folder...")
-                try:
-                    rd_headers = {
-                        'User-Agent': get_random_windows_ua(),
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-                        'Accept-Encoding': 'gzip, deflate, br',
-                        'DNT': '1', 'Connection': 'keep-alive',
-                        'Upgrade-Insecure-Requests': '1', 'Sec-Fetch-Dest': 'document',
-                        'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'none', 'Cache-Control': 'max-age=0'
-                    }
-                    folder_response = requests.get(rd_folder, headers=rd_headers, timeout=10)
-                    logger.debug(f"🔍 [SixPlay] RD Folder HTTP Status: {folder_response.status_code}")
-                    
-                    if folder_response.status_code == 200 and processed_filename in folder_response.text:
-                        rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
-                        logger.debug(f"✅ [SixPlay] File '{processed_filename}' found in RD folder listing!")
-                        logger.debug(f"✅ [SixPlay] Returning RD URL: {rd_file_url}")
-                        return {"url": rd_file_url, "manifest_type": "video", "title": "✅ [RD] DRM-Free Video", "filename": processed_filename}
-                    else:
-                        logger.warning(f"⚠️ [SixPlay] File '{processed_filename}' NOT found in RD folder listing, will check processor_url")
-                except requests.exceptions.Timeout:
-                    logger.warning(f"⚠️ [SixPlay] RD folder request timed out, checking processor_url...")
-                except requests.exceptions.RequestException as e:
-                    logger.error(f"❌ [SixPlay] RD folder request error: {e}, checking processor_url...")
-            else:
-                logger.warning("⚠️ [SixPlay] Real-Debrid folder not configured in credentials, checking processor_url...")
-        except Exception as e:
-            logger.error(f"❌ [SixPlay] Error checking Real-Debrid: {e}")
-            logger.debug(f"🔍 [SixPlay] Proceeding to processor_url check as fallback...")
-        
-        # Check processor URL
-        logger.debug(f"🔍 [SixPlay] Checking processor_url location: {processed_url}")
-        try:
-            check_response = requests.head(processed_url, timeout=5)
-            logger.debug(f"🔍 [SixPlay] PROCESSOR URL HTTP Status: {check_response.status_code}")
-            if check_response.status_code == 200:
-                logger.debug(f"✅ [SixPlay] Processed file already exists: {processed_url}")
-                return {"url": processed_url, "manifest_type": "video", "title": "✅ DRM-Free Video", "filename": processed_filename}
-            else:
-                logger.warning(f"⚠️ [SixPlay] PROCESSOR file not found (HTTP {check_response.status_code})")
-        except Exception as e:
-            logger.error(f"⚠️ [SixPlay] Error checking processor_url: {e}")
-        
-        return None
+        """Delegate to shared helper (see app.providers.fr.common.check_processed_file)."""
+        return check_processed_file(episode_id, provider_tag="SixPlay")
 
     def get_episode_stream_url(self, episode_id: str) -> Optional[Dict]:
         """Get stream URL for a specific 6play episode"""
@@ -605,7 +533,6 @@ class SixPlayProvider(BaseProvider):
         supplied DRM token — no external key-extraction API required.
         Returns a ``kid:key_hex`` string on success, or None on failure.
         """
-        import os
         try:
             from pywidevine.cdm import Cdm
             from pywidevine.device import Device

@@ -13,10 +13,6 @@ class FranceTVMetadataProcessor:
     """Process and enhance metadata for FranceTV replays"""
     
     def __init__(self):
-        # Base URLs for France TV APIs
-        self.api_mobile = "https://api-mobile.yatta.francetv.fr"
-        self.api_front = "http://api-front.yatta.francetv.fr"
-        
         # Image type mappings based on reference plugin
         self.image_types = {
             'carre': 'w:400',           # Square thumbnail

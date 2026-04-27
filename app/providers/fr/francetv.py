@@ -4,19 +4,16 @@ France TV provider implementation
 Hybrid approach with robust error handling, fallbacks, and retry logic
 """
 import logging
-
 import html
 import json
 import os
-import time
-
+import traceback
+from datetime import datetime
 from typing import Dict, List, Optional
 from urllib.parse import urlencode, quote
 from fastapi import Request
-from app.utils.credentials import get_provider_credentials
 from app.providers.fr.metadata import metadata_processor, image_extractor
 from app.utils.base_url import get_base_url, get_logo_url
-
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.api_client import ProviderAPIClient
 from app.utils.programs_loader import get_programs_for_provider
@@ -385,7 +382,6 @@ class FranceTVProvider(BaseProvider):
             
         except Exception as e:
             logger.error(f"❌ Error getting live stream for {channel_id}: {e}")
-            import traceback
             traceback.print_exc()
             return None
     
@@ -555,7 +551,6 @@ class FranceTVProvider(BaseProvider):
             first_pub_date = episode_data.get('first_publication_date', '')
             if first_pub_date:
                 try:
-                    from datetime import datetime
                     # Parse the datetime with timezone
                     dt = datetime.fromisoformat(first_pub_date)
                     # Convert to UTC and format for Stremio
@@ -645,62 +640,5 @@ class FranceTVProvider(BaseProvider):
                 
         except Exception as e:
             logger.error(f"❌ [FranceTV] Error getting episode stream: {e}")
-            import traceback
             traceback.print_exc()
             return None
-
-def test_francetv_provider():
-    """Test the France TV provider"""
-    logger.debug("🔍 Testing France TV provider...")
-    
-    provider = FranceTVProvider()
-    
-    # Test getting replay shows
-    logger.debug("\n1️⃣ Testing replay shows...")
-    shows = provider.get_programs()
-    
-    if shows:
-        logger.debug(f"✅ Found {len(shows)} shows:")
-        for show in shows:
-            logger.debug(f"   - {show['name']}: {show['id']}")
-            logger.debug(f"     Poster: {show.get('poster', 'N/A')}")
-            logger.debug(f"     Fanart: {show.get('fanart', 'N/A')}")
-            logger.debug(f"     Genres: {show.get('genres', [])}")
-        
-        # Test getting episodes for the first show
-        if shows:
-            first_show = shows[0]
-            logger.debug(f"\n2️⃣ Testing episodes for {first_show['name']}...")
-            
-            episodes = provider.get_episodes(first_show['id'])
-            
-            if episodes:
-                logger.debug(f"✅ Found {len(episodes)} episodes:")
-                for episode in episodes[:3]:  # Show first 3 episodes
-                    logger.debug(f"   - {episode['title']}: {episode['id']}")
-                    logger.debug(f"     Poster: {episode.get('poster', 'N/A')}")
-                    logger.debug(f"     Fanart: {episode.get('fanart', 'N/A')}")
-                    logger.debug(f"     Description: {episode.get('description', 'N/A')[:100]}...")
-                
-                # Test getting stream URL for the first episode
-                if episodes:
-                    first_episode = episodes[0]
-                    logger.debug(f"\n3️⃣ Testing stream URL for episode: {first_episode['title']}...")
-                    
-                    stream_info = provider.get_episode_stream_url(first_episode['id'])
-                    
-                    if stream_info:
-                        logger.debug(f"✅ Stream info retrieved:")
-                        logger.debug(f"   URL: {stream_info['url'][:100] if stream_info['url'] else 'N/A'}...")
-                        logger.debug(f"   Manifest Type: {stream_info.get('manifest_type', 'unknown')}")
-                    else:
-                        logger.error("❌ Failed to get stream info")
-            else:
-                logger.error("❌ No episodes found")
-    else:
-        logger.error("❌ No shows found")
-    
-    logger.debug("\n🔍 Test complete!")
-
-if __name__ == "__main__":
-    test_francetv_provider()

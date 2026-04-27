@@ -6,6 +6,7 @@ Based on the catchuptv plugin reference implementation
 
 import re
 import logging
+import traceback
 from bs4 import BeautifulSoup
 from typing import List, Dict, Optional, Any
 from fastapi import Request
@@ -13,6 +14,7 @@ from app.providers.base_provider import BaseProvider
 from app.auth.cbc_auth import CBCAuthenticator
 from app.utils.credentials import load_credentials
 from app.utils.cache import cache
+from app.utils.cache_keys import CacheKeys
 from app.utils.client_ip import get_client_ip
 from app.utils.base_url import get_logo_url
 from app.utils.http_utils import http_client
@@ -24,7 +26,6 @@ logger = logging.getLogger(__name__)
 _AUTH_SUCCESS_TTL = 3600   # 1 hour — re-check auth after token likely expired
 _AUTH_FAILURE_TTL = 300    # 5 minutes — retry sooner after a failure
 _CATALOG_TTL = 7200        # 2 hours — show/episode lists change infrequently
-_EPISODE_TTL = 1800        # 30 minutes — episodes update more often
 _STREAM_TTL = 1800         # 30 minutes — signed URLs have limited lifetime
 
 
@@ -86,7 +87,7 @@ class CBCProvider(BaseProvider):
         }
         viewer_ip = get_client_ip()
         if viewer_ip:
-            logger.info(f"🌍 [CBC] IP forwarding enabled for viewer IP: {viewer_ip}")
+            logger.debug(f"🌍 [CBC] IP forwarding enabled for viewer IP: {viewer_ip}")
         else:
             logger.warning("⚠️ [CBC] No viewer IP available - using server IP")
         return self._build_ip_headers({**base, **(additional_headers or {})})
@@ -111,11 +112,11 @@ class CBCProvider(BaseProvider):
         """Authenticate with CBC if credentials are available, using caching."""
         try:
             if hasattr(self.authenticator, 'is_authenticated') and self.authenticator.is_authenticated():
-                logger.info("✅ [CBC] Already authenticated")
+                logger.debug("✅ [CBC] Already authenticated")
                 return
 
             if self._check_auth_cache():
-                logger.info("✅ [CBC] Using cached authentication status")
+                logger.debug("✅ [CBC] Using cached authentication status")
                 return
 
             credentials = load_credentials()
@@ -136,42 +137,6 @@ class CBCProvider(BaseProvider):
             logger.error(f"❌ [CBC] Error during authentication: {e}")
             self._store_auth_result(False)
     
-    def get_shows(self) -> List[Dict[str, Any]]:
-        """Get CBC shows/series from programs.json with caching"""
-        try:
-            logger.info("🔍 [CBC] Getting CBC shows...")
-            
-            # Check cache first
-            cache_key = "cbc_shows"
-            cached_shows = cache.get(cache_key)
-            if cached_shows:
-                logger.info(f"✅ [CBC] Using cached CBC shows: {len(cached_shows)} shows")
-                return cached_shows
-            
-            # Load shows from programs.json (single source of truth)
-            cbc_shows = get_programs_for_provider('cbc')
-            shows = []
-            for slug, show_info in cbc_shows.items():
-                shows.append({
-                    "id": f"cutam:ca:cbc:{slug}",
-                    "title": show_info.get('name', slug),
-                    "description": show_info.get('description', ''),
-                    "poster": show_info.get('poster') or get_logo_url("ca", "dragonsden", self.request),
-                    "background": show_info.get('background', ''),
-                    "type": "series",
-                    "country": "CA",
-                    "provider": "cbc"
-                })
-            
-            # Cache shows for 2 hours
-            cache.set(cache_key, shows, ttl=_CATALOG_TTL)
-            logger.info(f"📺 [CBC] Found and cached {len(shows)} CBC shows from programs.json")
-            return shows
-            
-        except Exception as e:
-            logger.error(f"❌ [CBC] Error getting CBC shows: {e}")
-            return []
-
     def get_live_channels(self) -> List[Dict[str, Any]]:
         """CBC live channels are not currently supported - returns empty list."""
         # Live channel functionality was removed as non-functional per project requirements
@@ -180,18 +145,12 @@ class CBCProvider(BaseProvider):
     
 
     def get_programs(self) -> List[Dict[str, Any]]:
-        """Get CBC programs from programs.json with optional API enrichment"""
+        """Get CBC programs from programs.json."""
         try:
             logger.info("🔍 [CBC] Getting CBC programs...")
-            
-            # Check cache first
-            cache_key = "cbc_programs"
-            cached_programs = cache.get(cache_key)
-            if cached_programs:
-                logger.info(f"✅ [CBC] Using cached CBC programs: {len(cached_programs)} programs")
-                return cached_programs
-            
+
             # Primary source: programs.json (single source of truth)
+            # NOTE: Caching is handled by the catalog router (CacheKeys.programs).
             cbc_shows = get_programs_for_provider('cbc')
             programs = []
             for slug, show_info in cbc_shows.items():
@@ -209,14 +168,10 @@ class CBCProvider(BaseProvider):
                     "channel": show_info.get('channel', 'CBC')
                 }
                 programs.append(program)
-            
 
-            
-            # Cache programs for 2 hours
-            cache.set(cache_key, programs, ttl=_CATALOG_TTL)
-            logger.info(f"✅ [CBC] CBC returned and cached {len(programs)} programs from programs.json")
+            logger.info(f"✅ [CBC] CBC returned {len(programs)} programs from programs.json")
             return programs
-            
+
         except Exception as e:
             logger.error(f"❌ [CBC] Error getting CBC programs: {e}")
             return []
@@ -224,17 +179,12 @@ class CBCProvider(BaseProvider):
 
     
     def get_episodes(self, series_id: str) -> List[Dict[str, Any]]:
-        """Get episodes for any CBC series with caching"""
+        """Get episodes for any CBC series."""
         try:
             logger.info(f"🔍 [CBC] Getting episodes for series: {series_id}")
-            
-            # Check cache first
-            cache_key = f"cbc_episodes_{series_id}"
-            cached_episodes = cache.get(cache_key)
-            if cached_episodes:
-                logger.info(f"✅ [CBC] Using cached episodes for {series_id}: {len(cached_episodes)} episodes")
-                return cached_episodes
-            
+
+            # NOTE: Caching is handled by the meta router (CacheKeys.episodes).
+
             # Extract show_slug from series_id (format: cutam:ca:cbc:show-slug)
             parts = series_id.split(':')
             if len(parts) >= 4:
@@ -242,23 +192,21 @@ class CBCProvider(BaseProvider):
             else:
                 logger.warning(f"⚠️ [CBC] Invalid series ID format: {series_id}")
                 return []
-            
+
             # Get show info from programs.json for metadata
             cbc_shows = get_programs_for_provider('cbc')
             show_info = cbc_shows.get(show_slug, {})
             show_name = show_info.get('name', show_slug.replace('-', ' ').title())
-            
-            # Get episodes from CBC API
+
+            # Get episodes from CBC API (internally cached per show_slug)
             episodes = self._get_show_episodes(show_slug, show_name)
             if episodes:
                 logger.info(f"✅ CBC returned {len(episodes)} episodes for {show_name}")
-                # Cache episodes for 30 minutes
-                cache.set(cache_key, episodes, ttl=_EPISODE_TTL)
                 return episodes
-            
+
             logger.warning(f"⚠️ [CBC] No episodes found for: {show_slug}")
             return []
-            
+
         except Exception as e:
             logger.error(f"❌ [CBC] Error getting CBC episodes: {e}")
             return []
@@ -269,7 +217,7 @@ class CBCProvider(BaseProvider):
             logger.info(f"🔍 [CBC] Fetching {show_name} episodes from CBC API...")
             
             # Check cache first
-            cache_key = f"cbc_{show_slug}_all_episodes"
+            cache_key = f"cbc_show_episodes:{show_slug}"
             cached_episodes = cache.get(cache_key)
             if cached_episodes:
                 logger.info(f"✅ Using cached {show_name} episodes: {len(cached_episodes)} episodes")
@@ -489,7 +437,7 @@ class CBCProvider(BaseProvider):
             self._authenticate_if_needed()
             
             # Check cache first for stream URL
-            cache_key = f"cbc_stream_{episode_id}"
+            cache_key = CacheKeys.stream(episode_id)
             cached_stream = cache.get(cache_key)
             if cached_stream:
                 logger.info(f"✅ [CBC] Using cached stream URL for episode: {episode_id}")
@@ -652,81 +600,6 @@ class CBCProvider(BaseProvider):
             }
         except Exception as e:
             logger.error(f"❌ Error getting stream from CBC API: {e}")
-            try:
-                import traceback
-                logger.error(traceback.format_exc())
-            except Exception:
-                pass
+            logger.error(traceback.format_exc())
             return None
-
-
-    
-    def clear_cache(self, cache_type: str = "all") -> None:
-        """Clear specific cache entries or all cache"""
-        try:
-            if cache_type == "all":
-                cache.clear()
-                logger.info("✅ [CBC] Cleared all CBC cache")
-            elif cache_type == "episodes":
-                # Clear episode-related caches
-                cache.delete("cbc_episodes_cutam:ca:cbc:dragons-den")
-                cache.delete("cbc_dragons_den_all_episodes")
-                for season in range(10, 21):
-                    cache.delete(f"cbc_season_{season}_episodes")
-                logger.info("✅ [CBC] Cleared CBC episode caches")
-            elif cache_type == "programs":
-                cache.delete("cbc_programs")
-                cache.delete("cbc_shows")
-                cache.delete("cbc_dragons_den_search")
-                logger.info("✅ [CBC] Cleared CBC program caches")
-            elif cache_type == "streams":
-                # Note: This would need to be more sophisticated in a real implementation
-                # For now, we'll just clear the auth cache
-                cache.delete("cbc_auth_status")
-                logger.info("✅ [CBC] Cleared CBC stream caches")
-            else:
-                logger.warning(f"⚠️ Unknown cache type: {cache_type}")
-        except Exception as e:
-            logger.error(f"❌ Error clearing cache: {e}")
-    
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache statistics for monitoring"""
-        try:
-            # This is a simple implementation - in production you'd want more detailed stats
-            return {
-                "cache_type": "InMemoryCache",
-                "status": "active",
-                "note": "Cache statistics not available in simple implementation"
-            }
-        except Exception as e:
-            logger.error(f"❌ Error getting cache stats: {e}")
-            return {"error": str(e)}
-    
-    def force_reauthentication(self) -> bool:
-        """Force re-authentication with CBC"""
-        try:
-            logger.info("🔄 [CBC] Forcing CBC re-authentication...")
-            
-            # Clear all cached authentication data
-            cache.delete("cbc_auth_status")
-            cache.delete("cbc_refresh_token")
-            cache.delete("cbc_access_token")
-            cache.delete("cbc_claims_token")
-            
-            # Clear authenticator tokens
-            self.authenticator.logout()
-            
-            # Re-authenticate
-            self._authenticate_if_needed()
-            
-            # Verify authentication
-            if self.authenticator.is_authenticated():
-                logger.info("✅ [CBC] Re-authentication successful")
-                return True
-            else:
-                logger.error("❌ [CBC] Re-authentication failed")
-                return False
-                
-        except Exception as e:
-            logger.error(f"❌ Error during forced re-authentication: {e}")
-            return False
+

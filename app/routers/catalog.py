@@ -91,16 +91,16 @@ async def get_catalog(type: str, id: str, request: Request):
             cache_key = CacheKeys.channels(p_key)
             cached = cache.get(cache_key)
             if cached is not None:
-                logger.info(f"📺 {p_key} channels served from cache ({len(cached)} items)")
+                logger.debug(f"📺 {p_key} channels served from cache ({len(cached)} items)")
                 return cached
 
             try:
-                logger.info(f"📺 Getting {p_key} channels...")
+                logger.debug(f"📺 Getting {p_key} channels...")
                 provider = ProviderFactory.create_provider(p_key, request)
                 # Run blocking I/O in thread pool
                 channels = await run_in_threadpool(provider.get_live_channels)
                 cache.set(cache_key, channels, ttl=CHANNELS_CACHE_TTL)
-                logger.info(f"✅ {p_key} returned {len(channels)} channels")
+                logger.debug(f"✅ {p_key} returned {len(channels)} channels")
                 return channels
             except Exception as e:
                 logger.error(f"❌ Error getting {p_key} channels: {e}")

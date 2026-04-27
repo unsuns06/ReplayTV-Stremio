@@ -84,9 +84,9 @@ async def log_requests_and_responses(request: Request, call_next):
     start_time = datetime.now()
     
     # Log the incoming request
-    logger.info(f"🔍 REQUEST: {request.method} {request.url}")
-    logger.info(f"   Headers: {dict(request.headers)}")
-    logger.info(f"   Query Params: {dict(request.query_params)}")
+    logger.debug(f"🔍 REQUEST: {request.method} {request.url}")
+    logger.debug(f"   Headers: {dict(request.headers)}")
+    logger.debug(f"   Query Params: {dict(request.query_params)}")
 
     # Extract and store viewer IP for downstream requests
     try:
@@ -95,7 +95,7 @@ async def log_requests_and_responses(request: Request, call_next):
             client_host=request.client.host if request.client else None,
         )
         set_client_ip(viewer_ip)
-        logger.info(f"   Viewer-IP: {viewer_ip}")
+        logger.debug(f"   Viewer-IP: {viewer_ip}")
     except Exception as e:
         logger.warning(f"   Failed to extract viewer IP: {e}")
 
@@ -105,7 +105,7 @@ async def log_requests_and_responses(request: Request, call_next):
         
         # Log the response
         process_time = (datetime.now() - start_time).total_seconds()
-        logger.info(f"✅ RESPONSE: {response.status_code} in {process_time:.3f}s")
+        logger.debug(f"✅ RESPONSE: {response.status_code} in {process_time:.3f}s")
         
         # Only log response content on error (4xx, 5xx) to save memory/CPU
         if response.status_code >= 400:

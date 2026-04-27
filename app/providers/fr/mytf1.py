@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """MyTF1 provider - handles TF1+ live and replay streaming with proxy fallback and DRM support."""
 import logging
-
 import json
 import requests
 import time
 import os
+import traceback
 from urllib.parse import urlencode, quote, unquote
 
 from typing import Dict, List, Optional
 from fastapi import Request
-from app.utils.credentials import get_provider_credentials, load_credentials
 from app.utils.mediaflow import build_mediaflow_url
 from app.utils.base_url import get_base_url, get_logo_url
 from app.utils.proxy_config import get_proxy_config
 from app.utils.user_agent import get_random_windows_ua
-from app.utils.api_client import ProviderAPIClient
+from app.providers.fr.common import check_processed_file
 from app.utils.programs_loader import get_programs_for_provider
 from app.providers.base_provider import BaseProvider
+from app.utils.cache import cache
 
 
 logger = logging.getLogger(__name__)
@@ -80,52 +80,34 @@ class MyTF1Provider(BaseProvider):
             return self.api_client.post(url, params=params, headers=merged_headers, data=data, max_retries=max_retries)
         return self.api_client.get(url, params=params, headers=merged_headers, max_retries=max_retries)
     
-    def _build_stream_headers(self, include_auth: bool = True) -> Dict:
-        """Build common headers for video stream requests."""
-        headers = {
-            "User-Agent": get_random_windows_ua(),
-            "referer": self.base_url,
-            "origin": self.base_url,
-            "accept-language": "fr-FR,fr;q=0.9,en;q=0.8,en-US;q=0.7",
-            "accept": "application/json, text/plain, */*",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Charset": "UTF-8,*;q=0.5",
-            "Cache-Control": "no-cache",
-            "Pragma": "no-cache",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-            "Sec-GPC": "1",
-            "DNT": "1",
-            "Upgrade-Insecure-Requests": "1",
-        }
-        if include_auth and self.auth_token:
-            headers["authorization"] = f"Bearer {self.auth_token}"
-        return headers
+    def _build_stream_headers(self, include_auth: bool = True, **extra) -> Dict:
+        """Build TF1-specific headers for video stream requests, extending the base set."""
+        auth_token = self.auth_token if include_auth else None
+        return super()._build_stream_headers(
+            auth_token=auth_token,
+            **{
+                "accept-language": "fr-FR,fr;q=0.9,en;q=0.8,en-US;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Charset": "UTF-8,*;q=0.5",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-site",
+                "Sec-GPC": "1",
+                "DNT": "1",
+                "Upgrade-Insecure-Requests": "1",
+                **extra,
+            }
+        )
 
-    def _fetch_with_proxy_fallback(self, url: str, params: Dict, headers: Dict, stream_type: str = "stream") -> Optional[Dict]:
-        """Fetch URL trying proxy first, then direct as fallback."""
-        dest_with_params = url + ("?" + urlencode(params) if params else "")
-        proxy_base = self.proxy_config.get_proxy('fr_default')
-        proxied_url = proxy_base + quote(dest_with_params, safe="")
-        
-        logger.debug(f"✅ [MyTF1] Trying TF1 {stream_type} through French proxy: {proxy_base[:50]}...")
-        data_try = self._safe_api_call(proxied_url, headers=headers, max_retries=2)
-        logger.debug(f"✅ *** FINAL PROXY URL ({stream_type}): {proxied_url}")
-        
-        if data_try and data_try.get('delivery', {}).get('code', 500) <= 400:
-            delivery_country = data_try.get('delivery', {}).get('country', 'UNKNOWN')
-            delivery_code = data_try.get('delivery', {}).get('code', 500)
-            if delivery_country != 'US' and delivery_code == 200:
-                logger.debug(f"✅ [MyTF1] French proxy successful for {stream_type} - Country: {delivery_country}, Code: {delivery_code}")
-                return data_try
-            logger.error(f"❌ [MyTF1] Proxy returned code {delivery_code} or US country - trying direct")
-        else:
-            logger.error(f"❌ [MyTF1] French proxy failed for {stream_type}")
-        
-        logger.debug(f"✅ [MyTF1] Making DIRECT request: {url}")
-        logger.debug(f"✅ *** FINAL DIRECT URL ({stream_type}): {url}")
-        return self._safe_api_call(url, headers=headers, params=params)
+    @staticmethod
+    def _validate_tf1_delivery(data: Dict) -> bool:
+        """Validate proxy delivery response for TF1 stream endpoints."""
+        delivery = data.get('delivery', {})
+        return (delivery.get('code', 500) <= 400 
+                and delivery.get('country', 'US') != 'US'
+                and delivery.get('code', 500) == 200)
 
     def _extract_drm_info(self, delivery: Dict, video_id: str) -> tuple:
         """Extract DRM license URL and headers from delivery response."""
@@ -153,66 +135,9 @@ class MyTF1Provider(BaseProvider):
         
         return license_url, license_headers
 
-    def _check_processed_file_locations(self, episode_id: str) -> Optional[Dict]:
-        """Check if a processed DRM-free file exists in RD folder or processor URL."""
-        proxy_config = get_proxy_config()
-        processor_url = proxy_config.get_proxy('nm3u8_processor')
-        if not processor_url:
-            logger.error("❌ [MyTF1] ERROR: nm3u8_processor not configured in credentials.json")
-            return None
-
-        logger.debug(f"✅ [MyTF1] Using processor API: {processor_url}")
-        processed_filename = f"{episode_id}.mp4"
-        logger.debug(f"✅ [MyTF1] Looking for processed file: {processed_filename}")
-
-        # Check Real-Debrid folder first
-        try:
-            logger.debug("✅ [MyTF1] Loading credentials for Real-Debrid check...")
-            all_creds = load_credentials()
-            logger.debug(f"✅ [MyTF1] Credentials loaded. Keys: {list(all_creds.keys())}")
-            rd_folder = all_creds.get('realdebridfolder')
-            logger.debug(f"✅ [MyTF1] Real-Debrid folder from credentials: {rd_folder}")
-
-            if rd_folder:
-                logger.debug(f"✅ [MyTF1] Checking if '{processed_filename}' is listed in RD folder...")
-                rd_headers = {
-                    'User-Agent': get_random_windows_ua(),
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8', 'Accept-Encoding': 'gzip, deflate, br',
-                    'DNT': '1', 'Connection': 'keep-alive', 'Upgrade-Insecure-Requests': '1',
-                    'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate',
-                    'Sec-Fetch-Site': 'none', 'Cache-Control': 'max-age=0'
-                }
-                try:
-                    folder_response = requests.get(rd_folder, headers=rd_headers, timeout=10)
-                    logger.debug(f"✅ [MyTF1] RD Folder HTTP Status: {folder_response.status_code}")
-                    if folder_response.status_code == 200 and processed_filename in folder_response.text:
-                        rd_file_url = rd_folder.rstrip('/') + '/' + processed_filename
-                        logger.debug(f"✅ [MyTF1] File '{processed_filename}' found in RD folder listing!")
-                        logger.debug(f"✅ [MyTF1] Returning RD URL: {rd_file_url}")
-                        return {"url": rd_file_url, "manifest_type": "video", "title": "✅ [RD] DRM-Free Video", "filename": processed_filename}
-                    logger.warning(f"⚠️ [MyTF1] File not found in RD folder, checking processor_url...")
-                except Exception as e:
-                    logger.error(f"⚠️ [MyTF1] RD folder request error: {e}, checking processor_url...")
-            else:
-                logger.warning("⚠️ [MyTF1] Real-Debrid folder not configured, checking processor_url...")
-        except Exception as e:
-            logger.error(f"❌ [MyTF1] Error checking Real-Debrid: {e}")
-
-        # Check processor_url location
-        processed_url = f"{processor_url}/stream/{processed_filename}"
-        logger.debug(f"✅ [MyTF1] Checking processor_url location: {processed_url}")
-        try:
-            check_response = requests.head(processed_url, timeout=5)
-            logger.debug(f"✅ [MyTF1] PROCESSOR URL HTTP Status: {check_response.status_code}")
-            if check_response.status_code == 200:
-                logger.debug(f"✅ [MyTF1] Processed file already exists: {processed_url}")
-                return {"url": processed_url, "manifest_type": "video", "title": "✅ DRM-Free Video", "filename": processed_filename}
-            logger.warning(f"⚠️ [MyTF1] PROCESSOR URL file not found (HTTP {check_response.status_code})")
-        except Exception as e:
-            logger.error(f"⚠️ [MyTF1] Error checking processor_url: {e}")
-
-        return None  # No processed file found
+    def _check_processed_file(self, episode_id: str) -> Optional[Dict]:
+        """Delegate to shared helper (see app.providers.fr.common.check_processed_file)."""
+        return check_processed_file(episode_id, provider_tag="MyTF1")
     
     def _authenticate(self) -> bool:
         """Authenticate with TF1+ using provided credentials with robust error handling"""
@@ -406,21 +331,12 @@ class MyTF1Provider(BaseProvider):
             
             for attempt, ch_filter in enumerate([channel_filter, None]):
                 filter_label = ch_filter or "ALL channels"
-                if ch_filter:
-                    variables = f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{ch_filter}"}},"offset":0,"limit":500}}'
-                else:
-                    variables = '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{},"offset":0,"limit":500}'
-                
-                program_params = {
-                    'id': '483ce0f',
-                    'variables': variables
-                }
                 
                 logger.debug(f"✅ [MyTF1] GraphQL programs request (filter: {filter_label}): {self.api_url}")
-                data = self._safe_api_call(self.api_url, headers=headers, params=program_params, max_retries=3)
+                programs_list = self._get_graphql_programs_list(headers, ch_filter)
                 
-                if data and 'data' in data and 'programs' in data['data']:
-                    for program in data['data']['programs']['items']:
+                if programs_list:
+                    for program in programs_list:
                         if program.get('name', '').lower() == show_name_lower:
                             program_id = program.get('id')
                             program_slug = program.get('slug')
@@ -442,15 +358,8 @@ class MyTF1Provider(BaseProvider):
                     # Filter episodes based on subscription access
                     available_episodes = self._filter_available_episodes(episodes)
                     
-                    # Sort episodes by released date ascending (oldest first, newest last)
-                    # Stremio expects videos sorted chronologically with newest episode having highest number
-                    available_episodes.sort(key=lambda ep: ep.get('released', '') or '')
-                    
-                    # Re-number episodes after sorting (1, 2, 3... with 1 being oldest)
-                    for i, ep in enumerate(available_episodes):
-                        ep['episode'] = i + 1
-                        ep['episode_number'] = i + 1
-                    
+                    # Sort chronologically and re-number (oldest = 1, newest = highest)
+                    available_episodes = self._sort_episodes_chronologically(available_episodes)
                     logger.debug(f"✅ [MyTF1] Found {len(available_episodes)} episodes (sorted chronologically)")
                     return available_episodes
                 else:
@@ -507,6 +416,27 @@ class MyTF1Provider(BaseProvider):
         
         return available_episodes
     
+    def _get_graphql_programs_list(self, headers: Dict, channel_filter: str = None) -> Optional[List[Dict]]:
+        """Fetch TF1 programs list from GraphQL API, with caching."""
+        cache_key = f"mytf1_graphql_programs:{channel_filter or 'all'}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        if channel_filter:
+            variables = f'{{"context":{{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"}},"filter":{{"channel":"{channel_filter}"}},"offset":0,"limit":500}}'
+        else:
+            variables = '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{},"offset":0,"limit":500}'
+        
+        params = {'id': '483ce0f', 'variables': variables}
+        data = self.api_client.get(self.api_url, headers=self._build_ip_headers(headers), params=params, max_retries=3)
+        
+        if data and 'data' in data and 'programs' in data['data']:
+            items = data['data']['programs'].get('items', [])
+            cache.set(cache_key, items, ttl=600)  # 10 min
+            return items
+        return None
+
     def _get_show_episodes(self, program_slug: str, program_id: str, headers: Dict) -> List[Dict]:
         """Get episodes for a specific show using TF1+ API with error handling"""
         try:
@@ -640,7 +570,10 @@ class MyTF1Provider(BaseProvider):
             }
             url_json = f"https://mediainfo.tf1.fr/mediainfocombo/{video_id}"
 
-            json_parser = self._fetch_with_proxy_fallback(url_json, params, headers_video_stream, "LIVE")
+            json_parser = self._fetch_with_proxy_fallback(
+                url_json, params=params, headers=headers_video_stream,
+                validate=self._validate_tf1_delivery
+            )
 
             if json_parser:
                 logger.debug(f"✅ [MyTF1] Stream API response received for {video_id}")
@@ -718,7 +651,10 @@ class MyTF1Provider(BaseProvider):
             }
             url_json = f"{self.video_stream_url}/{actual_episode_id}"
 
-            json_parser = self._fetch_with_proxy_fallback(url_json, params, headers_video_stream, "TF1 REPLAY")
+            json_parser = self._fetch_with_proxy_fallback(
+                url_json, params=params, headers=headers_video_stream,
+                validate=self._validate_tf1_delivery
+            )
 
             if json_parser and json_parser.get('delivery', {}).get('code', 500) <= 400:
                 video_url = json_parser['delivery']['url']
@@ -730,7 +666,7 @@ class MyTF1Provider(BaseProvider):
                 is_hls = video_url.lower().endswith('.m3u8') or 'hls' in video_url.lower() or 'm3u8' in video_url.lower()
 
                 # Check if a processed DRM-free file already exists
-                existing_file = self._check_processed_file_locations(actual_episode_id)
+                existing_file = self._check_processed_file(actual_episode_id)
                 if existing_file:
                     return existing_file
 
@@ -927,7 +863,6 @@ class MyTF1Provider(BaseProvider):
                 
         except Exception as e:
             logger.error(f"❌ [MyTF1] Error getting episode stream: {e}")
-            import traceback
             traceback.print_exc()
         
         return None
@@ -944,22 +879,10 @@ class MyTF1Provider(BaseProvider):
             
             # Try with channel filter first, then without (fallback for channel migrations)
             for ch_filter in [channel_filter, None]:
-                if ch_filter:
-                    variables = '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{"channel":"%s"},"offset":0,"limit":500}' % ch_filter
-                else:
-                    variables = '{"context":{"persona":"PERSONA_2","application":"WEB","device":"DESKTOP","os":"WINDOWS"},"filter":{},"offset":0,"limit":500}'
-                
-                params = {
-                    'id': '483ce0f',
-                    'variables': variables
-                }
-
                 logger.debug(f"✅ [MyTF1] GraphQL metadata request (filter: {ch_filter or 'ALL'}): {self.api_url}")
-                data = self._safe_api_call(self.api_url, headers=headers, params=params, max_retries=3)
+                programs = self._get_graphql_programs_list(headers, ch_filter)
                 
-                if data and 'data' in data and 'programs' in data['data'] and 'items' in data['data']['programs']:
-                    programs = data['data']['programs']['items']
-                    
+                if programs:
                     # Find the specific show
                     for program in programs:
                         program_name = program.get('name', '')

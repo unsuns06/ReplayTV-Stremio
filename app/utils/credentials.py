@@ -74,11 +74,26 @@ def _load_from_file(path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+# Module-level credentials cache — loaded once per process, never re-read from disk.
+# This eliminates 5-10 file reads per request cycle (every BaseProvider.__init__,
+# get_provider_credentials call, ProxyConfig.load_proxies, etc.)
+_cached_credentials: Optional[Dict[str, Any]] = None
+
+
 def load_credentials() -> Dict[str, Any]:
-    """Load credentials from env or files, with robust diagnostics for deployment debugging."""
+    """Load credentials from env or files, with robust diagnostics for deployment debugging.
+
+    Result is cached for the lifetime of the process.  Call :func:`reload_credentials`
+    to force a re-read (useful for live credential rotation without a restart).
+    """
+    global _cached_credentials
+    if _cached_credentials is not None:
+        return _cached_credentials
+
     # Try environment variable first (useful on cloud)
     creds = _load_from_env()
     if creds is not None:
+        _cached_credentials = creds
         return creds
 
     # Resolve repository root based on this file location
@@ -89,16 +104,31 @@ def load_credentials() -> Dict[str, Any]:
     # Primary: credentials.json
     creds = _load_from_file(primary_path)
     if creds is not None:
+        _cached_credentials = creds
         return creds
 
     # Fallback: credentials-test.json
     logger.warning("credentials: Falling back to credentials-test.json")
     creds = _load_from_file(fallback_path)
     if creds is not None:
+        _cached_credentials = creds
         return creds
 
     logger.warning("credentials: No credentials could be loaded; using empty credentials")
+    _cached_credentials = {}
     return {}
+
+
+def reload_credentials() -> Dict[str, Any]:
+    """Clear the credentials cache and reload from source.
+
+    Useful after updating credentials at runtime without restarting the server.
+    Returns the freshly loaded credentials dict.
+    """
+    global _cached_credentials
+    _cached_credentials = None
+    logger.info("credentials: Cache cleared — reloading credentials from source")
+    return load_credentials()
 
 
 def get_provider_credentials(provider_name: str) -> Dict[str, Any]:

@@ -5,7 +5,6 @@ All providers should inherit from this class.
 
 import logging
 import os
-import requests
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional, TypeVar
@@ -56,26 +55,27 @@ class BaseProvider(ABC):
         """
         self.request = request
         self.credentials = get_provider_credentials(self.provider_name)
-        
-        # Initialize session with rotating User-Agent
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': get_random_windows_ua()
-        })
-        
-        # Initialize API client
+
+        # Initialize API client (has retry adapters + connection pooling configured)
         self.api_client = ProviderAPIClient(
             provider_name=self.provider_name,
             timeout=15,
             max_retries=3
         )
-        
+
+        # Expose the API client's session as self.session so any provider code that
+        # uses self.session directly benefits from the same retry adapters and pool.
+        self.session = self.api_client.session
+        self.session.headers.update({
+            'User-Agent': get_random_windows_ua()
+        })
+
         # Track authentication state
         self._authenticated = False
-        
+
         # Initialize proxy configuration
         self.proxy_config = get_proxy_config()
-        
+
         # Initialize MediaFlow
         self._init_mediaflow()
 
@@ -139,23 +139,32 @@ class BaseProvider(ABC):
         logger.debug("⚠️ %s Proxy '%s' not configured", self.log_prefix, proxy_key)
         return None
 
-    def _fetch_with_proxy_fallback(self, url: str, params: Dict = None,
-                                    headers: Dict = None, proxy_key: str = 'fr_default') -> Optional[Dict]:
+    def _fetch_with_proxy_fallback(
+        self, url: str, params: Dict = None,
+        headers: Dict = None, proxy_key: str = 'fr_default',
+        validate: Callable[[Dict], bool] = None,
+    ) -> Optional[Dict]:
         """Try geo-proxy first, fallback to direct call on failure."""
         dest_with_params = url + ("?" + urlencode(params) if params else "")
         proxied_url = self._get_geo_proxy_url(dest_with_params, proxy_key)
 
         if proxied_url:
             data = self.api_client.get(proxied_url, headers=headers, max_retries=1)
-            if data and data.get('delivery', {}).get('code', 500) == 200:
-                logger.debug("✅ %s Proxy success", self.log_prefix)
-                return data
+            if data:
+                if validate is None or validate(data):
+                    logger.debug("✅ %s Proxy success", self.log_prefix)
+                    return data
+                logger.debug("⚠️ %s Proxy response failed validation", self.log_prefix)
 
-        logger.debug("⚠️ %s Proxy failed, trying direct", self.log_prefix)
+        logger.debug("⚠️ %s Trying direct", self.log_prefix)
         return self.api_client.get(url, params=params, headers=headers, max_retries=2)
     
-    def _build_stream_headers(self, auth_token: str = None) -> Dict:
-        """Build standard headers for stream requests."""
+    def _build_stream_headers(self, auth_token: str = None, **extra) -> Dict:
+        """Build standard headers for stream requests.
+
+        Subclasses can pass additional headers via ``**extra`` without
+        needing to duplicate the base set.
+        """
         headers = {
             "User-Agent": get_random_windows_ua(),
             "referer": self.base_url,
@@ -165,6 +174,8 @@ class BaseProvider(ABC):
         }
         if auth_token:
             headers["authorization"] = f"Bearer {auth_token}"
+        if extra:
+            headers.update(extra)
         return headers
     
     def _build_ip_headers(self, extra: Optional[Dict] = None) -> Dict:

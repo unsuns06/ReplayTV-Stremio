@@ -423,7 +423,7 @@ class TestMagicNumbersReplaced:
     def test_cbc_uses_named_ttl_constants(self):
         import pathlib
         src = pathlib.Path("app/providers/ca/cbc.py").read_text(encoding='utf-8')
-        for name in ("_AUTH_SUCCESS_TTL", "_AUTH_FAILURE_TTL", "_CATALOG_TTL", "_EPISODE_TTL", "_STREAM_TTL"):
+        for name in ("_AUTH_SUCCESS_TTL", "_AUTH_FAILURE_TTL", "_CATALOG_TTL", "_STREAM_TTL"):
             assert name in src, f"Missing constant: {name}"
         assert "ttl=3600" not in src
         assert "ttl=7200" not in src
