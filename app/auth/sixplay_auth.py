@@ -1,9 +1,12 @@
 import json
+import logging
 import requests
 import uuid
 import re
 from typing import Optional, Tuple
-from app.utils.safe_print import safe_print
+
+logger = logging.getLogger(__name__)
+
 
 class SixPlayAuth:
     """Real 6play authentication implementation based on Gigya API"""
@@ -40,7 +43,7 @@ class SixPlayAuth:
             js_id_matches = self.pattern_js_id.findall(response.text)
             
             if not js_id_matches:
-                safe_print("[SixPlayAuth] Could not find JS ID, using default API key")
+                logger.warning("[SixPlayAuth] Could not find JS ID, using default API key")
                 return self.default_api_key
             
             js_id = js_id_matches[0]
@@ -52,22 +55,22 @@ class SixPlayAuth:
             api_key_matches = self.pattern_api_key.findall(bundle_response.text)
             
             if not api_key_matches:
-                safe_print("[SixPlayAuth] Could not extract API key from bundle, using default")
+                logger.warning("[SixPlayAuth] Could not extract API key from bundle, using default")
                 return self.default_api_key
             
             api_key = api_key_matches[0]
-            safe_print(f"[SixPlayAuth] Successfully extracted API key: {api_key[:20]}...")
+            logger.debug("[SixPlayAuth] Successfully extracted API key: %s...", api_key[:20])
             return api_key
             
         except Exception as e:
-            safe_print(f"[SixPlayAuth] Error getting API key: {e}")
+            logger.error("[SixPlayAuth] Error getting API key: %s", e)
             return self.default_api_key
     
     def login(self) -> bool:
         """Authenticate with 6play using Gigya API"""
         try:
             if not self.username or not self.password:
-                safe_print("[SixPlayAuth] No credentials provided")
+                logger.warning("[SixPlayAuth] No credentials provided")
                 return False
             
             # Get current API key
@@ -88,7 +91,7 @@ class SixPlayAuth:
                 'Referer': 'https://www.6play.fr/connexion'
             }
             
-            safe_print(f"[SixPlayAuth] Attempting login for user: {self.username}")
+            logger.info("[SixPlayAuth] Attempting login for user: %s", self.username)
             
             # Make login request
             response = requests.post(self.login_url, data=payload, headers=headers, timeout=10)
@@ -98,7 +101,7 @@ class SixPlayAuth:
             json_data = json.loads(json_text)
             
             if "UID" not in json_data:
-                safe_print(f"[SixPlayAuth] Login failed: {json_data.get('errorMessage', 'Unknown error')}")
+                logger.error("[SixPlayAuth] Login failed: %s", json_data.get('errorMessage', 'Unknown error'))
                 return False
             
             # Extract authentication data
@@ -106,7 +109,7 @@ class SixPlayAuth:
             account_timestamp = json_data["signatureTimestamp"]
             account_signature = json_data["UIDSignature"]
             
-            safe_print(f"[SixPlayAuth] Gigya login successful, account ID: {self.account_id}")
+            logger.info("[SixPlayAuth] Gigya login successful, account ID: %s", self.account_id)
             
             # Get JWT token from 6cloud
             uuid_headers = {
@@ -122,11 +125,11 @@ class SixPlayAuth:
             
             self.session_token = token_data["token"]
             
-            safe_print(f"[SixPlayAuth] JWT token obtained: {self.session_token[:20]}...")
+            logger.debug("[SixPlayAuth] JWT token obtained: %s...", self.session_token[:20])
             return True
             
         except Exception as e:
-            safe_print(f"[SixPlayAuth] Login error: {e}")
+            logger.error("[SixPlayAuth] Login error: %s", e)
             return False
     
     def is_authenticated(self) -> bool:

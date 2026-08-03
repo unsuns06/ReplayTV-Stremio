@@ -1,40 +1,63 @@
-def parse_channel_id(channel_id: str) -> dict:
-    """
-    Parse a channel ID in the format cutam:fr:{provider}:{channel_slug}
-    Returns a dictionary with the components
-    """
-    parts = channel_id.split(":")
-    if len(parts) >= 4 and parts[0] == "cutam" and parts[1] == "fr":
-        return {
-            "provider": parts[2],
-            "channel_slug": ":".join(parts[3:])  # In case the slug contains colons
-        }
-    return {}
+"""Composite Stremio ID parsing.
 
-def parse_program_id(program_id: str) -> dict:
-    """
-    Parse a program ID in the format cutam:fr:{provider}:prog:{program_slug}
-    Returns a dictionary with the components
-    """
-    parts = program_id.split(":")
-    if len(parts) >= 5 and parts[0] == "cutam" and parts[1] == "fr" and parts[3] == "prog":
-        return {
-            "provider": parts[2],
-            "program_slug": ":".join(parts[4:])  # In case the slug contains colons
-        }
-    return {}
+All IDs in this addon follow the grammar documented in
+:mod:`app.schemas.type_defs`::
 
-def parse_episode_id(episode_id: str) -> dict:
+    cutam:{country}:{provider}:{rest}
+
+where ``rest`` is a show slug, a channel slug, or
+``{slug}:episode:{broadcast_id}`` / ``episode:{broadcast_id}`` for episodes.
+
+This module is the single place that splits those strings.  Routers and
+providers should use :func:`parse_stremio_id` instead of ad-hoc
+``id.split(":")`` / substring matching, which silently mis-routes malformed
+IDs (e.g. a provider key appearing anywhere inside an unrelated ID).
+"""
+
+from dataclasses import dataclass
+from typing import Optional
+
+NAMESPACE = "cutam"
+
+
+@dataclass(frozen=True)
+class StremioId:
+    """Parsed composite ID. ``rest`` holds everything after the provider key."""
+
+    country: str
+    provider: str
+    rest: str
+    raw: str
+
+    @property
+    def slug(self) -> str:
+        """Trailing slug — the last colon-separated segment of ``rest``."""
+        return self.rest.split(":")[-1] if self.rest else ""
+
+    def after_marker(self, marker: str) -> Optional[str]:
+        """Return the portion of ``rest`` after *marker* (e.g. ``"episode:"``).
+
+        Returns ``None`` when the marker is absent.
+        """
+        if marker and marker in self.rest:
+            return self.rest.split(marker, 1)[1]
+        return None
+
+
+def parse_stremio_id(raw: str) -> Optional[StremioId]:
+    """Parse *raw* into a :class:`StremioId`, or ``None`` if malformed.
+
+    A valid ID has at least four colon-separated parts and starts with the
+    ``cutam`` namespace: ``cutam:{country}:{provider}:{rest...}``.
     """
-    Parse an episode ID in the format cutam:fr:{provider}:ep:{program_slug}:{season}:{episode}
-    Returns a dictionary with the components
-    """
-    parts = episode_id.split(":")
-    if len(parts) >= 7 and parts[0] == "cutam" and parts[1] == "fr" and parts[3] == "ep":
-        return {
-            "provider": parts[2],
-            "program_slug": parts[4],
-            "season": int(parts[5]) if parts[5].isdigit() else parts[5],
-            "episode": int(parts[6]) if parts[6].isdigit() else parts[6]
-        }
-    return {}
+    if not raw:
+        return None
+    parts = raw.split(":")
+    if len(parts) < 4 or parts[0] != NAMESPACE or not parts[1] or not parts[2]:
+        return None
+    return StremioId(
+        country=parts[1],
+        provider=parts[2],
+        rest=":".join(parts[3:]),
+        raw=raw,
+    )

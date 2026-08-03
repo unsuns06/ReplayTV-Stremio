@@ -1,53 +1,66 @@
+"""Stremio addon manifest, generated from the provider registry.
+
+Catalog entries and ID prefixes are derived from ``PROVIDER_REGISTRY`` and
+``programs.json`` so that adding or renaming a provider never requires a
+manual manifest edit — only the static addon identity lives here.
+"""
+
+from app.config.provider_config import PROVIDER_REGISTRY
+from app.utils.programs_loader import get_programs_for_provider
+
+ADDON_ID = "org.catchuptvandmore.stremio"
+ADDON_VERSION = "1.1.0"
+ADDON_NAME = "Catch-up TV & More"
+
+
+def _catalog_name(provider_key: str, display_name: str) -> str:
+    """Build a catalog display name listing the provider's shows."""
+    try:
+        shows = get_programs_for_provider(provider_key)
+        names = ", ".join(info.get("name", slug) for slug, info in shows.items())
+    except Exception:
+        names = ""
+    return f"{display_name} TV Shows: {names}" if names else f"{display_name} TV Shows"
+
+
 def get_manifest():
+    catalogs = [
+        {
+            "id": "fr-live",
+            "type": "channel",
+            "name": "French Live TV",
+        }
+    ]
+    for key, cfg in PROVIDER_REGISTRY.items():
+        if cfg.get("catalog_id"):
+            catalogs.append({
+                "id": cfg["catalog_id"],
+                "type": "series",
+                "name": _catalog_name(key, cfg["display_name"]),
+            })
+
+    id_prefixes = sorted({
+        f"cutam:{cfg['country']}:"
+        for cfg in PROVIDER_REGISTRY.values()
+        if cfg.get("country")
+    })
+
     return {
-        "id": "org.catchuptvandmore.stremio",
-        "version": "1.0.0",
-        "name": "Catch-up TV & More",
-        "description": "French live TV and TV show replays: France 2 (Envoyé spécial, Cash Investigation, Complément d'enquête), TF1+ (Sept à huit, Quotidien), and 6play (Capital, 66 minutes, Zone Interdite, Enquête Exclusive)",
+        "id": ADDON_ID,
+        "version": ADDON_VERSION,
+        "name": ADDON_NAME,
+        "description": (
+            "French and Canadian live TV and TV show replays from "
+            + ", ".join(cfg["display_name"] for cfg in PROVIDER_REGISTRY.values())
+        ),
         "logo": "https://catch-up-tv-and-more.github.io/images/logo.png",
         "background": "https://catch-up-tv-and-more.github.io/images/background.jpg",
-        "resources": [
-            "catalog",
-            "meta",
-            "stream"
-        ],
-        "types": [
-            "channel",
-            "series"
-        ],
-        "catalogs": [
-            {
-                "id": "fr-live",
-                "type": "channel",
-                "name": "French Live TV"
-            },
-            {
-                "id": "fr-francetv-replay",
-                "type": "series",
-                "name": "France 2 TV Shows: Envoyé spécial, Cash Investigation, Complément d'enquête"
-            },
-            {
-                "id": "fr-mytf1-replay",
-                "type": "series",
-                "name": "TF1+ TV Shows: Sept à huit, Quotidien"
-            },
-            {
-                "id": "fr-6play-replay",
-                "type": "series",
-                "name": "6play TV Shows: Capital, 66 minutes, Zone Interdite, Enquête Exclusive"
-            },
-            {
-                "id": "ca-cbc-dragons-den",
-                "type": "series",
-                "name": "CBC Shows: Dragon's Den"
-            }
-        ],
-        "idPrefixes": [
-            "cutam:fr:",
-            "cutam:ca:"
-        ],
+        "resources": ["catalog", "meta", "stream"],
+        "types": ["channel", "series"],
+        "catalogs": catalogs,
+        "idPrefixes": id_prefixes,
         "behaviorHints": {
             "configurable": True,
-            "configurationRequired": False
-        }
+            "configurationRequired": False,
+        },
     }

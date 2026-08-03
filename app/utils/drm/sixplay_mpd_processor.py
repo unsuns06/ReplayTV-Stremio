@@ -4,14 +4,15 @@ Rewrites complex ContentProtection structures into a simplified form
 that the MediaFlow proxy can parse without errors.
 """
 
+import logging
 import xml.etree.ElementTree as ET
 from typing import Dict
 from urllib.parse import urljoin, urlparse
 
-from app.utils.drm.base import DRMProcessor
+logger = logging.getLogger(__name__)
 
 
-class SixPlayMPDProcessor(DRMProcessor):
+class SixPlayMPDProcessor:
     """Rewrites 6play MPD manifests to be MediaFlow-compatible."""
 
     def __init__(self):
@@ -20,20 +21,6 @@ class SixPlayMPDProcessor(DRMProcessor):
             'cenc': 'urn:mpeg:cenc:2013',
             'mspr': 'urn:microsoft:playready',
         }
-
-    def process(self, url: str, **kwargs) -> str:
-        """Rewrite the MPD at *url* to be MediaFlow-compatible.
-
-        Args:
-            url: The original MPD URL (used to resolve relative segment URLs).
-            **kwargs:
-                mpd_content (str): The raw MPD XML string. Required.
-
-        Returns:
-            Rewritten MPD as a string (same as :meth:`process_mpd_for_mediaflow`).
-        """
-        mpd_content = kwargs['mpd_content']
-        return self.process_mpd_for_mediaflow(mpd_content, url)
 
     def process_mpd_for_mediaflow(self, mpd_content: str, mpd_url: str) -> str:
         """Simplify a 6play MPD so MediaFlow can handle it.
@@ -51,7 +38,7 @@ class SixPlayMPDProcessor(DRMProcessor):
             self._make_urls_absolute(root, base_url)
             return ET.tostring(root, encoding='unicode', xml_declaration=True)
         except Exception as e:
-            print(f"[SixPlayMPDProcessor] Error processing MPD: {e}")
+            logger.error("[SixPlayMPDProcessor] Error processing MPD: %s", e)
             return mpd_content
 
     def _get_base_url(self, mpd_url: str) -> str:
@@ -131,5 +118,5 @@ def extract_drm_info_from_mpd(mpd_content: str) -> Dict:
 
         return drm_info
     except Exception as e:
-        print(f"[SixPlayMPDProcessor] Error extracting DRM info: {e}")
+        logger.error("[SixPlayMPDProcessor] Error extracting DRM info: %s", e)
         return {}

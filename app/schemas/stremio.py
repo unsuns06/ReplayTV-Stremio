@@ -87,6 +87,10 @@ class Video(BaseModel):
 class Stream(BaseModel):
     url: str
     title: Optional[str] = None
+    # Stremio-spec hints (stock clients read headers from
+    # behaviorHints.proxyHeaders; the flat fields below are kept for
+    # custom players that consume them directly).
+    behaviorHints: Optional[Dict[str, Any]] = None
     headers: Optional[Dict[str, str]] = None
     externalUrl: Optional[str] = None
     manifest_type: Optional[str] = None
@@ -97,7 +101,9 @@ class CatalogResponse(BaseModel):
     metas: List[MetaPreview]
 
 class MetaResponse(BaseModel):
-    meta: MetaDetail
+    # None means "not found" — serialized as {"meta": null}, which Stremio
+    # clients treat as an empty result without crashing.
+    meta: Optional[MetaDetail] = None
 
 class StreamResponse(BaseModel):
     streams: List[Stream]

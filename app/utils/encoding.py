@@ -4,10 +4,11 @@ Extracted from sixplay.py to be shared across providers.
 """
 
 import base64
+import logging
 import re
 from typing import Optional
 
-from app.utils.safe_print import safe_print
+logger = logging.getLogger(__name__)
 
 
 def pad_base64(value: str) -> str:
@@ -53,7 +54,7 @@ def normalize_key_id(key_id: Optional[str]) -> Optional[str]:
     except:
         pass
     
-    safe_print(f"⚠️ Could not normalize key ID: {key_id}")
+    logger.warning("⚠️ Could not normalize key ID: %s", key_id)
     return None
 
 
@@ -95,7 +96,7 @@ def ensure_hex_key(key_value: Optional[str]) -> Optional[str]:
     except:
         pass
     
-    safe_print(f"⚠️ Could not ensure hex key: {key_value[:20]}...")
+    logger.warning("⚠️ Could not ensure hex key: %s...", key_value[:20])
     return None
 
 
@@ -114,7 +115,7 @@ def hex_to_base64url(hex_value: Optional[str]) -> Optional[str]:
         b64_url = base64.urlsafe_b64encode(raw_bytes).rstrip(b'=').decode('utf-8')
         return b64_url
     except Exception as e:
-        safe_print(f"⚠️ hex_to_base64url error: {e}")
+        logger.warning("⚠️ hex_to_base64url error: %s", e)
         return None
 
 
@@ -180,5 +181,5 @@ def normalize_decryption_key(
     if hex_match:
         return hex_match.group(0).lower()
     
-    safe_print(f"⚠️ Could not normalize decryption key from: {raw_key[:50]}...")
+    logger.warning("⚠️ Could not normalize decryption key from: %s...", raw_key[:50])
     return None

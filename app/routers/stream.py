@@ -1,27 +1,17 @@
 from fastapi import APIRouter, Request
 import logging
-import traceback
-from typing import Any, Dict, List, Optional, Union
+from starlette.concurrency import run_in_threadpool
+from typing import Any, Dict, List, Optional
 from app.schemas.stremio import StreamResponse, Stream
-from app.providers.common import ProviderFactory
+from app.providers.factory import ProviderFactory
 from app.utils.client_ip import make_ip_headers
-from app.config.provider_config import PROVIDER_REGISTRY, get_live_providers
+from app.utils.ids import parse_stremio_id
+from app.config.provider_config import PROVIDER_REGISTRY, get_live_providers, get_provider_by_id_prefix
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# Use centralized provider registry - map to expected format for backwards compatibility
-SERIES_PROVIDERS = {
-    key: {"name": config["display_name"], "episode_marker": config["episode_marker"]}
-    for key, config in PROVIDER_REGISTRY.items()
-}
-
-# Derive channel providers from registry (only those supporting live)
-CHANNEL_PROVIDERS = {
-    key: config["display_name"]
-    for key, config in PROVIDER_REGISTRY.items()
-    if config.get("supports_live", False)
-}
+_LIVE_PROVIDERS = get_live_providers()  # list of provider keys that support live
 
 
 def _merge_headers(provider_headers: Optional[Dict[str, str]], include_ip: bool = True) -> Optional[Dict[str, str]]:
@@ -38,10 +28,17 @@ def _build_stream_from_info(info: Dict[str, Any], include_ip_headers: bool = Tru
     """Build a Stream object from stream info dictionary."""
     merged_headers = _merge_headers(info.get('headers'), include_ip_headers)
     merged_license_headers = _merge_headers(info.get('licenseHeaders'), include_ip_headers)
-    
+
+    # ponytail: every URL we return is already a self-contained MediaFlow/dash-proxy
+    # URL with upstream headers baked into the query string, so it's web-ready and
+    # must NOT carry notWebReady/proxyHeaders — that makes Stremio re-proxy it and
+    # inject the wrong headers, killing playback. Add proxyHeaders back (gated on a
+    # per-stream "raw url" flag) only if a provider ever returns an un-proxied URL.
+
     return Stream(
         url=info["url"],
         title=info.get('title', f"{info.get('manifest_type', 'stream').upper()} Stream"),
+        behaviorHints=None,
         headers=merged_headers,
         manifest_type=info.get('manifest_type'),
         licenseUrl=info.get('licenseUrl'),
@@ -51,73 +48,62 @@ def _build_stream_from_info(info: Dict[str, Any], include_ip_headers: bool = Tru
 
 
 def _build_stream_response(
-    stream_info: Union[Dict[str, Any], List[Dict[str, Any]], None],
+    stream_info: Optional[List[Dict[str, Any]]],
     provider_name: str,
     include_ip_headers: bool = True
 ) -> StreamResponse:
-    """Build StreamResponse from provider stream info."""
+    """Build StreamResponse from provider stream info (always a list)."""
     if not stream_info:
-        logger.warning(f"⚠️ {provider_name} returned no stream info")
+        logger.warning("⚠️ %s returned no stream info", provider_name)
         return StreamResponse(streams=[])
-    
-    if isinstance(stream_info, list):
-        streams = [_build_stream_from_info(info, include_ip_headers) for info in stream_info]
-        logger.info(f"✅ {provider_name} returned {len(streams)} streams")
-        return StreamResponse(streams=streams)
-    else:
-        logger.info(f"✅ {provider_name} returned single stream: {stream_info.get('manifest_type', 'unknown')}")
-        stream = _build_stream_from_info(stream_info, include_ip_headers)
-        return StreamResponse(streams=[stream])
+    streams = [_build_stream_from_info(info, include_ip_headers) for info in stream_info]
+    logger.info("✅ %s returned %d streams", provider_name, len(streams))
+    return StreamResponse(streams=streams)
 
 
 def _handle_channel_stream(id: str, request: Request) -> StreamResponse:
     """Handle live channel stream requests."""
-    logger.info(f"📺 Processing live stream request for channel: {id}")
-    
-    # Determine provider from ID
-    provider_key = None
-    provider_name = None
-    for key, name in CHANNEL_PROVIDERS.items():
-        if key in id:
-            provider_key = key
-            provider_name = name
-            break
-    
+    logger.info("📺 Processing live stream request for channel: %s", id)
+
+    # Determine provider by parsing the composite ID (no substring matching)
+    parsed = parse_stremio_id(id)
+    provider_key = parsed.provider if parsed and parsed.provider in _LIVE_PROVIDERS else None
+
     if not provider_key:
-        logger.warning(f"⚠️ Unknown channel provider in ID: {id}")
+        logger.warning("⚠️ Unknown channel provider in ID: %s", id)
         return StreamResponse(streams=[])
+
+    provider_name = PROVIDER_REGISTRY[provider_key]["display_name"]
     
-    logger.info(f"🎯 Using {provider_name} provider for channel: {id}")
+    logger.info("🎯 Using %s provider for channel: %s", provider_name, id)
     
     try:
         provider = ProviderFactory.create_provider(provider_key, request)
         stream_info = provider.get_channel_stream_url(id)
         return _build_stream_response(stream_info, provider_name, include_ip_headers=True)
-    except Exception as e:
-        logger.error(f"❌ Error getting {provider_name} stream for channel {id}: {e}")
-        logger.error("   Full traceback:")
-        logger.error(traceback.format_exc())
+    except Exception:
+        logger.exception("❌ Error getting %s stream for channel %s", provider_name, id)
         return StreamResponse(streams=[])
 
 
 def _handle_series_stream(provider_key: str, id: str, request: Request) -> StreamResponse:
     """Handle series/episode stream requests for any provider."""
-    config = SERIES_PROVIDERS[provider_key]
-    provider_name = config["name"]
+    config = PROVIDER_REGISTRY[provider_key]
+    provider_name = config["display_name"]
     episode_marker = config["episode_marker"]
     
-    logger.info(f"📺 Processing {provider_name} replay stream request: {id}")
+    logger.info("📺 Processing %s replay stream request: %s", provider_name, id)
     
     try:
         provider = ProviderFactory.create_provider(provider_key, request)
         
         # Check if episode is specified
         if episode_marker not in id:
-            logger.warning(f"⚠️ No episode specified in series ID: {id}")
+            logger.warning("⚠️ No episode specified in series ID: %s", id)
             return StreamResponse(streams=[])
         
         episode_id = id
-        logger.info(f"🎬 Getting stream for specific episode: {episode_id}")
+        logger.info("🎬 Getting stream for specific episode: %s", episode_id)
         
         stream_info = provider.get_episode_stream_url(episode_id)
         
@@ -125,29 +111,27 @@ def _handle_series_stream(provider_key: str, id: str, request: Request) -> Strea
         include_ip = provider.needs_ip_forwarding
         
         return _build_stream_response(stream_info, provider_name, include_ip_headers=include_ip)
-        
-    except Exception as e:
-        logger.error(f"❌ Error getting {provider_name} stream: {e}")
-        logger.error("   Full traceback:")
-        logger.error(traceback.format_exc())
+
+    except Exception:
+        logger.exception("❌ Error getting %s stream", provider_name)
         return StreamResponse(streams=[])
 
 
 @router.get("/stream/{type}/{id}.json")
 async def get_stream(type: str, id: str, request: Request):
     """Get stream data with comprehensive error logging."""
-    logger.info(f"🔍 STREAM REQUEST: type={type}, id={id}")
-    
+    logger.info("🔍 STREAM REQUEST: type=%s, id=%s", type, id)
+
+    # Provider I/O is blocking (requests) — keep it off the event loop
     # Handle live channel streams
     if type == "channel":
-        return _handle_channel_stream(id, request)
-    
+        return await run_in_threadpool(_handle_channel_stream, id, request)
+
     # Handle series/episode streams
     if type == "series":
-        # Find matching provider
-        for provider_key in SERIES_PROVIDERS:
-            if provider_key in id:
-                return _handle_series_stream(provider_key, id, request)
-    
-    logger.warning(f"⚠️ Unknown stream request: type={type}, id={id}")
+        provider_key = get_provider_by_id_prefix(id)
+        if provider_key:
+            return await run_in_threadpool(_handle_series_stream, provider_key, id, request)
+
+    logger.warning("⚠️ Unknown stream request: type=%s, id=%s", type, id)
     return StreamResponse(streams=[])

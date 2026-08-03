@@ -8,12 +8,9 @@ from app.config.provider_config import PROVIDER_REGISTRY
 
 router = APIRouter()
 
-_PROVIDER_ENV_VARS = {
-    "francetv": [],                         # no login required
-    "mytf1":    ["MYTF1_LOGIN", "MYTF1_PASSWORD"],
-    "6play":    ["SIXPLAY_LOGIN", "SIXPLAY_PASSWORD"],
-    "cbc":      ["CBC_LOGIN", "CBC_PASSWORD"],
-}
+# Providers that require a login/password pair in credentials.json (or the
+# CREDENTIALS_JSON env var), keyed by the credentials.json section name.
+_PROVIDERS_REQUIRING_AUTH = {"mytf1", "6play", "cbc"}
 
 _PROVIDER_NOTES = {
     "francetv": "No credentials required — public content.",
@@ -32,10 +29,13 @@ def _get_provider_status() -> dict:
 
     status = {}
     for key, config in PROVIDER_REGISTRY.items():
-        provider_creds = creds.get(key, {}) if isinstance(creds, dict) else {}
+        creds_key = config.get("credentials_key", key)
+        provider_creds = creds.get(creds_key, {}) if isinstance(creds, dict) else {}
+        if not isinstance(provider_creds, dict):
+            provider_creds = {}
         has_login = bool(provider_creds.get("login") or provider_creds.get("email"))
         has_password = bool(provider_creds.get("password"))
-        requires_auth = bool(_PROVIDER_ENV_VARS.get(key))
+        requires_auth = key in _PROVIDERS_REQUIRING_AUTH
         if not requires_auth:
             configured = True
             label = "✅ Ready (no auth needed)"
@@ -54,7 +54,7 @@ def _get_provider_status() -> dict:
             "configured": configured,
             "label": label,
             "note": _PROVIDER_NOTES.get(key, ""),
-            "env_vars": _PROVIDER_ENV_VARS.get(key, []),
+            "credentials_key": creds_key if requires_auth else None,
         }
     return status
 
@@ -66,15 +66,18 @@ async def configure():
     all_ok = all(p["configured"] for p in provider_status.values())
 
     rows = ""
-    for key, info in provider_status.items():
-        env_html = ""
-        if info["env_vars"]:
-            env_html = "<br><small><code>" + "</code>, <code>".join(info["env_vars"]) + "</code></small>"
+    for info in provider_status.values():
+        creds_html = ""
+        if info["credentials_key"]:
+            creds_html = (
+                f'<br><small>credentials key: <code>"{info["credentials_key"]}"</code>'
+                "&nbsp;(<code>login</code> / <code>password</code>)</small>"
+            )
         rows += f"""
         <tr>
           <td><strong>{info['display_name']}</strong></td>
           <td>{info['label']}</td>
-          <td>{info['note']}{env_html}</td>
+          <td>{info['note']}{creds_html}</td>
         </tr>"""
 
     overall = (
@@ -132,7 +135,8 @@ async def configure():
       Set credentials via environment variables <em>or</em> in
       <code>credentials.json</code> at the project root.
     </p>
-    <p><strong>Environment variables (recommended for deployments):</strong></p>
+    <p><strong>Environment variable (recommended for deployments) — set
+    <code>CREDENTIALS_JSON</code> to the full JSON document:</strong></p>
     <pre>CREDENTIALS_JSON='{{"mytf1":{{"login":"user@example.com","password":"secret"}},
   "6play":{{"login":"user@example.com","password":"secret"}},
   "cbcgem":{{"login":"user@example.com","password":"secret"}}}}'</pre>

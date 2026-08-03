@@ -4,11 +4,13 @@ Extracted from sixplay.py for shared use.
 """
 
 import base64
-from typing import Dict, Optional, Tuple, Any
+import logging
+from typing import Dict, Optional, Tuple
 
-from app.utils.safe_print import safe_print
-from app.providers.fr.extract_pssh import extract_first_pssh, PsshRecord
+from app.utils.drm.extract_pssh import extract_first_pssh, PsshRecord
 from app.utils.drm.sixplay_mpd_processor import extract_drm_info_from_mpd
+
+logger = logging.getLogger(__name__)
 
 
 def extract_pssh_from_mpd(
@@ -54,7 +56,7 @@ def extract_pssh_from_mpd(
                 drm_info = extract_drm_info_from_mpd(mpd_text) or {}
             except Exception as drm_error:
                 drm_info = {}
-                safe_print(f"⚠️ [{provider_name}] Failed to parse DRM info: {drm_error}")
+                logger.warning("⚠️ [%s] Failed to parse DRM info: %s", provider_name, drm_error)
         
         # Fallback: create PSSH record from DRM info if not found
         if not pssh_record and drm_info.get('widevine_pssh'):
@@ -71,13 +73,12 @@ def extract_pssh_from_mpd(
                 pass
         
         if pssh_record:
-            safe_print(f"✅ [{provider_name}] PSSH extracted successfully")
-            safe_print(f"📋   Base64 PSSH: {pssh_record.base64_text[:50]}...")
+            logger.debug("✅ [%s] PSSH extracted: %s...", provider_name, pssh_record.base64_text[:50])
         else:
-            safe_print(f"⚠️ [{provider_name}] No PSSH found in MPD manifest")
+            logger.warning("⚠️ [%s] No PSSH found in MPD manifest", provider_name)
         
         return pssh_record, mpd_text, drm_info
         
     except Exception as e:
-        safe_print(f"❌ [{provider_name}] Error extracting PSSH from MPD: {e}")
+        logger.error("❌ [%s] Error extracting PSSH from MPD: %s", provider_name, e)
         return None, None, {}

@@ -3,43 +3,27 @@ import os
 import logging
 from typing import Dict, Any, Optional
 
+from app.utils.json_parser import parse_json_text
+
 logger = logging.getLogger(__name__)
 
 
 def _lenient_parse(text: str, context: str) -> Optional[Dict[str, Any]]:
-    """Attempt to parse non-strict JSON and log what was attempted."""
+    """Attempt to parse non-strict JSON with diagnostic logging on first failure."""
     try:
-        # 1) Straight parse
         return json.loads(text)
     except json.JSONDecodeError as e:
+        preview = text[max(0, e.pos - 80): min(len(text), e.pos + 80)]
         logger.error(
-            f"{context} - JSONDecodeError: {e.msg} at line {e.lineno} column {e.colno} (char {e.pos})"
+            "%s - JSONDecodeError: %s at line %d column %d (char %d); snippet: %s",
+            context, e.msg, e.lineno, e.colno, e.pos, preview,
         )
-        preview_start = max(0, e.pos - 80)
-        preview_end = min(len(text), e.pos + 80)
-        snippet = text[preview_start:preview_end]
-        logger.error(f"{context} - Content snippet around error [{preview_start}:{preview_end}]: {snippet}")
 
-    # 2) Replace single quotes with double quotes
-    try:
-        fixed = text.replace("'", '"')
-        if fixed != text:
-            logger.warning(f"{context} - Retrying after replacing single quotes with double quotes")
-        return json.loads(fixed)
-    except Exception:
-        pass
+    result = parse_json_text(text, context)
+    if result is not None:
+        return result
 
-    # 3) Quote unquoted property names (shallow heuristic)
-    try:
-        import re
-        fixed = re.sub(r'([{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:', r'\1"\2":', text)
-        if fixed != text:
-            logger.warning(f"{context} - Retrying after quoting unquoted property names")
-            return json.loads(fixed)
-    except Exception:
-        pass
-
-    logger.error(f"{context} - Lenient parsing attempts failed")
+    logger.error("%s - Lenient parsing attempts failed", context)
     return None
 
 
@@ -58,19 +42,19 @@ def _load_from_env() -> Optional[Dict[str, Any]]:
 def _load_from_file(path: str) -> Optional[Dict[str, Any]]:
     """Load credentials from a specific file path with diagnostics."""
     if not os.path.exists(path):
-        logger.info(f"credentials: File not found: {path}")
+        logger.info("credentials: File not found: %s", path)
         return None
 
     try:
         with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
-        logger.info(f"credentials: Loading credentials from {path} ({len(content)} bytes)")
+        logger.info("credentials: Loading credentials from %s (%d bytes)", path, len(content))
         parsed = _lenient_parse(content, f"credentials.file:{path}")
         if parsed is None:
-            logger.error(f"credentials: Failed to parse file {path}")
+            logger.error("credentials: Failed to parse file %s", path)
         return parsed
     except Exception as e:
-        logger.error(f"credentials: Unexpected error reading {path}: {e}")
+        logger.error("credentials: Unexpected error reading %s: %s", path, e)
         return None
 
 
@@ -136,6 +120,6 @@ def get_provider_credentials(provider_name: str) -> Dict[str, Any]:
     credentials = load_credentials()
     provider = credentials.get(provider_name, {})
     if not isinstance(provider, dict):
-        logger.error(f"credentials: Provider '{provider_name}' section is not an object; got {type(provider).__name__}")
+        logger.error("credentials: Provider '%s' section is not an object; got %s", provider_name, type(provider).__name__)
         return {}
     return provider

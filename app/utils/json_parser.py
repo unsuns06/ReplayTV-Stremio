@@ -1,8 +1,4 @@
-"""Standalone JSON parsing utilities with comprehensive error handling.
-
-Extracted from :class:`~app.utils.http_utils.RobustHTTPClient` so that JSON
-parsing can be imported and tested independently of the HTTP client.
-"""
+"""Standalone JSON parsing utilities with comprehensive error handling."""
 
 import json
 import logging
@@ -12,6 +8,29 @@ from typing import Any, Dict, Optional
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+def parse_json_text(text: str, context: str = "") -> Optional[Dict[str, Any]]:
+    """Parse a JSON string, returning ``None`` (with a debug log) on failure.
+
+    Shared by :func:`safe_json_parse` and :mod:`app.utils.credentials`.
+
+    Note: an earlier "quote-fix" fallback (regex-quoting bare keys) was removed
+    because it corrupted any value containing a colon (e.g. every URL) while
+    hiding the real parse error.
+
+    Args:
+        text: Raw JSON string.
+        context: Caller context for log messages.
+
+    Returns:
+        Parsed dict, or ``None`` when parsing fails.
+    """
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        logger.debug("%s — JSON parse failed: %s", context, exc)
+        return None
 
 
 def safe_json_parse(
@@ -50,18 +69,9 @@ def safe_json_parse(
             text = text[text.find("(") + 1: text.rfind(");")]
             logger.debug("%s — extracted JSON from JSONP wrapper", context)
 
-        # Strategy 1: standard parse
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError as exc:
-            logger.debug("%s — initial JSON parse failed: %s", context, exc)
-
-        # Strategy 2: single-quote → double-quote fix
-        try:
-            fixed = re.sub(r"(\w+):", r'"\1":', text.replace("'", '"'))
-            return json.loads(fixed)
-        except Exception:
-            pass
+        result = parse_json_text(text, context)
+        if result is not None:
+            return result
 
         # Strategy 3: extract outermost {...} from a mixed response
         try:

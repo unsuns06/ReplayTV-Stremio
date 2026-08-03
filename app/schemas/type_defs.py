@@ -26,23 +26,31 @@ Fields:
   broadcast_id   — opaque ID used by the upstream provider API
 """
 
-from typing import TypedDict, Optional, List, Dict, Any
+from typing import TypedDict, Optional, List, Dict
 
 
 class StreamInfo(TypedDict, total=False):
     """Stream information returned by get_episode_stream_url()"""
     url: str
-    manifest_type: str  # 'hls' or 'mpd'
+    manifest_type: str  # 'hls', 'mpd' or 'video' (pre-processed file)
     title: str
+    description: str
     headers: Optional[Dict[str, str]]
-    
+    filename: str       # pre-processed file name (DRM providers)
+    externalUrl: Optional[str]
+
     # DRM-related fields
     drm_protected: bool
+    drm_token: Optional[str]
+    drm_keys: Optional[Dict[str, str]]   # kid -> key (MyTF1)
     licenseUrl: Optional[str]
     licenseHeaders: Optional[Dict[str, str]]
     decryption_key: Optional[str]
+    default_kid: Optional[str]
     pssh: Optional[str]
-    
+    pssh_system_id: Optional[str]
+    pssh_source: Optional[str]
+
     # Additional metadata
     proxied: bool
     quality: Optional[str]
@@ -51,18 +59,28 @@ class StreamInfo(TypedDict, total=False):
 class EpisodeInfo(TypedDict, total=False):
     """Episode metadata returned by get_episodes()"""
     id: str
+    type: str            # always "episode"
     title: str
     season: int
     episode: int
+    episode_number: int  # provisional number before chronological sort
     description: str
     poster: str
+    fanart: str
     thumbnail: str
-    duration: str  # In seconds as string
+    duration: str        # In seconds as string
     broadcast_date: str
+    broadcast_id: str    # FranceTV upstream media ID
     air_date: str
+    released: str        # ISO 8601 — consumed by Stremio
     rating: str
     channel: str
     program: str
+    genres: List[str]
+    cast: List[str]
+    note: str            # fallback-episode marker
+    gem_url: str         # CBC web URL
+    cbc_media_id: str    # CBC stream-resolution ID
 
 
 class ShowInfo(TypedDict, total=False):
@@ -74,6 +92,10 @@ class ShowInfo(TypedDict, total=False):
     logo: str
     background: str
     fanart: str
+    banner: str
+    clearart: str
+    clearlogo: str
+    landscape: str
     description: str
     genres: List[str]
     year: int

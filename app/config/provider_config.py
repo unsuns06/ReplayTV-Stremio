@@ -6,6 +6,8 @@ Dyanmically built from the provider registry to ensure single source of truth.
 
 from typing import Dict, List, Any, Optional
 from app.providers.registry import PROVIDER_CLASSES
+from app.providers.base_provider import LiveProviderMixin
+from app.utils.ids import parse_stremio_id
 
 
 def _build_registry() -> Dict[str, Dict[str, Any]]:
@@ -19,7 +21,9 @@ def _build_registry() -> Dict[str, Dict[str, Any]]:
             "country": cls.country,
             "episode_marker": cls.episode_marker,
             "catalog_id": cls.catalog_id,
-            "supports_live": cls.supports_live,
+            "supports_live": issubclass(cls, LiveProviderMixin),
+            "default_channel": cls.default_channel,
+            "credentials_key": cls.credentials_key or cls.provider_name,
         }
     return registry
 
@@ -87,15 +91,19 @@ def get_provider_by_catalog_id(catalog_id: str) -> Optional[str]:
 
 def get_provider_by_id_prefix(id_string: str) -> Optional[str]:
     """
-    Identify provider from an ID string by matching prefix.
-    
+    Identify provider from a composite ID string.
+
+    Parses the documented ``cutam:{country}:{provider}:...`` grammar instead
+    of prefix-matching, so an empty/missing ``id_prefix`` can never match
+    everything and provider keys embedded elsewhere in an ID cannot mis-route.
+
     Args:
         id_string: Full ID string (e.g., "cutam:fr:francetv:show-name")
-        
+
     Returns:
         Provider key or None if no match
     """
-    for key, config in PROVIDER_REGISTRY.items():
-        if id_string.startswith(config.get("id_prefix", "")):
-            return key
+    parsed = parse_stremio_id(id_string)
+    if parsed and parsed.provider in PROVIDER_REGISTRY:
+        return parsed.provider
     return None

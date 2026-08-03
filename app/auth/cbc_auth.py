@@ -4,33 +4,26 @@ CBC Gem Authentication Module
 Based on the yt-dlp CBC extractor implementation
 """
 
+import jwt
 import time
 import logging
-from typing import Optional, Dict, Any
-try:
-    import jwt
-except ImportError:
-    try:
-        import PyJWT as jwt
-    except ImportError:
-        # Fallback implementation without JWT validation
-        class jwt:
-            @staticmethod
-            def decode(token, options=None):
-                import json
-                import base64
-                # Simple JWT decode without verification
-                parts = token.split('.')
-                if len(parts) >= 2:
-                    payload = parts[1]
-                    # Add padding if needed
-                    payload += '=' * (4 - len(payload) % 4)
-                    decoded_bytes = base64.urlsafe_b64decode(payload)
-                    return json.loads(decoded_bytes)
-                return {}
 import requests
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
+
+
+class _DictCacheAdapter:
+    """Wraps a plain dict in the get/set/delete interface used by _cache."""
+    def __init__(self, d: dict):
+        self._d = d
+    def get(self, key, default=None):
+        return self._d.get(key, default)
+    def set(self, key, value):
+        self._d[key] = value
+    def delete(self, key):
+        self._d.pop(key, None)
+
 
 class CBCAuthenticator:
     """
@@ -50,8 +43,8 @@ class CBCAuthenticator:
         self.access_token = None
         self.claims_token = None
         
-        # Cache handler for token persistence
-        self.cache_handler = cache_handler or {}
+        raw = cache_handler if cache_handler is not None else {}
+        self._cache = raw if hasattr(raw, 'set') else _DictCacheAdapter(raw)
         
         # ROPC settings cache
         self._ropc_settings = None
@@ -72,8 +65,8 @@ class CBCAuthenticator:
                 self._ropc_settings = data['identityManagement']['ropc']
                 logger.info("Retrieved ROPC settings")
             except Exception as e:
-                logger.error(f"Failed to get ROPC settings: {e}")
-                raise Exception(f"Failed to get ROPC settings: {e}")
+                logger.error("Failed to get ROPC settings: %s", e)
+                raise Exception(f"Failed to get ROPC settings: {e}") from e
         
         return self._ropc_settings
     
@@ -114,7 +107,7 @@ class CBCAuthenticator:
                 timeout=30
             )
             
-            logger.info(f"{note}: Status {response.status_code}")
+            logger.info("%s: Status %s", note, response.status_code)
             
             if response.status_code == 400:
                 error_data = response.json() if response.content else {}
@@ -128,20 +121,15 @@ class CBCAuthenticator:
             self.refresh_token = token_data.get('refresh_token')
             self.access_token = token_data.get('access_token')
             
-            # Cache tokens if handler available
-            if self.cache_handler and hasattr(self.cache_handler, 'set'):
-                self.cache_handler.set('cbc_refresh_token', self.refresh_token)
-                self.cache_handler.set('cbc_access_token', self.access_token)
-            elif isinstance(self.cache_handler, dict):
-                self.cache_handler['cbc_refresh_token'] = self.refresh_token
-                self.cache_handler['cbc_access_token'] = self.access_token
+            self._cache.set('cbc_refresh_token', self.refresh_token)
+            self._cache.set('cbc_access_token', self.access_token)
             
-            logger.info(f"Successfully {note.lower()}")
+            logger.info("Successfully %s", note.lower())
             return token_data
             
         except Exception as e: # requests.exceptions.RequestException
-            logger.error(f"Network error during {note}: {e}")
-            raise Exception(f"Network error: {e}")
+            logger.error("Network error during %s: %s", note, e)
+            raise Exception(f"Network error: {e}") from e
     
     def login(self, username: str, password: str) -> bool:
         """
@@ -166,24 +154,16 @@ class CBCAuthenticator:
             return True
             
         except Exception as e:
-            logger.error(f"Login failed: {e}")
+            logger.error("Login failed: %s", e)
             return False
     
     def _load_cached_tokens(self):
-        """
-        Load cached tokens
-        """
         try:
-            if hasattr(self.cache_handler, 'get'):
-                self.refresh_token = self.cache_handler.get('cbc_refresh_token')
-                self.access_token = self.cache_handler.get('cbc_access_token')
-                self.claims_token = self.cache_handler.get('cbc_claims_token')
-            elif isinstance(self.cache_handler, dict):
-                self.refresh_token = self.cache_handler.get('cbc_refresh_token')
-                self.access_token = self.cache_handler.get('cbc_access_token')
-                self.claims_token = self.cache_handler.get('cbc_claims_token')
+            self.refresh_token = self._cache.get('cbc_refresh_token')
+            self.access_token = self._cache.get('cbc_access_token')
+            self.claims_token = self._cache.get('cbc_claims_token')
         except Exception as e:
-            logger.error(f"Failed to load cached tokens: {e}")
+            logger.error("Failed to load cached tokens: %s", e)
     
     def get_access_token(self) -> Optional[str]:
         """
@@ -203,7 +183,7 @@ class CBCAuthenticator:
                 }, 'Refresh token')
                 return self.access_token
             except Exception as e:
-                logger.error(f"Token refresh failed: {e}")
+                logger.error("Token refresh failed: %s", e)
                 # Clear invalid tokens
                 self.refresh_token = None
                 self.access_token = None
@@ -234,7 +214,7 @@ class CBCAuthenticator:
                 headers={'Authorization': f'Bearer {access_token}'},
                 timeout=30
             )
-            logger.info(f"Claims token API response: {response.status_code}")
+            logger.info("Claims token API response: %s", response.status_code)
             
             if response.status_code == 401:
                 logger.error("Access token expired or invalid when fetching claims token")
@@ -253,18 +233,14 @@ class CBCAuthenticator:
                 logger.error(str(data)[:500])
                 return None
             
-            # Cache claims token
-            if self.cache_handler and hasattr(self.cache_handler, 'set'):
-                self.cache_handler.set('cbc_claims_token', self.claims_token)
-            elif isinstance(self.cache_handler, dict):
-                self.cache_handler['cbc_claims_token'] = self.claims_token
+            self._cache.set('cbc_claims_token', self.claims_token)
             
             logger.info("Successfully fetched claims token")
-            logger.info(f"Claims token (truncated): {self.claims_token[:20]}...")
+            logger.info("Claims token (truncated): %s...", self.claims_token[:20])
             return self.claims_token
             
         except Exception as e:
-            logger.error(f"Failed to get claims token: {e}")
+            logger.error("Failed to get claims token: %s", e)
             return None
     
     def get_authenticated_headers(self) -> Dict[str, str]:
@@ -298,14 +274,8 @@ class CBCAuthenticator:
         self.access_token = None
         self.claims_token = None
         
-        # Clear from cache
-        if self.cache_handler and hasattr(self.cache_handler, 'delete'):
-            self.cache_handler.delete('cbc_refresh_token')
-            self.cache_handler.delete('cbc_access_token')
-            self.cache_handler.delete('cbc_claims_token')
-        elif isinstance(self.cache_handler, dict):
-            self.cache_handler.pop('cbc_refresh_token', None)
-            self.cache_handler.pop('cbc_access_token', None)
-            self.cache_handler.pop('cbc_claims_token', None)
+        self._cache.delete('cbc_refresh_token')
+        self._cache.delete('cbc_access_token')
+        self._cache.delete('cbc_claims_token')
         
         logger.info("Logged out successfully")

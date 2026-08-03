@@ -5,10 +5,9 @@ import time
 from typing import Dict, Any
 
 from app.utils.proxy_config import get_proxy_config
-from app.utils.drm.base import DRMProcessor
 
 
-class SimpleDRMProcessor(DRMProcessor):
+class SimpleDRMProcessor:
     """Offloads DRM-protected downloads to a N_m3u8DL-RE API endpoint."""
 
     def __init__(self, api_url: str = None):
@@ -17,21 +16,6 @@ class SimpleDRMProcessor(DRMProcessor):
             api_url = proxy_config.get_proxy('nm3u8_processor')
         self.api_url = api_url.rstrip('/')
         self.session = requests.Session()
-
-    def process(self, url: str, **kwargs) -> Dict[str, Any]:
-        """Start processing a DRM-protected URL via the remote API.
-
-        Keyword args mirror :meth:`process_drm_content`.
-        """
-        return self.process_drm_content(
-            url=url,
-            save_name=kwargs.get('save_name', 'output'),
-            key=kwargs.get('key'),
-            keys=kwargs.get('keys'),
-            quality=kwargs.get('quality', 'best'),
-            format=kwargs.get('format', 'mp4'),
-            timeout=kwargs.get('timeout', 1800),
-        )
 
     def process_drm_content(self,
                             url: str,
