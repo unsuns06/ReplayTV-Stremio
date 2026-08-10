@@ -23,6 +23,7 @@ REQUEST_HEADERS = {
     "Accept": "application/dash+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 REQUEST_TIMEOUT = 30
+WIDEVINE_SYSTEM_ID = "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"
 
 
 @dataclass
@@ -106,10 +107,16 @@ def iter_pssh(root: ET.Element) -> Iterable[PsshRecord]:
 def extract_first_pssh(
     url: str, include_mpd: bool = False
 ) -> Union[Optional[PsshRecord], Tuple[Optional[PsshRecord], Optional[bytes]]]:
+    """Return the Widevine PSSH if the manifest has one, else the first PSSH.
+
+    6play's live manifests list the PlayReady box first, and a Widevine CDM
+    rejects it with a 400 — so system ID decides, not document order.
+    """
     xml_bytes = fetch_mpd(url)
     root = parse_mpd(xml_bytes)
-    for record in iter_pssh(root):
-        if include_mpd:
-            return record, xml_bytes
-        return record
-    return (None, xml_bytes) if include_mpd else None
+    records = list(iter_pssh(root))
+    record = next(
+        (r for r in records if (r.system_id or "").lower() == WIDEVINE_SYSTEM_ID),
+        records[0] if records else None,
+    )
+    return (record, xml_bytes) if include_mpd else record

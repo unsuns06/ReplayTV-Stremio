@@ -14,6 +14,7 @@ import logging
 from typing import Dict, List, Optional
 from urllib.parse import quote
 
+from app.utils.cache import cache
 from app.utils.credentials import load_credentials
 from app.utils.user_agent import get_random_windows_ua
 
@@ -22,17 +23,104 @@ logger = logging.getLogger(__name__)
 # Sentinel URL Stremio shows while background DRM processing runs
 PROCESSING_PLACEHOLDER_URL = "https://stream-not-available"
 
+TORBOX_API = "https://api.torbox.app/v1/api"
+TORBOX_LIST_CACHE_KEY = "torbox:webdl:mylist"
+
+
+def _match_webdl(items: List[Dict], filename: str):
+    """Find the finished web download holding ``filename``. Returns (web_id, file_id) or None."""
+    stem = filename.rsplit(".", 1)[0]
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if not (item.get("download_finished") or item.get("download_present")):
+            continue
+        files = [f for f in (item.get("files") or []) if isinstance(f, dict)]
+        for f in files:
+            name = f.get("short_name") or f.get("name") or ""
+            if name.endswith(filename):
+                return item.get("id"), f.get("id", 0)
+        if item.get("name") in (filename, stem) or filename in (item.get("original_url") or ""):
+            return item.get("id"), (files[0].get("id", 0) if files else 0)
+    return None
+
 
 class DRMProcessedFileMixin:
     """Pre-processed-file lookup and background DRM processing for DRM providers."""
 
+    @staticmethod
+    def _torbox_config() -> Dict:
+        tb = load_credentials().get("torbox")
+        return tb if isinstance(tb, dict) else {}
+
     def _check_torbox(self, processed_filename: str) -> Optional[List[Dict]]:
+        """Look for a pre-processed file on TorBox: API first, then WebDAV.
+
+        The WebDAV mount only refreshes every 15 minutes, so a freshly uploaded file is
+        invisible there; the API reads live. WebDAV stays as the fallback because it keeps
+        serving from that cache when the API is down.
+        """
+        return self._check_torbox_api(processed_filename) or self._check_torbox_webdav(processed_filename)
+
+    def _torbox_webdl_list(self, api_key: str) -> List[Dict]:
+        """Return the TorBox web-download list, cached 60s. Empty list on any failure."""
+        cached = cache.get(TORBOX_LIST_CACHE_KEY)
+        if cached is not None:
+            return cached
+        try:
+            resp = self.session.get(
+                f"{TORBOX_API}/webdl/mylist",
+                headers={"Authorization": f"Bearer {api_key}"},
+                # bypass_cache is the fast path: ~1.5s, versus a 60s Cloudflare 504 without it
+                params={"bypass_cache": "true"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            items = resp.json().get("data") or []
+            if not isinstance(items, list):
+                items = []
+        except Exception as exc:
+            logger.error("❌ %s TorBox API list error: %s", self.log_prefix, exc)
+            items = []
+        cache.set(TORBOX_LIST_CACHE_KEY, items, ttl=60)
+        return items
+
+    def _check_torbox_api(self, processed_filename: str) -> Optional[List[Dict]]:
+        """Find the file in the live TorBox web-download list and resolve a direct CDN link."""
+        tb = self._torbox_config()
+        api_key = tb.get("tb_api_key") or tb.get("tb_webdav_password")
+        if not api_key:
+            return None
+
+        match = _match_webdl(self._torbox_webdl_list(api_key), processed_filename)
+        if not match:
+            return None
+        web_id, file_id = match
+
+        try:
+            resp = self.session.get(
+                f"{TORBOX_API}/webdl/requestdl",
+                params={"token": api_key, "web_id": web_id, "file_id": file_id},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            url = resp.json().get("data")
+        except Exception as exc:
+            logger.error("❌ %s TorBox requestdl error: %s", self.log_prefix, exc)
+            return None
+        if not url or not isinstance(url, str):
+            return None
+
+        logger.debug("✅ %s File '%s' found via TorBox API.", self.log_prefix, processed_filename)
+        return [{"url": url, "manifest_type": "video", "title": "✅ [TorBox] DRM-Free Video", "filename": processed_filename}]
+
+    def _check_torbox_webdav(self, processed_filename: str) -> Optional[List[Dict]]:
         """Check the TorBox WebDAV for a pre-processed file. Returns stream list or None.
 
         TorBox stores each download in a folder named after the file, so the path is
         ``{tb_webdav_url}/{filename}/{filename}``.
         """
-        tb = load_credentials().get("torbox") or {}
+        tb = self._torbox_config()
         base = tb.get("tb_webdav_url")
         user = tb.get("tb_webdav_username")
         password = tb.get("tb_webdav_password")

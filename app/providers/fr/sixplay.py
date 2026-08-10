@@ -9,13 +9,23 @@ from app.utils.encoding import normalize_key_id, normalize_decryption_key
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.programs_loader import get_programs_for_provider
 from app.utils.auth_cache import load_auth_state, store_auth_state
-from app.providers.base_provider import BaseProvider, safe_provider_call
+from app.utils.base_url import get_logo_url
+from app.utils.cache import cache
+from app.utils.cache_keys import CacheKeys, CacheTTL
+from app.providers.base_provider import BaseProvider, LiveProviderMixin, safe_provider_call
 from app.providers.drm_mixin import DRMProcessedFileMixin
 
 
 logger = logging.getLogger(__name__)
 
-class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
+# DRMtoday only issues licenses to this UA — same value for replay and live.
+DRM_UA = ("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36")
+DRM_LICENSE_URL = "https://lic.drmtoday.com/license-proxy-widevine/cenc/"
+UPFRONT_TOKEN_BASE = "https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web"
+
+
+class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
     # Class attributes for BaseProvider
     provider_name = "6play"
     base_url = "https://www.6play.fr"
@@ -26,10 +36,18 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
     id_prefix = "cutam:fr:6play"
     episode_marker = "episode:"
     catalog_id = "fr-6play-replay"
-    supports_live = False
     default_channel = "m6"
 
-    
+    # Live channels: (slug, display name, 6play live key, description).
+    # The live key is the slug upper-cased except for the two the API renames.
+    _LIVE_CHANNELS = (
+        ("m6", "M6", "M6", "Chaîne généraliste du groupe M6"),
+        ("w9", "W9", "W9", "Chaîne de divertissement du groupe M6"),
+        ("6ter", "6ter", "6T", "Chaîne familiale du groupe M6"),
+        ("gulli", "Gulli", "gulli", "Chaîne jeunesse du groupe M6"),
+    )
+
+
     def __init__(self, request=None):
         # Initialize base class (handles credentials, session, mediaflow, proxy_config)
         super().__init__(request)
@@ -184,6 +202,18 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
 
     def _fetch_drm_token(self, episode_id: str) -> Optional[str]:
         """Fetch the per-episode DRM upfront token from 6cloud."""
+        return self._fetch_upfront_token(
+            f"services/m6replay/users/{self.account_id}/videos/{episode_id}/upfront-token"
+        )
+
+    def _fetch_live_drm_token(self, live_key: str) -> Optional[str]:
+        """Fetch the per-channel live DRM upfront token from 6cloud."""
+        return self._fetch_upfront_token(
+            f"services/6play/users/{self.account_id}/live/dashcenc_{live_key}/upfront-token"
+        )
+
+    def _fetch_upfront_token(self, path: str) -> Optional[str]:
+        """Fetch a DRM upfront token from 6cloud (``path`` is appended to the API base)."""
         if not self.account_id or not self.login_token:
             return None
         try:
@@ -192,11 +222,7 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
                 'X-Client-Release': '5.103.3',
                 'Authorization': f'Bearer {self.login_token}',
             })
-            url = (
-                f"https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web/"
-                f"services/m6replay/users/{self.account_id}/videos/{episode_id}/upfront-token"
-            )
-            response = self.api_client.raw_request('GET', url, headers=headers)
+            response = self.api_client.raw_request('GET', f"{UPFRONT_TOKEN_BASE}/{path}", headers=headers)
             if response is not None and response.status_code == 200:
                 token = response.json()["token"]
                 logger.debug("✅ [SixPlay] DRM token obtained")
@@ -212,16 +238,15 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
 
     def _build_drm_license_info(self, drm_token: str) -> Dict:
         """Build the licenseUrl / licenseHeaders dict for DRM-protected streams."""
-        ua = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36"
         license_url = (
-            f"https://lic.drmtoday.com/license-proxy-widevine/cenc/"
-            f"|Content-Type=&User-Agent={ua}"
+            f"{DRM_LICENSE_URL}"
+            f"|Content-Type=&User-Agent={DRM_UA}"
             f"&Host=lic.drmtoday.com&x-dt-auth-token={drm_token}"
             f"|R{{SSM}}|JBlicense"
         )
         return {
             "licenseUrl": license_url,
-            "licenseHeaders": {"User-Agent": ua},
+            "licenseHeaders": {"User-Agent": DRM_UA},
             "drm_token": drm_token,
             "drm_protected": True,
         }
@@ -253,11 +278,14 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
         """Try to extract and normalize a Widevine decryption key. Returns normalized key or None."""
         if not pssh_record or not drm_token:
             return None
-        raw_key = self._extract_widevine_key(pssh_record.base64_text, drm_token)
+        raw_key = self._extract_widevine_key(pssh_record.base64_text, drm_token, key_id_hex)
         if not raw_key:
             logger.error("[SixPlay] CDRM did not return a Widevine key")
             return None
-        normalized = normalize_decryption_key(raw_key, key_id_hex)
+        # Normalize against the KID actually returned, not the requested one: on a
+        # mismatch normalize_decryption_key falls back to a bare 32-hex search and
+        # would hand back the KID itself as if it were the key.
+        normalized = normalize_decryption_key(raw_key, raw_key.split(':', 1)[0])
         if not normalized:
             logger.error("[SixPlay] Unable to normalize Widevine key")
         return normalized
@@ -280,6 +308,135 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
         logger.warning("[SixPlay] No DRM token — returning basic MPD stream")
         return [stream]
 
+    # ------------------------------------------------------------------
+    # Live channels
+    # ------------------------------------------------------------------
+
+    def get_live_channels(self) -> List[Dict]:
+        """Get list of live TV channels from 6play."""
+        channels = []
+        for slug, name, _live_key, desc in self._LIVE_CHANNELS:
+            logo = get_logo_url("fr", slug, self.request)
+            channels.append({
+                "id": f"cutam:fr:6play:{slug}",
+                "type": "channel",
+                "name": name,
+                "poster": logo,
+                "logo": logo,
+                "description": desc,
+            })
+        return channels
+
+    @safe_provider_call(default=None)
+    def _fetch_live_entry(self, live_key: str) -> Optional[Dict]:
+        """Return the current live diffusion entry for a channel, or None."""
+        headers = self._merge_ip_headers({
+            'User-Agent': get_random_windows_ua(),
+            'x-customer-name': 'm6web',
+        })
+        params = {'channel': live_key, 'with': 'service_display_images,nextdiffusion,extra_data'}
+        response = self.api_client.raw_request('GET', self.live_url, headers=headers, params=params)
+        if response is None or response.status_code != 200:
+            status = response.status_code if response is not None else "no response"
+            logger.error("❌ [SixPlay] Live API error %s for %s", status, live_key)
+            return None
+        entries = response.json().get(live_key) or []
+        if not entries:
+            logger.error("❌ [SixPlay] No live entry for channel %s", live_key)
+            return None
+        return entries[0]
+
+    def get_channel_stream_url(self, channel_id: str) -> Optional[List[Dict]]:
+        """Get the live stream for a 6play channel (DASH+Widevine via MediaFlow)."""
+        slug = self._extract_slug(channel_id)
+        channel = next((c for c in self._LIVE_CHANNELS if c[0] == slug), None)
+        if not channel:
+            logger.error("❌ [SixPlay] Unknown live channel: %s", slug)
+            return None
+        _slug, name, live_key, _desc = channel
+
+        try:
+            if not self._authenticated and not self._authenticate():
+                logger.error("❌ [SixPlay] 6play authentication failed")
+                return None
+            if not (self.account_id and self.login_token):
+                logger.error("❌ [SixPlay] Live streams need 6play credentials (no account_id/login_token)")
+                return None
+
+            entry = self._fetch_live_entry(live_key)
+            assets = ((entry or {}).get('live') or {}).get('assets')
+            if not assets:
+                logger.error("❌ [SixPlay] No live assets for %s", live_key)
+                return None
+
+            url, fmt = self._select_best_asset(assets, is_live=True)
+            if not url:
+                logger.error("❌ [SixPlay] No usable live asset for %s", live_key)
+                return None
+
+            return [self._build_live_stream_info(url, fmt, live_key, entry, name)]
+
+        except Exception as e:
+            logger.error("❌ [SixPlay] Error getting live stream for %s: %s", slug, e)
+            return None
+
+    def _live_decryption_key(self, pssh_record, key_id_hex: str, drm_token: str) -> Optional[str]:
+        """Widevine content key for the current live period, cached by KID.
+
+        ponytail: the cache is keyed on the MPD's ``default_KID``, so a key
+        rotation publishes a new KID, misses the cache and re-licenses by
+        itself — no rotation schedule to track. If 6play ever ships several
+        KIDs in one manifest, switch to a per-Period key map here.
+        """
+        if not (pssh_record and key_id_hex and drm_token):
+            return None
+        cache_key = CacheKeys.provider_resource(self.provider_name, f"live_key:{key_id_hex}")
+        cached = cache.get(cache_key)
+        if cached:
+            logger.debug("✅ [SixPlay] Live key served from cache (KID %s)", key_id_hex)
+            return cached
+        key = self._acquire_decryption_key(pssh_record, key_id_hex, drm_token)
+        if key:
+            cache.set(cache_key, key, ttl=CacheTTL.STREAM)
+        return key
+
+    def _build_live_stream_info(self, url: str, fmt: str, live_key: str,
+                                entry: Dict, channel_name: str) -> Dict:
+        """Assemble the live stream dict, adding DRM license info for DASH assets."""
+        license_url = license_headers = None
+        key_params = None
+        if fmt == 'mpd':
+            drm_token = self._fetch_live_drm_token(live_key)
+            if drm_token:
+                license_url = f"{DRM_LICENSE_URL}?specConform=true"
+                license_headers = {"x-dt-auth-token": drm_token, "User-Agent": DRM_UA}
+                pssh_record, key_id_hex, _ = self._extract_mpd_drm_info(url)
+                key = self._live_decryption_key(pssh_record, key_id_hex, drm_token)
+                if key:
+                    # MediaFlow decrypts the CENC segments itself with this pair.
+                    key_params = {"key_id": key_id_hex, "key": key}
+                    logger.debug("✅ [SixPlay] Live key extracted: %s:%s", key_id_hex, key)
+                else:
+                    logger.warning("⚠️ [SixPlay] No live Widevine key — falling back to license URL")
+            else:
+                logger.warning("⚠️ [SixPlay] No live DRM token — stream will likely not play")
+
+        proxied = self._build_mediaflow_proxied_url(
+            url, fmt, license_url=license_url, license_headers=license_headers,
+            extra_params=key_params,
+        )
+        program = (entry or {}).get('title')
+        stream = {
+            "url": proxied or url,
+            "manifest_type": fmt,
+            "title": f"[{fmt.upper()}] {program or channel_name}",
+            "headers": self._build_stream_headers(),
+        }
+        if license_url:
+            stream["licenseUrl"] = license_url
+            stream["licenseHeaders"] = license_headers
+        return stream
+
     def _select_best_asset(self, assets: List[Dict], is_live: bool = False):
         """Pick the best (url, format) from asset list. Returns (url, 'hls'|'mpd') or (None, None)."""
         type_order = ('http_h264', 'usp_dashcenc_h264', 'dashcenc') if is_live else \
@@ -287,7 +444,7 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
         quality_rank = {'hd': 1, 'sd': 0}
         for atype in type_order:
             matches = [
-                (quality_rank.get(a.get('video_quality', 'sd').lower(), 0), a)
+                (quality_rank.get((a.get('video_quality') or 'sd').lower(), 0), a)
                 for a in assets if atype in a.get('type', '')
             ]
             if not matches:
@@ -307,11 +464,14 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
             return url, fmt
         return None, None
 
-    def _extract_widevine_key(self, pssh_value: str, drm_token: str) -> Optional[str]:
+    def _extract_widevine_key(self, pssh_value: str, drm_token: str,
+                              key_id_hex: Optional[str] = None) -> Optional[str]:
         """Extract Widevine decryption key using local pywidevine CDM.
 
         Sends the license challenge directly to lic.drmtoday.com with the
         supplied DRM token — no external key-extraction API required.
+        When *key_id_hex* is given, the matching key is preferred over the
+        first one (a license can carry several KIDs).
         Returns a ``kid:key_hex`` string on success, or None on failure.
         """
         try:
@@ -354,9 +514,9 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
             challenge = cdm.get_license_challenge(session_id, pssh)
             logger.debug("📋 [SixPlay] License challenge generated: %d bytes", len(challenge))
 
-            license_url = "https://lic.drmtoday.com/license-proxy-widevine/cenc/?specConform=true"
+            license_url = f"{DRM_LICENSE_URL}?specConform=true"
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36",
+                "User-Agent": DRM_UA,
                 "x-dt-auth-token": drm_token,
                 "Content-Type": "application/octet-stream",
             }
@@ -370,15 +530,22 @@ class SixPlayProvider(DRMProcessedFileMixin, BaseProvider):
 
             cdm.parse_license(session_id, response.content)
 
-            for key in cdm.get_keys(session_id):
-                if hasattr(key, 'type') and key.type == 'CONTENT':
-                    kid_hex = str(key.kid).replace('-', '')
-                    key_hex = key.key.hex()
-                    logger.debug("✅ [SixPlay] Widevine key extracted: %s:%s", kid_hex, key_hex)
-                    return f"{kid_hex}:{key_hex}"
+            content_keys = {
+                str(k.kid).replace('-', '').lower(): k.key.hex()
+                for k in cdm.get_keys(session_id)
+                if getattr(k, 'type', None) == 'CONTENT'
+            }
+            if not content_keys:
+                logger.error("❌ [SixPlay] No CONTENT keys found in license response")
+                return None
 
-            logger.error("❌ [SixPlay] No CONTENT keys found in license response")
-            return None
+            wanted = (key_id_hex or '').lower()
+            if wanted and wanted not in content_keys:
+                logger.warning("⚠️ [SixPlay] KID %s absent from license (%d key(s)) — using first",
+                               wanted, len(content_keys))
+            kid_hex = wanted if wanted in content_keys else next(iter(content_keys))
+            logger.debug("✅ [SixPlay] Widevine key extracted: %s:%s", kid_hex, content_keys[kid_hex])
+            return f"{kid_hex}:{content_keys[kid_hex]}"
 
         except Exception as e:
             logger.error("❌ [SixPlay] Widevine key extraction failed: %s", e)

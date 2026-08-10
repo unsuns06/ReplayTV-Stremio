@@ -216,8 +216,13 @@ class BaseProvider(ABC):
         self, video_url: str, manifest_type: str,
         extra_headers: Optional[Dict] = None,
         license_url: str = None, license_headers: Dict = None,
+        extra_params: Optional[Dict] = None,
     ) -> Optional[str]:
-        """Build a MediaFlow-proxied URL. Returns None if MediaFlow is not configured."""
+        """Build a MediaFlow-proxied URL. Returns None if MediaFlow is not configured.
+
+        ``extra_params`` goes straight into the query string — used for the
+        ``key_id``/``key`` pair MediaFlow needs to decrypt Widevine DASH.
+        """
         if not self.mediaflow_url or not self.mediaflow_password:
             return None
         endpoint = '/proxy/hls/manifest.m3u8' if manifest_type == 'hls' else '/proxy/mpd/manifest.m3u8'
@@ -228,6 +233,7 @@ class BaseProvider(ABC):
             base_url=self.mediaflow_url, password=self.mediaflow_password,
             destination_url=video_url, endpoint=endpoint, request_headers=headers,
             license_url=license_url, license_headers=license_headers,
+            extra_params=extra_params,
         )
 
     def _build_stream_headers(self, auth_token: str = None, **extra) -> Dict:

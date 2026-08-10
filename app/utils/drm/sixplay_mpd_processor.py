@@ -55,8 +55,8 @@ class SixPlayMPDProcessor:
             if elem.tag.endswith('}ContentProtection') or elem.tag == 'ContentProtection'
         ]
         for cp in content_protections:
-            scheme_id = cp.get('schemeIdUri', '')
-            if 'mp4protection' in scheme_id:
+            scheme_id = cp.get('schemeIdUri', '').upper()
+            if 'MP4PROTECTION' in scheme_id:
                 for child in list(cp):
                     cp.remove(child)
             elif 'EDEF8BA9-79D6-4ACE-A3C8-27DCD51D21ED' in scheme_id:
@@ -102,8 +102,9 @@ def extract_drm_info_from_mpd(mpd_content: str) -> Dict:
         for elem in root.iter():
             if not (elem.tag.endswith('}ContentProtection') or elem.tag == 'ContentProtection'):
                 continue
-            scheme_id = elem.get('schemeIdUri', '')
-            if 'mp4protection' in scheme_id:
+            # Scheme UUIDs appear lower-cased in live manifests, upper-cased in replay ones.
+            scheme_id = elem.get('schemeIdUri', '').upper()
+            if 'MP4PROTECTION' in scheme_id:
                 default_kid = elem.get('{urn:mpeg:cenc:2013}default_KID')
                 if default_kid:
                     drm_info['key_id'] = default_kid

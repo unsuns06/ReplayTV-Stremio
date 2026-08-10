@@ -68,33 +68,101 @@ class TestCheckProcessedFileReturnType:
             assert result[0].get("url")
             assert result[0].get("manifest_type") == "video"
 
-    def test_torbox_checked_before_rd_and_processor(self):
-        provider = self._make_provider()
+    _TORBOX_CREDS = {
+        "realdebridfolder": "http://rdfolder/",
+        "torbox": {
+            "tb_webdav_url": "https://webdav.torbox.app/",
+            "tb_webdav_username": "user",
+            "tb_webdav_password": "p@ss",
+        },
+    }
 
+    def _make_torbox_provider(self, mylist_data):
+        """Provider whose session.get answers the TorBox mylist/requestdl calls."""
+        from app.utils.cache import cache
+        cache.clear()  # the webdl list is cached module-wide for 60s
+
+        provider = self._make_provider()
         provider.proxy_config = MagicMock()
         provider.proxy_config.get_proxy.return_value = "http://processor"
         provider.session = MagicMock()
         provider.session.head.return_value = MagicMock(status_code=200)
 
-        creds = {
-            "realdebridfolder": "http://rdfolder/",
-            "torbox": {
-                "tb_webdav_url": "https://webdav.torbox.app/",
-                "tb_webdav_username": "user",
-                "tb_webdav_password": "p@ss",
-            },
+        def fake_get(url, **kwargs):
+            resp = MagicMock(status_code=200)
+            if "webdl/mylist" in url:
+                resp.json.return_value = {"data": mylist_data}
+            elif "webdl/requestdl" in url:
+                resp.json.return_value = {"data": "https://store-1.tb-cdn.io/dld/abc?token=p%40ss"}
+            else:  # the Real-Debrid folder listing
+                resp.text = ""
+            return resp
+
+        provider.session.get.side_effect = fake_get
+        return provider
+
+    def test_torbox_api_hit_returns_direct_link(self):
+        # Shape taken from a real /webdl/mylist response
+        item = {
+            "id": 1489835,
+            "name": "ep1.mp4",
+            "download_finished": True,
+            "download_present": True,
+            "original_url": "https://drive.google.com/file/d/xyz/view",
+            "files": [{"id": 0, "short_name": "ep1.mp4", "name": "ep1.mp4/ep1.mp4"}],
         }
-        with patch("app.providers.drm_mixin.load_credentials", return_value=creds):
+        provider = self._make_torbox_provider([item])
+
+        with patch("app.providers.drm_mixin.load_credentials", return_value=self._TORBOX_CREDS):
+            result = provider._check_processed_file("ep1")
+
+        assert _is_valid_stream_return(result)
+        assert result[0]["url"] == "https://store-1.tb-cdn.io/dld/abc?token=p%40ss"
+        assert "[TorBox]" in result[0]["title"]
+        # API answered, so the 15-min-stale WebDAV was never consulted
+        provider.session.head.assert_not_called()
+        requested = [c for c in provider.session.get.call_args_list if "requestdl" in c[0][0]]
+        assert requested[0][1]["params"] == {"token": "p@ss", "web_id": 1489835, "file_id": 0}
+
+    def test_torbox_api_skips_unfinished_download(self):
+        item = {"id": 1, "name": "ep1.mp4", "download_finished": False, "download_present": False,
+                "files": [{"id": 0, "short_name": "ep1.mp4"}]}
+        provider = self._make_torbox_provider([item])
+
+        with patch("app.providers.drm_mixin.load_credentials", return_value=self._TORBOX_CREDS):
+            result = provider._check_torbox_api("ep1.mp4")
+
+        assert result is None
+
+    def test_torbox_falls_back_to_webdav_when_api_empty(self):
+        provider = self._make_torbox_provider([])
+
+        with patch("app.providers.drm_mixin.load_credentials", return_value=self._TORBOX_CREDS):
             result = provider._check_processed_file("ep1")
 
         assert _is_valid_stream_return(result)
         assert result[0]["url"] == "https://user:p%40ss@webdav.torbox.app/ep1.mp4/ep1.mp4"
         assert "[TorBox]" in result[0]["title"]
-        # Probed the nested {name}/{name} path with basic auth, and stopped there
         args, kwargs = provider.session.head.call_args
         assert args[0] == "https://webdav.torbox.app/ep1.mp4/ep1.mp4"
         assert kwargs["auth"] == ("user", "p@ss")
-        provider.session.get.assert_not_called()
+
+    def test_torbox_api_error_falls_through(self):
+        """A dead TorBox API must not break the lookup chain."""
+        from app.utils.cache import cache
+        cache.clear()
+
+        provider = self._make_provider()
+        provider.proxy_config = MagicMock()
+        provider.proxy_config.get_proxy.return_value = "http://processor"
+        provider.session = MagicMock()
+        provider.session.get.side_effect = Exception("503 Service Unavailable")
+        provider.session.head.return_value = MagicMock(status_code=404)  # not on WebDAV either
+
+        with patch("app.providers.drm_mixin.load_credentials", return_value=self._TORBOX_CREDS):
+            result = provider._check_processed_file("ep1")
+
+        assert result is None  # RD listing also raised; processor HEAD 404
 
     def test_returns_list_when_processor_url_hit(self):
         provider = self._make_provider()
