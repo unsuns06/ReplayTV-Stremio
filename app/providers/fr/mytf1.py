@@ -592,10 +592,15 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
                             decoration = program['decoration']
                             poster = decoration.get('image', {}).get('sources', [{}])[0].get('url', '') or None
                             fanart = decoration.get('background', {}).get('sources', [{}])[0].get('url', '') or None
+                            # No logo key: TF1's GraphQL decoration carries a
+                            # portrait poster and a background, never a logo, and
+                            # publishing the poster as "logo" is what made Stremio
+                            # render the poster in logo slots. Omitting it lets
+                            # _build_show_metadata keep the programs.json logo and
+                            # fall back to the TF1 channel logo on its own.
                             return {
                                 "poster": poster,
                                 "fanart": fanart,
-                                "logo": poster or get_logo_url("fr", "tf1", self.request),
                             }
         return {}
     

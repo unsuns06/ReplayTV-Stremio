@@ -1,0 +1,48 @@
+Show metadata API endpoints
+===========================
+One entry per show in programs.json: the URL that provider's
+_get_show_api_metadata() requests to enrich the show's catalogue entry.
+
+[6play]  (6 shows)
+  capital — Capital
+    https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/860?with=links,subcats,rights
+  66-minutes — 66 minutes
+    https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/825?with=links,subcats,rights
+    !! same endpoint as 66-minutes-le-doc — lookup collision, verify
+  66-minutes-grand-format — 66 minutes Grand Format
+    https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/28004?with=links,subcats,rights
+  zone-interdite — Zone Interdite
+    https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/845?with=links,subcats,rights
+  enquete-exclusive — Enquête Exclusive
+    https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/831?with=links,subcats,rights
+  66-minutes-le-doc — 66 minutes le Doc
+    https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/825?with=links,subcats,rights
+    !! same endpoint as 66-minutes — lookup collision, verify
+
+[francetv]  (3 shows)
+  envoye-special — Envoyé spécial
+    http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_envoye-special?platform=apps
+  cash-investigation — Cash Investigation
+    http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_cash-investigation?platform=apps
+  complement-enquete — Complément d'enquête
+    http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_complement-d-enquete?platform=apps
+
+[mytf1]  (2 shows)
+  sept-a-huit — Sept à huit
+    https://www.tf1.fr/graphql/web?id=483ce0f&variables=%7B%22context%22%3A%7B%22persona%22%3A%22PERSONA_2%22%2C%22application%22%3A%22WEB%22%2C%22device%22%3A%22DESKTOP%22%2C%22os%22%3A%22WINDOWS%22%7D%2C%22filter%22%3A%7B%22channel%22%3A%22lci%22%7D%2C%22offset%22%3A0%2C%22limit%22%3A500%7D
+  quotidien — Quotidien
+    https://www.tf1.fr/graphql/web?id=483ce0f&variables=%7B%22context%22%3A%7B%22persona%22%3A%22PERSONA_2%22%2C%22application%22%3A%22WEB%22%2C%22device%22%3A%22DESKTOP%22%2C%22os%22%3A%22WINDOWS%22%7D%2C%22filter%22%3A%7B%22channel%22%3A%22tmc%22%7D%2C%22offset%22%3A0%2C%22limit%22%3A500%7D
+
+[cbc]  (1 shows)
+  dragons-den — Dragon's Den
+    https://services.radio-canada.ca/ott/catalog/v2/gem/show/dragons-den/s01e01?device=web&tier=Member
+
+Notes
+-----
+6play    No show carries an api_id in programs.json, so every program ID above
+         was resolved live through the programs API (name match, then Algolia).
+mytf1    TF1 has no per-show metadata endpoint: the show is matched by name
+         inside this channel-filtered programs list. If it is absent, the
+         provider retries the same URL without the channel filter.
+cbc      No separate metadata call — this show endpoint returns metadata and
+         the full season lineup together.
