@@ -9,21 +9,24 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.providers.fr.sixplay import SixPlayProvider, IMAGE_URL
 
-LOGO_KEY, COVER_KEY, JUMBO_KEY = "4666282", "4865287", "4348895"
+# _IMAGE_ROLES prefers the plain "logo" role, with "fullColorLogo" as the fallback.
+LOGO_KEY, FULL_COLOR_LOGO_KEY = "4865292", "4666282"
+COVER_KEY, JUMBO_KEY = "4865287", "4348895"
 
 # Trimmed shape of a real /programs/{id} payload — role + external_key only.
 PROGRAM = {"images": [
     {"role": "carousel", "external_key": "941176"},
     {"role": "backdropWide", "external_key": "4666280"},
-    {"role": "fullColorLogo", "external_key": LOGO_KEY},
+    {"role": "fullColorLogo", "external_key": FULL_COLOR_LOGO_KEY},
     {"role": "singleColorLogo", "external_key": "4666283"},
     {"role": "jumbotron", "external_key": JUMBO_KEY},
     {"role": "cover", "external_key": COVER_KEY},
     {"role": "portrait", "external_key": "4865289"},
-    {"role": "logo", "external_key": "4865292"},
+    {"role": "logo", "external_key": LOGO_KEY},
 ]}
 
 URL_LOGO = IMAGE_URL.format(LOGO_KEY)
+URL_FULL_COLOR_LOGO = IMAGE_URL.format(FULL_COLOR_LOGO_KEY)
 URL_COVER = IMAGE_URL.format(COVER_KEY)
 URL_JUMBO = IMAGE_URL.format(JUMBO_KEY)
 
@@ -43,15 +46,14 @@ def test_roles_map_to_artwork_fields(provider):
     assert images["fanart"] == URL_JUMBO
 
 
-def test_full_color_logo_wins_when_both_logo_roles_exist(provider):
-    """'logo' (4865292) also exists in PROGRAM — fullColorLogo takes precedence."""
+def test_plain_logo_role_wins_when_both_logo_roles_exist(provider):
+    """PROGRAM carries both roles — the plain 'logo' is the preferred one."""
     assert provider._images_from_program(PROGRAM, {})["logo"] == URL_LOGO
 
 
-def test_plain_logo_role_used_when_full_color_logo_is_absent(provider):
-    """66 minutes Grand Format publishes no fullColorLogo."""
-    program = {"images": [img for img in PROGRAM["images"] if img["role"] != "fullColorLogo"]}
-    assert provider._images_from_program(program, {})["logo"] == IMAGE_URL.format("4865292")
+def test_full_color_logo_used_when_plain_logo_is_absent(provider):
+    program = {"images": [img for img in PROGRAM["images"] if img["role"] != "logo"]}
+    assert provider._images_from_program(program, {})["logo"] == URL_FULL_COLOR_LOGO
 
 
 def test_logo_omitted_when_neither_logo_role_exists(provider):
@@ -99,6 +101,47 @@ def test_catalogue_entry_uses_the_api_images(provider, monkeypatch):
     assert show["logo"] == URL_LOGO
     assert show["poster"] == URL_COVER
     assert show["background"] == URL_JUMBO
+
+
+def test_series_detail_page_uses_the_show_logo_not_the_channel_logo(provider, monkeypatch):
+    """The /meta route builds from programs.json; without enhancement the logo
+    falls back to /static/logos/fr/m6.png."""
+    monkeypatch.setattr(provider, "shows", {"66-minutes": {"name": "66 minutes"}})
+    monkeypatch.setattr(provider, "_get_show_api_metadata",
+                        lambda sid, info: provider._images_from_program(PROGRAM, info))
+    series_meta = {"name": "66 minutes", "logo": "http://host/static/logos/fr/m6.png",
+                   "poster": "http://host/static/logos/fr/m6.png", "background": ""}
+    enhanced = provider.enhance_series_meta(series_meta, "66-minutes")
+    assert "/static/logos/" not in enhanced["logo"]
+    assert enhanced["logo"] == URL_LOGO
+    assert enhanced["poster"] == URL_COVER
+    assert enhanced["background"] == URL_JUMBO
+
+
+def test_series_detail_page_keeps_programs_json_overrides(provider, monkeypatch):
+    pinned = "https://example.test/pinned-logo.png"
+    monkeypatch.setattr(provider, "shows", {"66-minutes": {"name": "66 minutes", "logo": pinned}})
+    monkeypatch.setattr(provider, "_get_show_api_metadata",
+                        lambda sid, info: provider._images_from_program(PROGRAM, info))
+    enhanced = provider.enhance_series_meta({"logo": pinned}, "66-minutes")
+    assert enhanced["logo"] == pinned
+
+
+def test_series_detail_page_survives_an_unknown_show(provider, monkeypatch):
+    monkeypatch.setattr(provider, "shows", {})
+    monkeypatch.setattr(provider, "_get_show_api_metadata", lambda sid, info: {})
+    assert provider.enhance_series_meta({"logo": "keep"}, "nope")["logo"] == "keep"
+
+
+def test_program_id_lookup_is_cached(provider, monkeypatch):
+    from app.utils.cache import cache
+    calls = []
+    cache.delete("provider:6play:program_id:cache-probe")
+    monkeypatch.setattr(provider, "_resolve_program_id",
+                        lambda sid: (calls.append(sid), "4242")[1])
+    assert provider._find_program_id("cache-probe") == "4242"
+    assert provider._find_program_id("cache-probe") == "4242"
+    assert len(calls) == 1, "second lookup should come from the cache"
 
 
 @pytest.mark.integration

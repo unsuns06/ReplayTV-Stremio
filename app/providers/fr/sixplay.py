@@ -609,6 +609,19 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             return {}
         return self._images_from_program(response.json(), show_info)
 
+    def enhance_series_meta(self, series_meta: Dict, show_id: str) -> Dict:
+        """Fill the series detail page artwork from the 6play API.
+
+        The /meta route builds from programs.json alone, so a show that pins no
+        URL there would fall back to the M6 channel logo — the API images never
+        reached the detail page, only the catalogue.
+        """
+        show_info = self.shows.get(show_id) or {}
+        for field, url in (self._get_show_api_metadata(show_id, show_info) or {}).items():
+            if url:
+                series_meta[field] = url
+        return series_meta
+
     def _images_from_program(self, program_data: Dict, show_info: Dict) -> Dict:
         """Map 6play image roles onto artwork fields, skipping any pinned in programs.json.
 
@@ -633,6 +646,21 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         return images
     
     def _find_program_id(self, show_id: str) -> Optional[str]:
+        """Cached wrapper around :meth:`_resolve_program_id`.
+
+        The lookup pulls the whole first-letter program list (limit=999), and a
+        single detail-page load asks for the ID twice — once for the episodes,
+        once for the artwork. Cache it for the programs TTL.
+        """
+        key = CacheKeys.provider_resource(self.provider_name, f"program_id:{show_id}")
+        program_id = cache.get(key)
+        if program_id is None:
+            program_id = self._resolve_program_id(show_id)
+            if program_id:
+                cache.set(key, program_id, ttl=CacheTTL.PROGRAMS)
+        return program_id
+
+    def _resolve_program_id(self, show_id: str) -> Optional[str]:
         """Find the program ID for a given show using the 6play programs API.
 
         Strategy:
