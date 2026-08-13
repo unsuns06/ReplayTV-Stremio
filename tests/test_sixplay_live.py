@@ -1,7 +1,9 @@
 """Offline checks for the 6play live path (no network)."""
 
-import sys, os
+import os
+import sys
 from urllib.parse import urlparse, parse_qs
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.providers.fr.sixplay import SixPlayProvider

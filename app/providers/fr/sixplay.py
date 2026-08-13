@@ -23,6 +23,8 @@ DRM_UA = ("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 "
           "(KHTML, like Gecko) Chrome/59.0.3041.0 Safari/537.36")
 DRM_LICENSE_URL = "https://lic.drmtoday.com/license-proxy-widevine/cenc/"
 UPFRONT_TOKEN_BASE = "https://drm.6cloud.fr/v1/customers/m6web/platforms/m6group_web"
+# Every 6play image is addressed by its external_key (see URL_IMG in 6play-ref.py).
+IMAGE_URL = "https://images.6play.fr/v1/images/{}/raw"
 
 
 class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
@@ -37,6 +39,17 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
     episode_marker = "episode:"
     catalog_id = "fr-6play-replay"
     default_channel = "m6"
+
+    # Artwork field -> 6play image role. Anything already set in programs.json
+    # takes precedence; the API only fills what is missing.
+    # Roles are tried in order: not every program publishes a fullColorLogo
+    # (66 minutes Grand Format has only the plain "logo").
+    _IMAGE_ROLES = {
+        "logo": ("fullColorLogo", "logo"),
+        "poster": ("cover",),
+        "background": ("jumbotron",),
+        "fanart": ("jumbotron",),
+    }
 
     # Live channels: (slug, display name, 6play live key, description).
     # The live key is the slug upper-cased except for the two the API renames.
@@ -594,18 +607,30 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             status = response.status_code if response is not None else "no response"
             logger.error("❌ [SixPlay] Failed to get program data for %s: %s", show_id, status)
             return {}
-        program_data = response.json()
-        fanart = None
-        for img in program_data.get('images', []):
-            if img.get('external_key') and img.get('role') in ['backdropWide', 'backdropTall', 'banner_31']:
-                fanart = f"https://images.6play.fr/v1/images/{img['external_key']}/raw"
-                break
-        if not fanart:
-            for img in program_data.get('images', []):
-                if img.get('role') in ['cover', 'portrait', 'square'] and img.get('external_key'):
-                    fanart = f"https://images.6play.fr/v1/images/{img['external_key']}/raw"
-                    break
-        return {"fanart": fanart}
+        return self._images_from_program(response.json(), show_info)
+
+    def _images_from_program(self, program_data: Dict, show_info: Dict) -> Dict:
+        """Map 6play image roles onto artwork fields, skipping any pinned in programs.json.
+
+        Only the gaps are filled: a URL written in programs.json always wins, so
+        a show can override any single image without giving up the other two.
+        """
+        keys = {
+            img['role']: img['external_key']
+            for img in (program_data.get('images') or [])
+            if isinstance(img, dict) and img.get('role') and img.get('external_key')
+        }
+        images = {}
+        for field, roles in self._IMAGE_ROLES.items():
+            if show_info.get(field):
+                continue
+            role = next((r for r in roles if r in keys), None)
+            if role:
+                images[field] = IMAGE_URL.format(keys[role])
+            else:
+                logger.debug("⚠️ [SixPlay] Program has no %s image (tried %s)",
+                             field, ", ".join(roles))
+        return images
     
     def _find_program_id(self, show_id: str) -> Optional[str]:
         """Find the program ID for a given show using the 6play programs API.
@@ -786,7 +811,7 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         poster = fanart = None
         for img in video.get('images', []):
             if img.get('role') in ['vignette', 'carousel'] and img.get('external_key'):
-                poster = fanart = f"https://images.6play.fr/v1/images/{img['external_key']}/raw"
+                poster = fanart = IMAGE_URL.format(img['external_key'])
                 break
         broadcast_date, released = None, ""
         if video.get('clips'):
