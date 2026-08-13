@@ -12,19 +12,47 @@ from app.providers.ca.cbc import CBCProvider
 QUERY = "?impolicy=ott&im=Resize=(_Size_)&quality=75"
 API_LOGO = f"https://pp-images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_logo_v06.png{QUERY}"
 API_BACKGROUND = f"https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_background_v12.jpg{QUERY}"
-API_POSTER = f"https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_program_v12.jpg{QUERY}"
+OG_IMAGE = f"https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_program_v12.jpg{QUERY}"
+# Built from API_BACKGROUND + latest season (20) — the target from the spec.
+DERIVED_POSTER = f"https://images.gem.cbc.ca/v1/synps-cbc/season/perso/cbc_dragons_den_s20_ott_poster_v01.jpg{QUERY}"
 
 PAYLOAD = {
     "images": {"logo": {"url": API_LOGO, "size": "Bigger"},
                "background": {"url": API_BACKGROUND, "size": "Normal"}},
-    "htmlMeta": {"og:image": API_POSTER},
+    "htmlMeta": {"og:image": OG_IMAGE},
+    "content": [{"lineups": [{"seasonNumber": 19}, {"seasonNumber": 20}, {"seasonNumber": 10}]}],
 }
+
+
+SHOW_POSTER = f"https://images.gem.cbc.ca/v1/synps-cbc/show/perso/cbc_dragons_den_ott_poster_v01.jpg{QUERY}"
+
+
+class _Response:
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+
+@pytest.fixture(autouse=True)
+def _clear_url_cache():
+    """_first_existing caches per URL in the shared cache — keep tests independent."""
+    from app.utils.cache import cache
+    for url in (DERIVED_POSTER, SHOW_POSTER):
+        cache.delete(f"provider:cbc:url_ok:{url}")
+    yield
+
+
+def _cbc(monkeypatch, payload=None, serves=()):
+    """Provider whose show request returns *payload* and whose CDN serves *serves*."""
+    p = CBCProvider()
+    monkeypatch.setattr(p.api_client, "get", lambda *a, **k: PAYLOAD if payload is None else payload)
+    monkeypatch.setattr(p.session, "head",
+                        lambda url, **k: _Response(200 if url in serves else 404))
+    return p
 
 
 @pytest.fixture
 def provider(monkeypatch):
-    p = CBCProvider()
-    monkeypatch.setattr(p.api_client, "get", lambda *a, **k: PAYLOAD)
+    p = _cbc(monkeypatch, serves=(DERIVED_POSTER,))
     yield p
     p.close()
 
@@ -36,20 +64,94 @@ def test_logo_and_background_come_from_the_api(provider):
     assert extra["fanart"] == API_BACKGROUND
 
 
-def test_poster_comes_from_og_image(provider):
-    """The poster is not under images — it is htmlMeta's og:image."""
-    assert provider._get_show_api_metadata("dragons-den", {})["poster"] == API_POSTER
+def test_season_poster_is_derived_from_background_and_latest_season(provider):
+    """The exact transform from the spec: show->season, background_v12 -> s20_poster_v01."""
+    assert provider._get_show_api_metadata("dragons-den", {})["poster"] == DERIVED_POSTER
 
 
-def test_poster_omitted_when_og_image_is_absent(monkeypatch):
+def test_candidates_match_the_spec_examples(provider):
+    """Both observed shapes, season form first."""
+    assert provider._poster_candidates(PAYLOAD) == [DERIVED_POSTER, SHOW_POSTER]
+
+
+def test_show_form_used_when_the_season_form_is_absent(monkeypatch):
+    """schitts-creek shape: show/perso/<stem>_ott_poster_v01.jpg."""
+    p = _cbc(monkeypatch, serves=(SHOW_POSTER,))
+    assert p._get_show_api_metadata("dragons-den", {})["poster"] == SHOW_POSTER
+    p.close()
+
+
+def test_og_image_used_when_neither_derived_form_exists(monkeypatch):
+    """son-of-a-critch shape: the poster exists only at an unguessable version."""
+    p = _cbc(monkeypatch, serves=())
+    assert p._get_show_api_metadata("dragons-den", {})["poster"] == OG_IMAGE
+    p.close()
+
+
+def test_season_form_wins_over_show_form(monkeypatch):
+    p = _cbc(monkeypatch, serves=(DERIVED_POSTER, SHOW_POSTER))
+    assert p._get_show_api_metadata("dragons-den", {})["poster"] == DERIVED_POSTER
+    p.close()
+
+
+def test_latest_season_is_used_not_the_last_lineup(provider):
+    """Lineups arrive unsorted (19, 20, 10) — the poster must use 20."""
+    assert "_s20_ott_poster_" in provider._get_show_api_metadata("dragons-den", {})["poster"]
+
+
+def test_no_head_requests_when_the_poster_is_pinned(monkeypatch):
     p = CBCProvider()
-    payload = {k: v for k, v in PAYLOAD.items() if k != "htmlMeta"}
-    monkeypatch.setattr(p.api_client, "get", lambda *a, **k: payload)
+    calls = []
+    monkeypatch.setattr(p.api_client, "get", lambda *a, **k: PAYLOAD)
+    monkeypatch.setattr(p.session, "head", lambda url, **k: calls.append(url) or _Response(200))
+    extra = p._get_show_api_metadata("dragons-den", {"poster": "https://example.test/pin.jpg"})
+    assert "poster" not in extra and calls == []
+    p.close()
+
+
+def test_existence_check_is_cached(monkeypatch):
+    from app.utils.cache import cache
+    p, calls = CBCProvider(), []
+    url = "https://images.gem.cbc.ca/v1/synps-cbc/show/perso/probe_ott_poster_v01.jpg"
+    cache.delete(f"provider:cbc:url_ok:{url}")
+    monkeypatch.setattr(p.session, "head", lambda u, **k: calls.append(u) or _Response(200))
+    assert p._first_existing([url]) == url
+    assert p._first_existing([url]) == url
+    assert len(calls) == 1
+    p.close()
+
+
+def test_candidates_empty_without_a_background(provider):
+    assert provider._poster_candidates({"images": {}}) == []
+
+
+def test_season_numbers_are_sorted_and_deduped():
+    data = {"content": [{"lineups": [{"seasonNumber": 3}, {"seasonNumber": 1},
+                                     {"seasonNumber": 3}, {"seasonNumber": None}]}]}
+    assert CBCProvider._season_numbers(data) == [1, 3]
+
+
+@pytest.mark.parametrize("data", [{}, {"content": []}, {"content": [{}]},
+                                  {"content": [{"lineups": []}]}])
+def test_season_numbers_survive_empty_payloads(data):
+    assert CBCProvider._season_numbers(data) == []
+
+
+def test_show_form_still_tried_when_seasons_are_missing(monkeypatch):
+    payload = {k: v for k, v in PAYLOAD.items() if k != "content"}
+    p = _cbc(monkeypatch, payload=payload, serves=(SHOW_POSTER,))
+    assert p._poster_candidates(payload) == [SHOW_POSTER]
+    assert p._get_show_api_metadata("dragons-den", {})["poster"] == SHOW_POSTER
+    p.close()
+
+
+def test_poster_omitted_when_nothing_is_derivable(monkeypatch):
+    p = _cbc(monkeypatch, payload={"images": {"logo": {"url": API_LOGO}}}, serves=())
     assert "poster" not in p._get_show_api_metadata("dragons-den", {})
     p.close()
 
 
-def test_pinned_poster_overrides_og_image(provider):
+def test_pinned_poster_overrides_the_derived_one(provider):
     extra = provider._get_show_api_metadata("dragons-den", {"poster": "https://example.test/pin.jpg"})
     assert "poster" not in extra
 

@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import List, Dict, Optional, Any
 from fastapi import Request
 from app.providers.base_provider import BaseProvider, safe_provider_call
@@ -129,9 +130,70 @@ class CBCProvider(BaseProvider):
             field: [(images.get(k) or {}).get('url') for k in keys]
             for field, keys in self._SHOW_IMAGES.items()
         }
-        # The poster is not under images — it is the page's og:image.
-        candidates['poster'] = [((data or {}).get('htmlMeta') or {}).get('og:image')]
+        # No poster is published: derive it from the background URL, falling back
+        # to the page's og:image. Skipped entirely when programs.json pins one.
+        if not show_info.get('poster'):
+            candidates['poster'] = [
+                self._first_existing(self._poster_candidates(data)),
+                ((data or {}).get('htmlMeta') or {}).get('og:image'),
+            ]
         return self._pick_artwork(candidates, show_info)
+
+    def _poster_candidates(self, data: Dict[str, Any]) -> List[str]:
+        """Poster URLs derived from the background URL, most specific first.
+
+        Two shapes exist, and which one a show uses is not predictable:
+        ``season/perso/<stem>_s<latest>_ott_poster_v01.jpg`` (dragons-den) and
+        ``show/perso/<stem>_ott_poster_v01.jpg`` (schitts-creek). Together they
+        cover 12 of 16 shows sampled; the caller HEAD-checks them in order.
+
+        ponytail: v01 only. The poster's version is independent of the
+        background's (son-of-a-critch is v02, allegiance v03), so chasing it
+        would mean a request per guess — og:image covers those shows instead.
+        """
+        background = ((data.get('images') or {}).get('background') or {}).get('url')
+        if not background:
+            return []
+        seasons = self._season_numbers(data)
+        candidates = []
+        if seasons:
+            candidates.append(re.sub(
+                r'_ott_background_v\d+', f'_s{max(seasons)}_ott_poster_v01',
+                background.replace('/show/', '/season/'),
+            ))
+        candidates.append(re.sub(r'_ott_background_v\d+', '_ott_poster_v01', background))
+        return candidates
+
+    def _first_existing(self, urls: List[str]) -> Optional[str]:
+        """First URL the CDN actually serves, or None. Each result cached."""
+        for url in urls:
+            cache_key = CacheKeys.provider_resource(self.provider_name, f"url_ok:{url}")
+            exists = cache.get(cache_key)
+            if exists is None:
+                try:
+                    exists = self.session.head(url, timeout=10, allow_redirects=True).status_code == 200
+                except Exception as exc:
+                    logger.debug("⚠️ [CBC] Poster check failed for %s: %s", url, exc)
+                    exists = False
+                cache.set(cache_key, exists, ttl=CacheTTL.PROGRAMS)
+            if exists:
+                return url
+        return None
+
+    @staticmethod
+    def _season_numbers(data: Dict[str, Any]) -> List[int]:
+        """Season numbers CBC Gem offers for a show, ascending.
+
+        One show request returns every season in ``lineups`` — which seasons to
+        scrape for episodes and which season the poster belongs to both come
+        from here, so the payload is only parsed one way.
+        """
+        lineups = ((data or {}).get('content') or [{}])[0].get('lineups') or []
+        return sorted({
+            lineup.get('seasonNumber') for lineup in lineups
+            if isinstance(lineup.get('seasonNumber'), int)
+        })
+
 
     def get_episodes(self, series_id: str) -> List[Dict[str, Any]]:
         """Get episodes for any CBC series."""
@@ -196,13 +258,15 @@ class CBCProvider(BaseProvider):
             
             if data and 'content' in data and data['content']:
                 lineups = data['content'][0].get('lineups', [])
-                logger.info("✅ [CBC] API returned %d seasons for %s", len(lineups), show_name)
-                
+                seasons = self._season_numbers(data)
+                logger.info("✅ [CBC] %s: scraping seasons %s", show_name,
+                            ", ".join(str(s) for s in seasons) or "none")
+
                 for lineup in lineups:
                     season_num = lineup.get('seasonNumber')
-                    if not season_num:
+                    if season_num not in seasons:
                         continue
-                    
+
                     items = lineup.get('items', [])
                     season_episode_count = 0
                     
