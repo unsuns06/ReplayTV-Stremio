@@ -43,13 +43,15 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         'topDomain': 'www.tf1.fr', 'playerVersion': '5.19.0',
         'productName': 'mytf1', 'productVersion': '3.22.0',
     }
-    # Artwork field -> GraphQL decoration keys, tried in order. The decoration
-    # does carry a real logo (450x225 PNG); 'thumbnail' is the landscape card.
+    # Artwork field -> GraphQL decoration key. Verified across all 500 programs
+    # in the list: 'image' is always type PORTRAIT (700x933 card), 'background'
+    # always type BACKGROUND, and 'logo' is the 450x225 logo-programme PNG.
+    # There is no LOGO-typed entry — the logo only ever lives under its own key.
     _DECORATION_IMAGES = {
-        "logo": ("logo",),
-        "poster": ("image", "thumbnail"),
-        "background": ("background",),
-        "fanart": ("background",),
+        "logo": "logo",
+        "poster": "image",
+        "background": "background",
+        "fanart": "background",
     }
 
     _GIGYA_CONSENT_IDS = (
@@ -586,7 +588,7 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
 
     @staticmethod
     def _decoration_url(decoration: Dict, key: str) -> Optional[str]:
-        """First (largest) source URL of a decoration image, or None."""
+        """Largest source URL of a decoration image — sources come size-descending."""
         sources = (decoration.get(key) or {}).get('sources') or []
         return (sources[0].get('url') or None) if sources else None
 
@@ -598,17 +600,15 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         }
         channel_filter = show_info['channel'].lower()
         for ch_filter in [channel_filter, None]:
-            programs = self._get_graphql_programs_list(headers, ch_filter)
-            if programs:
-                for program in programs:
-                    program_name = program.get('name', '')
-                    if show_id in program_name.lower() or show_info['name'].lower() in program_name.lower():
-                        if 'decoration' in program:
-                            decoration = program['decoration']
-                            return self._pick_artwork(
-                                {field: [self._decoration_url(decoration, k) for k in keys]
-                                 for field, keys in self._DECORATION_IMAGES.items()},
-                                show_info,
-                            )
+            for program in self._get_graphql_programs_list(headers, ch_filter) or []:
+                program_name = program.get('name', '').lower()
+                if show_id in program_name or show_info['name'].lower() in program_name:
+                    decoration = program.get('decoration')
+                    if decoration:
+                        return self._pick_artwork(
+                            {field: [self._decoration_url(decoration, key)]
+                             for field, key in self._DECORATION_IMAGES.items()},
+                            show_info,
+                        )
         return {}
     

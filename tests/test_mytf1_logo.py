@@ -48,10 +48,18 @@ def test_background_feeds_both_background_and_fanart(monkeypatch):
     assert extra["fanart"] == API_BACKGROUND
 
 
-def test_thumbnail_is_the_poster_fallback(monkeypatch):
+def test_poster_is_the_portrait_image_never_the_landscape_thumbnail(monkeypatch):
+    """decoration.image is PORTRAIT in all 500 programs; thumbnail is the
+    landscape card and is deliberately not used."""
+    extra = _provider(monkeypatch)._get_show_api_metadata("quotidien", SHOW_INFO)
+    assert extra["poster"] == API_POSTER
+    assert API_THUMBNAIL not in extra.values()
+
+
+def test_poster_omitted_when_the_portrait_image_is_absent(monkeypatch):
     decoration = {k: v for k, v in DECORATION.items() if k != "image"}
     extra = _provider(monkeypatch, decoration)._get_show_api_metadata("quotidien", SHOW_INFO)
-    assert extra["poster"] == API_THUMBNAIL
+    assert "poster" not in extra
 
 
 def test_programs_json_pin_overrides_the_api(monkeypatch):
