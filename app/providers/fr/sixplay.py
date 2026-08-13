@@ -45,7 +45,7 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
     # Roles are tried in order: not every program publishes a fullColorLogo
     # (66 minutes Grand Format has only the plain "logo").
     _IMAGE_ROLES = {
-        "logo": ("fullColorLogo", "logo"),
+        "logo": ("logo", "fullColorLogo"),
         "poster": ("cover",),
         "background": ("jumbotron",),
         "fanart": ("jumbotron",),
