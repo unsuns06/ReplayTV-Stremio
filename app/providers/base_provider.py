@@ -312,11 +312,35 @@ class BaseProvider(ABC):
             "note": "Fallback episode - API unavailable",
         }
 
-    def enhance_series_meta(self, series_meta: Dict, show_id: str) -> Dict:
-        """Optionally enrich series metadata with provider-specific API data.
+    def _pick_artwork(self, candidates: Dict[str, List[Optional[str]]], show_info: Dict) -> Dict[str, str]:
+        """Resolve artwork fields from ordered candidate URLs.
 
-        Default is a no-op.  Override in providers that support it.
+        The precedence rule shared by every self-fetching provider lives here:
+        a URL pinned in programs.json wins outright, otherwise the first
+        non-empty candidate is used, and a field with nothing to offer is left
+        out so ``build_show_dict``'s own fallback still applies.  Providers only
+        supply the candidates, since extracting them is API-specific.
         """
+        picked = {}
+        for field, urls in candidates.items():
+            if show_info.get(field):
+                continue
+            url = next((u for u in urls if u), None)
+            if url:
+                picked[field] = url
+        return picked
+
+    def enhance_series_meta(self, series_meta: Dict, show_id: str) -> Dict:
+        """Enrich series metadata with the provider's API artwork.
+
+        The /meta route builds the detail page from programs.json alone, so
+        without this a show that pins no URL falls back to the channel logo.
+        Providers needing a different merge (FranceTV) override this.
+        """
+        show_info = getattr(self, 'shows', {}).get(show_id) or {}
+        for field, url in (self._get_show_api_metadata(show_id, show_info) or {}).items():
+            if url and isinstance(url, str):
+                series_meta[field] = url
         return series_meta
 
     # ------------------------------------------------------------------

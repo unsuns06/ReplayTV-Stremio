@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Optional, Any
 from fastapi import Request
-from app.providers.base_provider import BaseProvider
+from app.providers.base_provider import BaseProvider, safe_provider_call
 from app.auth.cbc_auth import CBCAuthenticator
 from app.utils.cache import cache
 from app.utils.cache_keys import CacheKeys, CacheTTL
@@ -105,8 +105,33 @@ class CBCProvider(BaseProvider):
             logger.error("❌ [CBC] Error during authentication: %s", e)
             self._store_auth_result(False)
     
-    # get_programs comes from the BaseProvider template — CBC has no per-show
-    # API enrichment, so the default programs.json-only flow applies.
+    # get_programs comes from the BaseProvider template; _get_show_api_metadata
+    # below supplies the artwork, all of it read straight out of the show payload.
+    _SHOW_IMAGES = {
+        "logo": ("logo",),
+        "background": ("background",),
+        "fanart": ("background",),
+    }
+
+    @safe_provider_call(default={})
+    def _get_show_api_metadata(self, show_id: str, show_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch the show's artwork from the CBC catalog API."""
+        data = self.api_client.get(
+            f"{self.catalog_api}/show/{show_id}/s01e01?device=web&tier=Member",
+            headers=self._get_headers_with_viewer_ip({
+                'Accept': 'application/json, text/plain, */*',
+                'Referer': 'https://gem.cbc.ca/',
+                'Origin': 'https://gem.cbc.ca',
+            }),
+        )
+        images = (data or {}).get('images') or {}
+        candidates = {
+            field: [(images.get(k) or {}).get('url') for k in keys]
+            for field, keys in self._SHOW_IMAGES.items()
+        }
+        # The poster is not under images — it is the page's og:image.
+        candidates['poster'] = [((data or {}).get('htmlMeta') or {}).get('og:image')]
+        return self._pick_artwork(candidates, show_info)
 
     def get_episodes(self, series_id: str) -> List[Dict[str, Any]]:
         """Get episodes for any CBC series."""

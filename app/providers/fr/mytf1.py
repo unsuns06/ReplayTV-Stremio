@@ -43,6 +43,15 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         'topDomain': 'www.tf1.fr', 'playerVersion': '5.19.0',
         'productName': 'mytf1', 'productVersion': '3.22.0',
     }
+    # Artwork field -> GraphQL decoration keys, tried in order. The decoration
+    # does carry a real logo (450x225 PNG); 'thumbnail' is the landscape card.
+    _DECORATION_IMAGES = {
+        "logo": ("logo",),
+        "poster": ("image", "thumbnail"),
+        "background": ("background",),
+        "fanart": ("background",),
+    }
+
     _GIGYA_CONSENT_IDS = (
         "1", "2", "3", "4", "10001", "10003", "10005", "10007", "10013",
         "10015", "10017", "10019", "10009", "10011", "13002", "13001",
@@ -575,6 +584,12 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             logger.error("❌ [MyTF1] Error getting episode stream: %s", e, exc_info=True)
             return None
 
+    @staticmethod
+    def _decoration_url(decoration: Dict, key: str) -> Optional[str]:
+        """First (largest) source URL of a decoration image, or None."""
+        sources = (decoration.get(key) or {}).get('sources') or []
+        return (sources[0].get('url') or None) if sources else None
+
     @safe_provider_call(default={})
     def _get_show_api_metadata(self, show_id: str, show_info: Dict) -> Dict:
         headers = {
@@ -590,17 +605,10 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
                     if show_id in program_name.lower() or show_info['name'].lower() in program_name.lower():
                         if 'decoration' in program:
                             decoration = program['decoration']
-                            poster = decoration.get('image', {}).get('sources', [{}])[0].get('url', '') or None
-                            fanart = decoration.get('background', {}).get('sources', [{}])[0].get('url', '') or None
-                            # No logo key: TF1's GraphQL decoration carries a
-                            # portrait poster and a background, never a logo, and
-                            # publishing the poster as "logo" is what made Stremio
-                            # render the poster in logo slots. Omitting it lets
-                            # _build_show_metadata keep the programs.json logo and
-                            # fall back to the TF1 channel logo on its own.
-                            return {
-                                "poster": poster,
-                                "fanart": fanart,
-                            }
+                            return self._pick_artwork(
+                                {field: [self._decoration_url(decoration, k) for k in keys]
+                                 for field, keys in self._DECORATION_IMAGES.items()},
+                                show_info,
+                            )
         return {}
     

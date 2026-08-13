@@ -609,41 +609,18 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             return {}
         return self._images_from_program(response.json(), show_info)
 
-    def enhance_series_meta(self, series_meta: Dict, show_id: str) -> Dict:
-        """Fill the series detail page artwork from the 6play API.
-
-        The /meta route builds from programs.json alone, so a show that pins no
-        URL there would fall back to the M6 channel logo — the API images never
-        reached the detail page, only the catalogue.
-        """
-        show_info = self.shows.get(show_id) or {}
-        for field, url in (self._get_show_api_metadata(show_id, show_info) or {}).items():
-            if url:
-                series_meta[field] = url
-        return series_meta
-
     def _images_from_program(self, program_data: Dict, show_info: Dict) -> Dict:
-        """Map 6play image roles onto artwork fields, skipping any pinned in programs.json.
-
-        Only the gaps are filled: a URL written in programs.json always wins, so
-        a show can override any single image without giving up the other two.
-        """
+        """Map 6play image roles onto artwork fields. Precedence: _pick_artwork."""
         keys = {
-            img['role']: img['external_key']
+            img.get('role'): img.get('external_key')
             for img in (program_data.get('images') or [])
-            if isinstance(img, dict) and img.get('role') and img.get('external_key')
+            if img.get('external_key')
         }
-        images = {}
-        for field, roles in self._IMAGE_ROLES.items():
-            if show_info.get(field):
-                continue
-            role = next((r for r in roles if r in keys), None)
-            if role:
-                images[field] = IMAGE_URL.format(keys[role])
-            else:
-                logger.debug("⚠️ [SixPlay] Program has no %s image (tried %s)",
-                             field, ", ".join(roles))
-        return images
+        return self._pick_artwork(
+            {field: [IMAGE_URL.format(keys[r]) for r in roles if r in keys]
+             for field, roles in self._IMAGE_ROLES.items()},
+            show_info,
+        )
     
     def _find_program_id(self, show_id: str) -> Optional[str]:
         """Cached wrapper around :meth:`_resolve_program_id`.

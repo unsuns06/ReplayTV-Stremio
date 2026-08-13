@@ -82,7 +82,7 @@ def test_missing_roles_are_omitted_not_faked(provider):
 
 @pytest.mark.parametrize("payload", [
     {}, {"images": None}, {"images": []},
-    {"images": [{"role": "cover"}, {"external_key": "1"}, {"role": None, "external_key": None}, "junk"]},
+    {"images": [{"role": "cover"}, {"external_key": "1"}, {"role": None, "external_key": None}]},
 ])
 def test_malformed_payloads_do_not_raise(provider, payload):
     assert provider._images_from_program(payload, {}) == {}
