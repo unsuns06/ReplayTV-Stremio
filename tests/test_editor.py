@@ -49,8 +49,18 @@ def test_only_the_local_machine_is_trusted(host, expected):
 
 
 def test_the_env_override_opens_it_up(monkeypatch):
-    monkeypatch.setenv("ENABLE_REMOTE_EDITOR", "1")
+    monkeypatch.setenv("enable_remote_editor", "1")
     assert editor._is_local(_request("203.0.113.7")) is True
+
+
+def test_the_env_override_serves_the_editor_to_a_remote_client(remote, monkeypatch):
+    """How a deployment (Hugging Face, a VPS) turns the editor on: behind a
+    proxy the peer is never loopback, so the flag is the only way in."""
+    monkeypatch.setenv("enable_remote_editor", "1")
+    page = remote.get("/")
+    assert page.status_code == 200
+    assert page.headers["content-type"].startswith("text/html")
+    assert remote.get("/api/programs").status_code == 200
 
 
 def test_homepage_is_the_editor_locally(local):

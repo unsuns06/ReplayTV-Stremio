@@ -25,10 +25,35 @@ Useful endpoints:
 
 | Endpoint | Purpose |
 |---|---|
+| `/` | Shows editor — add or remove entries in `programs.json` (local only) |
 | `/manifest.json` | Stremio addon manifest (generated from the provider registry) |
 | `/configure` | Provider credential status page |
 | `/configure/status` | Same, as JSON |
 | `/health` | Health check: provider config status + cache stats |
+
+`edit-programs.bat` starts the addon and opens the editor in one step.
+
+## Editing the show list
+
+`/` serves an editor for [`programs.json`](programs.json): pick a provider, pick
+a show from its live catalogue, and the slug fills itself in. Saving rewrites the
+file, which `run_server.py` watches, so the addon restarts and the change is live
+in a few seconds.
+
+**It answers to the local machine only.** The routes write to disk, so from any
+other address `/` returns the plain API greeting and the editor's own endpoints
+return 403. On a deployment every request arrives through a proxy and therefore
+looks remote — set `enable_remote_editor=1` to serve it anyway, but only where
+reaching the addon already requires authentication (a private Hugging Face
+Space, a VPN, an authenticating reverse proxy). Turned on with the URL public,
+anyone who finds it can rewrite your catalogue.
+
+Two things to know before relying on it remotely: hosts with an ephemeral
+filesystem (Hugging Face Spaces among them) lose the edit on the next
+restart or rebuild unless persistent storage is attached, and a host that
+launches uvicorn itself rather than through `run_server.py` has no reloader, so
+a saved change only surfaces once the catalogue caches expire. Editing locally
+and committing the file is the durable route.
 
 ## Configuration
 
@@ -70,6 +95,7 @@ credentials at all; DRM content needs the relevant account + proxy entries).
 | `LOG_LEVEL` | Logging level | `info` |
 | `LOG_TO_FILE` / `LOG_FILE` | Optional file logging | off |
 | `ENABLE_DEBUG_ENDPOINTS` | Expose `/debug/*` endpoints | off |
+| `enable_remote_editor` | Serve the shows editor to non-local clients — see below | off |
 
 ### DRM (optional)
 

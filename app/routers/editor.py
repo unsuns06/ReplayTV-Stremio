@@ -2,7 +2,9 @@
 
 These routes write to programs.json, so they answer to loopback only — a
 deployed instance still gets the plain JSON greeting at ``/``.  Set
-ENABLE_REMOTE_EDITOR to lift that if you know what you are exposing.
+``enable_remote_editor`` to lift that if you know what you are exposing
+(lower-case: Hugging Face Spaces reject capitals in variable names, and
+os.getenv is case-sensitive everywhere except Windows).
 
 The catalogue endpoints exist because a browser cannot call the provider APIs
 itself: none of them send CORS headers.
@@ -32,7 +34,7 @@ LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 
 
 def _is_local(request: Request) -> bool:
-    if os.getenv("ENABLE_REMOTE_EDITOR"):
+    if os.getenv("enable_remote_editor"):
         return True
     return bool(request.client) and request.client.host in LOOPBACK
 
