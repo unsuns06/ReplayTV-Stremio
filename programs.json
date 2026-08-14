@@ -14,7 +14,6 @@
     { "provider": "francetv", "slug": "complement-d-enquete", "name": "Complément d'enquête" },
     { "provider": "cbc", "slug": "dragons-den", "name": "Dragon's Den" },
     { "provider": "6play", "slug": "un-jour-un-doc", "name": "Un jour, un doc" },
-    { "provider": "mytf1", "slug": "50-mn-inside", "name": "50' inside" },
     { "provider": "6play", "slug": "le-1245", "name": "Le 1245" },
     { "provider": "francetv", "slug": "la-carte-aux-tresors", "name": "La carte aux trésors" }
   ]
