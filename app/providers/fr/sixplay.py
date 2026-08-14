@@ -166,29 +166,36 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         return self._fetch_raw_videos(program_id)
 
     def get_episode_stream_url(self, episode_id: str) -> Optional[List[Dict]]:
-        """Get stream URL for a specific 6play episode."""
+        """Get streams for a 6play episode: pre-processed file(s) *and* the direct source.
+
+        The TorBox/Real-Debrid copy is listed first when it exists; the
+        MediaFlow-proxied original is always offered alongside it so playback
+        works before (or without) background DRM processing.
+        """
         actual_episode_id = self._extract_after_marker(episode_id)
         try:
-            existing = self._check_processed_file(actual_episode_id)
-            if existing:
-                return existing
+            existing = self._check_processed_file(actual_episode_id) or []
 
             if not self._authenticated and not self._authenticate():
                 logger.error("❌ [SixPlay] 6play authentication failed")
-                return None
+                return existing or None
 
             video_assets = self._fetch_video_assets(actual_episode_id)
             if not video_assets:
-                return None
+                return existing or None
 
             url, fmt = self._select_best_asset(video_assets)
             if not url:
                 logger.warning("⚠️ [SixPlay] No stream URL found for %s", actual_episode_id)
-                return None
+                return existing or None
             logger.debug("✅ [SixPlay] Selected %s stream", fmt.upper() if fmt else "unknown")
             if fmt == 'hls':
-                return [{"url": url, "manifest_type": "hls"}]
-            return self._handle_mpd_stream(url, actual_episode_id)
+                direct = self._build_direct_stream(url, 'hls')
+                return existing + [direct or {"url": url, "manifest_type": "hls"}]
+            # Don't re-download something that is already processed.
+            return existing + self._handle_mpd_stream(
+                url, actual_episode_id, start_processing=not existing,
+            )
 
         except Exception as e:
             logger.error("❌ [SixPlay] Error getting stream for %s: %s", actual_episode_id, e)
@@ -303,23 +310,67 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             logger.error("[SixPlay] Unable to normalize Widevine key")
         return normalized
 
-    def _handle_mpd_stream(self, video_url: str, episode_id: str) -> Optional[List[Dict]]:
-        """Orchestrate MPD/DASH DRM flow: extract PSSH, acquire key, build stream."""
+    def _handle_mpd_stream(self, video_url: str, episode_id: str,
+                           start_processing: bool = True) -> List[Dict]:
+        """Orchestrate MPD/DASH DRM flow: extract PSSH, acquire key, build streams."""
         pssh_record, key_id_hex, stream = self._extract_mpd_drm_info(video_url)
         drm_token = self._fetch_drm_token(episode_id)
 
-        decryption_key = self._acquire_decryption_key(pssh_record, key_id_hex, drm_token)
+        decryption_key = self._cached_decryption_key(pssh_record, key_id_hex, drm_token)
+        streams = []
+        direct = self._build_direct_stream(video_url, 'mpd', key_id_hex, decryption_key, drm_token)
+        if direct:
+            streams.append(direct)
+
         if decryption_key:
             stream["decryption_key"] = decryption_key
             self._print_download_command(video_url, decryption_key, episode_id)
-            return [self._start_drm_processing(video_url, episode_id, key=decryption_key)]
+            if start_processing:
+                streams.append(self._start_drm_processing(video_url, episode_id, key=decryption_key))
+            return streams
 
+        # No key: hand the player the raw manifest and let it license the stream.
         if drm_token:
             stream.update(self._build_drm_license_info(drm_token))
-            return [stream]
+        else:
+            logger.warning("[SixPlay] No DRM token — returning basic MPD stream")
+        streams.append(stream)
+        return streams
 
-        logger.warning("[SixPlay] No DRM token — returning basic MPD stream")
-        return [stream]
+    def _build_direct_stream(self, video_url: str, fmt: str, key_id_hex: Optional[str] = None,
+                             key: Optional[str] = None,
+                             drm_token: Optional[str] = None) -> Optional[Dict]:
+        """MediaFlow-proxied stream straight from 6play's CDN. None if MediaFlow is off.
+
+        Same mechanics as the live path: when the Widevine key was extracted
+        locally MediaFlow decrypts the CENC segments itself (``key_id``/``key``);
+        otherwise it is pointed at DRMtoday to license the stream on its own.
+        """
+        license_url = license_headers = key_params = None
+        if key and key_id_hex:
+            key_params = {"key_id": key_id_hex, "key": key}
+        elif drm_token:
+            license_url = f"{DRM_LICENSE_URL}?specConform=true"
+            license_headers = {"x-dt-auth-token": drm_token, "User-Agent": DRM_UA}
+
+        proxied = self._build_mediaflow_proxied_url(
+            video_url, fmt, license_url=license_url, license_headers=license_headers,
+            extra_params=key_params,
+        )
+        if not proxied:
+            logger.debug("⚠️ [SixPlay] MediaFlow not configured — no direct source stream")
+            return None
+
+        stream = {
+            "url": proxied,
+            "manifest_type": fmt,
+            "title": f"🌐 [{fmt.upper()}] Direct source (MediaFlow)",
+            "headers": self._build_stream_headers(),
+        }
+        if license_url:
+            stream["licenseUrl"] = license_url
+            stream["licenseHeaders"] = license_headers
+        return stream
 
     # ------------------------------------------------------------------
     # Live channels
@@ -393,8 +444,8 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             logger.error("❌ [SixPlay] Error getting live stream for %s: %s", slug, e)
             return None
 
-    def _live_decryption_key(self, pssh_record, key_id_hex: str, drm_token: str) -> Optional[str]:
-        """Widevine content key for the current live period, cached by KID.
+    def _cached_decryption_key(self, pssh_record, key_id_hex: str, drm_token: str) -> Optional[str]:
+        """Widevine content key, cached by KID (used by both live and replay).
 
         ponytail: the cache is keyed on the MPD's ``default_KID``, so a key
         rotation publishes a new KID, misses the cache and re-licenses by
@@ -403,7 +454,7 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         """
         if not (pssh_record and key_id_hex and drm_token):
             return None
-        cache_key = CacheKeys.provider_resource(self.provider_name, f"live_key:{key_id_hex}")
+        cache_key = CacheKeys.provider_resource(self.provider_name, f"wv_key:{key_id_hex}")
         cached = cache.get(cache_key)
         if cached:
             logger.debug("✅ [SixPlay] Live key served from cache (KID %s)", key_id_hex)
@@ -424,7 +475,7 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
                 license_url = f"{DRM_LICENSE_URL}?specConform=true"
                 license_headers = {"x-dt-auth-token": drm_token, "User-Agent": DRM_UA}
                 pssh_record, key_id_hex, _ = self._extract_mpd_drm_info(url)
-                key = self._live_decryption_key(pssh_record, key_id_hex, drm_token)
+                key = self._cached_decryption_key(pssh_record, key_id_hex, drm_token)
                 if key:
                     # MediaFlow decrypts the CENC segments itself with this pair.
                     key_params = {"key_id": key_id_hex, "key": key}

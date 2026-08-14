@@ -83,11 +83,11 @@ def test_live_key_cached_by_kid(monkeypatch):
     p, calls = SixPlayProvider(), []
     monkeypatch.setattr(p, "_acquire_decryption_key",
                         lambda *a: (calls.append(1), "dd" * 16)[1])
-    assert p._live_decryption_key(object(), "cc" * 16, "tok") == "dd" * 16
-    assert p._live_decryption_key(object(), "cc" * 16, "tok") == "dd" * 16
+    assert p._cached_decryption_key(object(), "cc" * 16, "tok") == "dd" * 16
+    assert p._cached_decryption_key(object(), "cc" * 16, "tok") == "dd" * 16
     assert len(calls) == 1, "second call should hit the per-KID cache"
     # A rotated KID must miss the cache and re-license.
-    p._live_decryption_key(object(), "ee" * 16, "tok")
+    p._cached_decryption_key(object(), "ee" * 16, "tok")
     assert len(calls) == 2
 
 
