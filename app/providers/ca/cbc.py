@@ -306,7 +306,9 @@ class CBCProvider(BaseProvider):
                     season_episode_count = 0
                     
                     for item in items:
-                        if item.get('mediaType') != 'Episode':
+                        # Daily-segment shows (About That) publish LiveToVod
+                        # items, not Episode ones — same shape, same streams.
+                        if item.get('mediaType') not in ('Episode', 'LiveToVod'):
                             continue
                         
                         episode_data = self._parse_episode_from_season_data(item, season_num, show_slug, show_name)
@@ -321,7 +323,16 @@ class CBCProvider(BaseProvider):
             
             # Sort by season and episode
             episodes.sort(key=lambda x: (x['season'], x['episode']))
-            
+
+            # LiveToVod segments carry Gem's media id where an episode number
+            # belongs (10735091), and Stremio prints that in front of every
+            # title. Only the displayed number is renumbered — the episode id
+            # keeps the media id, so streams still resolve by direct id match.
+            for position, episode in enumerate(episodes, 1):
+                if episode.pop('livetovod', False):
+                    episode['episode'] = position
+
+
             if episodes:
                 cache.set(cache_key, episodes, ttl=CacheTTL.EPISODES)
                 logger.info("✅ [CBC] Found %d total episodes for %s", len(episodes), show_name)
@@ -337,7 +348,12 @@ class CBCProvider(BaseProvider):
     def _parse_episode_from_season_data(self, item: Dict[str, Any], season_num: int, show_slug: str = "", show_name: str = "") -> Optional[Dict[str, Any]]:
         """Parse episode data from season lineup item"""
         try:
-            episode_num = item.get('episodeNumber', 0)
+            # LiveToVod items carry no episodeNumber; Gem's own URL puts the
+            # media id in its place (s01e10735091), so mirror that — it is
+            # stable, where a positional index would shift as segments air.
+            url_number = re.search(r'e(\d+)$', item.get('url') or '')
+            episode_num = item.get('episodeNumber', 0) or (
+                int(url_number.group(1)) if url_number else 0)
             if not episode_num:
                 return None
             
@@ -410,9 +426,11 @@ class CBCProvider(BaseProvider):
                 "gem_url": gem_url,
                 "genres": genres,
                 "cast": cast,
-                "cbc_media_id": str(cbc_media_id)
+                "cbc_media_id": str(cbc_media_id),
+                # Consumed by _get_show_episodes, which renumbers these.
+                "livetovod": item.get('mediaType') == 'LiveToVod',
             }
-            
+
             if released:
                 episode_data["released"] = released
             
@@ -536,7 +554,7 @@ class CBCProvider(BaseProvider):
 
             data = None
             headers: Dict[str, str] = {}
-            for attempt in range(2):
+            for attempt in range(3):
                 # Get authenticated headers (ensures claims token)
                 headers = self.authenticator.get_authenticated_headers()
                 claims_token = headers.get('x-claims-token')
@@ -559,6 +577,12 @@ class CBCProvider(BaseProvider):
                 if error_code == 1:
                     logger.error("❌ Content is geo-restricted to Canada")
                     return None
+                if error_code == 6 and params['appCode'] == 'gem':
+                    # Quickturn news segments (About That) are served from the
+                    # medianet catalog; gem simply has no such media.
+                    logger.info("ℹ️ Media %s absent from gem; retrying as medianet", media_id)
+                    params['appCode'] = 'medianet'
+                    continue
                 if error_code == 35 and attempt == 0:
                     logger.error("❌ Claims token invalid/expired; refreshing once")
                     self.authenticator.claims_token = None

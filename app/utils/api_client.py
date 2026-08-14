@@ -145,6 +145,9 @@ class ProviderAPIClient:
                     logger.warning(
                         "⚠️ [%s] HTTP %s: %s", self.provider_name, response.status_code, response.text[:200]
                     )
+                    # 404 and friends answer the same way every time — retrying
+                    # only multiplies the wait (CBC season probing hits these).
+                    return None
 
             except requests.exceptions.Timeout:
                 logger.warning("⏰ [%s] Timeout on attempt %d", self.provider_name, attempt + 1)
