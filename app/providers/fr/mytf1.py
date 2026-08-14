@@ -589,10 +589,12 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
                 # Don't re-download something that is already processed.
                 if drm_keys and not existing:
                     try:
-                        streams.append(self._start_drm_processing(
+                        placeholder = self._start_drm_processing(
                             video_url, actual_id,
                             keys=[f"{kid}:{key}" for kid, key in drm_keys.items()],
-                        ))
+                        )
+                        if placeholder:
+                            streams.append(placeholder)
                     except Exception as e:
                         logger.error("⚠️ [MyTF1] Background processing failed: %s", e)
                 return existing + streams

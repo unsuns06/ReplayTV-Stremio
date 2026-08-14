@@ -325,9 +325,11 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         if decryption_key:
             stream["decryption_key"] = decryption_key
             self._print_download_command(video_url, decryption_key, episode_id)
-            if start_processing:
-                streams.append(self._start_drm_processing(video_url, episode_id, key=decryption_key))
-            return streams
+            placeholder = self._start_drm_processing(video_url, episode_id, key=decryption_key) if start_processing else None
+            if placeholder:
+                streams.append(placeholder)
+            # streams can be empty if MediaFlow is unconfigured — fall back to the raw manifest.
+            return streams or [stream]
 
         # No key: hand the player the raw manifest and let it license the stream.
         if drm_token:

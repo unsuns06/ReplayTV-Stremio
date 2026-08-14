@@ -55,7 +55,7 @@ class TestCheckProcessedFileReturnType:
         provider.proxy_config.get_proxy.return_value = "http://processor"
         provider.session = MagicMock()
 
-        with patch("app.providers.drm_mixin.load_credentials", return_value={"realdebridfolder": "http://rdfolder/"}):
+        with patch("app.providers.drm_mixin.load_credentials", return_value={"drm_processing": True, "realdebridfolder": "http://rdfolder/"}):
             provider.session.get.return_value = mock_resp
             provider.session.head.return_value = MagicMock(status_code=404)
             result = provider._check_processed_file("test_episode_id")
@@ -69,6 +69,7 @@ class TestCheckProcessedFileReturnType:
             assert result[0].get("manifest_type") == "video"
 
     _TORBOX_CREDS = {
+        "drm_processing": True,
         "realdebridfolder": "http://rdfolder/",
         "torbox": {
             "tb_webdav_url": "https://webdav.torbox.app/",
@@ -287,3 +288,39 @@ def test_stream_method_is_not_a_generator_of_strings(module, cls_name, method, p
         "Returning a bare Dict causes the router to iterate its keys (strings), "
         "producing 'str' object has no attribute 'get'."
     )
+
+
+# ---------------------------------------------------------------------------
+# drm_processing toggle
+# ---------------------------------------------------------------------------
+
+class TestDRMProcessingToggle:
+    """Disabled (the default) means no TorBox/RD lookup and no nm3u8 processing."""
+
+    def test_disabled_by_default(self, monkeypatch):
+        from app.providers import drm_mixin
+        monkeypatch.delenv("DRM_PROCESSING", raising=False)
+        monkeypatch.setattr(drm_mixin, "load_credentials", lambda: {})
+        assert drm_mixin.drm_processing_enabled() is False
+
+    @pytest.mark.parametrize("value,expected", [("1", True), ("true", True), ("0", False), ("off", False)])
+    def test_env_overrides_credentials(self, monkeypatch, value, expected):
+        from app.providers import drm_mixin
+        monkeypatch.setenv("DRM_PROCESSING", value)
+        monkeypatch.setattr(drm_mixin, "load_credentials", lambda: {"drm_processing": not expected})
+        assert drm_mixin.drm_processing_enabled() is expected
+
+    def test_disabled_skips_lookup_and_processing(self, monkeypatch):
+        from app.providers import drm_mixin
+        monkeypatch.delenv("DRM_PROCESSING", raising=False)
+        monkeypatch.setattr(drm_mixin, "load_credentials", lambda: {"drm_processing": False})
+
+        provider = TestCheckProcessedFileReturnType()._make_provider()
+        provider.proxy_config = MagicMock()
+        provider.proxy_config.get_proxy.return_value = "http://processor"
+        provider.session = MagicMock()
+
+        assert provider._check_processed_file("ep1") is None
+        assert provider._start_drm_processing("http://x/m.mpd", "ep1", key="k") is None
+        provider.session.get.assert_not_called()
+        provider.session.head.assert_not_called()

@@ -11,6 +11,7 @@ subclass — relies on ``self.session``, ``self.proxy_config`` and
 """
 
 import logging
+import os
 from typing import Dict, List, Optional
 from urllib.parse import quote
 
@@ -25,6 +26,18 @@ PROCESSING_PLACEHOLDER_URL = "https://stream-not-available"
 
 TORBOX_API = "https://api.torbox.app/v1/api"
 TORBOX_LIST_CACHE_KEY = "torbox:webdl:mylist"
+
+
+def drm_processing_enabled() -> bool:
+    """Master switch for nm3u8 processing + TorBox/Real-Debrid lookups. Off by default.
+
+    Set ``"drm_processing": true`` in credentials.json, or ``DRM_PROCESSING=1`` in the
+    environment (env wins). Disabled means providers offer only the direct stream.
+    """
+    env = os.getenv("DRM_PROCESSING")
+    if env is not None:
+        return env.strip().lower() in ("1", "true", "yes", "on")
+    return bool(load_credentials().get("drm_processing", False))
 
 
 def _match_webdl(items: List[Dict], filename: str):
@@ -178,6 +191,9 @@ class DRMProcessedFileMixin:
         Returns a single-element stream list so callers can forward it directly to
         the router without re-wrapping, consistent with the List[StreamInfo] contract.
         """
+        if not drm_processing_enabled():
+            return None
+
         processor_url = self.proxy_config.get_proxy("nm3u8_processor")
         if not processor_url:
             logger.error("❌ %s nm3u8_processor not configured", self.log_prefix)
@@ -225,8 +241,14 @@ class DRMProcessedFileMixin:
         save_name: str,
         key: Optional[str] = None,
         keys: Optional[List[str]] = None,
-    ) -> Dict:
-        """Kick off background DRM processing and return a placeholder stream."""
+    ) -> Optional[Dict]:
+        """Kick off background DRM processing and return a placeholder stream.
+
+        Returns ``None`` when processing is disabled, so callers add no placeholder.
+        """
+        if not drm_processing_enabled():
+            return None
+
         from app.utils.drm.nm3u8_drm_processor import process_drm_simple
 
         result = process_drm_simple(

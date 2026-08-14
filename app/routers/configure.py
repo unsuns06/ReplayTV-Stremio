@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 
 from app.utils.credentials import load_credentials
 from app.config.provider_config import PROVIDER_REGISTRY
+from app.providers.drm_mixin import drm_processing_enabled
 
 router = APIRouter()
 
@@ -86,6 +87,11 @@ async def configure():
         '<span style="color:#f59e0b">⚠️ Some providers need credentials</span>'
     )
 
+    drm_label = (
+        '<span style="color:#22c55e">enabled</span>' if drm_processing_enabled()
+        else '<span style="color:#94a3b8">disabled</span>'
+    )
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -120,6 +126,12 @@ async def configure():
   <p>Stremio addon — provider configuration status</p>
 
   <p>Overall: {overall}</p>
+
+  <p>DRM processing (nm3u8 + TorBox/Real-Debrid sources for 6play &amp; MyTF1):
+    <strong>{drm_label}</strong><br>
+    <small>Toggle with <code>"drm_processing": true|false</code> in
+    <code>credentials.json</code> or <code>DRM_PROCESSING=1|0</code>. Disabled by
+    default — only the direct stream is offered.</small></p>
 
   <table>
     <thead>
@@ -158,6 +170,7 @@ async def configure_status():
     status = _get_provider_status()
     return {
         "all_configured": all(p["configured"] for p in status.values()),
+        "drm_processing": drm_processing_enabled(),
         "providers": {k: {"configured": v["configured"], "label": v["label"]}
                       for k, v in status.items()},
     }
