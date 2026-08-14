@@ -219,3 +219,19 @@ def test_empty_or_broken_payload_yields_nothing(monkeypatch):
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
+
+
+def test_show_payload_skips_seasons_the_api_404s_on(monkeypatch):
+    """A show whose season 1 is gone: probe forward until a season answers."""
+    p = CBCProvider()
+    tried = []
+
+    def fake_get(url, **kwargs):
+        tried.append(url)
+        return PAYLOAD if "dragons-den/s03e01" in url else None
+
+    monkeypatch.setattr(p.api_client, "get", fake_get)
+    assert p._show_payload("dragons-den") is PAYLOAD
+    assert [u.split("/")[-1].split("?")[0] for u in tried] == ["s01e01", "s02e01", "s03e01"]
+    assert p._show_payload("gone") is None  # every season 404s
+    p.close()

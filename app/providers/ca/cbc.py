@@ -114,17 +114,31 @@ class CBCProvider(BaseProvider):
         "fanart": ("background",),
     }
 
-    @safe_provider_call(default={})
-    def _get_show_api_metadata(self, show_id: str, show_info: Dict[str, Any]) -> Dict[str, Any]:
-        """Fetch the show's metadata and artwork from the CBC catalog API."""
-        data = self._cached_payload(f"show:{show_id}", lambda: self.api_client.get(
-            f"{self.catalog_api}/show/{show_id}/s01e01?device=web&tier=Member",
-            headers=self._get_headers_with_viewer_ip({
+    # Some shows have no season 1 in the catalog (it aged out), and the API 404s
+    # on s01e01 even though later seasons are there. Walk forward until one hits.
+    # ponytail: 10 tries, sequential. Raise it if a show is found starting later.
+    _MAX_SEASON_PROBE = 10
+
+    def _show_payload(self, show_slug: str) -> Optional[Dict[str, Any]]:
+        """The show payload — sXXe01 returns ALL seasons in the lineups array."""
+        for season in range(1, self._MAX_SEASON_PROBE + 1):
+            url = f"{self.catalog_api}/show/{show_slug}/s{season:02d}e01?device=web&tier=Member"
+            logger.debug("🔍 [CBC] API request: %s", url)
+            data = self.api_client.get(url, headers=self._get_headers_with_viewer_ip({
                 'Accept': 'application/json, text/plain, */*',
                 'Referer': 'https://gem.cbc.ca/',
                 'Origin': 'https://gem.cbc.ca',
-            }),
-        ))
+            }))
+            if data:
+                if season > 1:
+                    logger.info("ℹ️ [CBC] %s has no season 1; used season %d", show_slug, season)
+                return data
+        return None
+
+    @safe_provider_call(default={})
+    def _get_show_api_metadata(self, show_id: str, show_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch the show's metadata and artwork from the CBC catalog API."""
+        data = self._cached_payload(f"show:{show_id}", lambda: self._show_payload(show_id))
         images = (data or {}).get('images') or {}
         candidates = {
             field: [(images.get(k) or {}).get('url') for k in keys]
@@ -169,7 +183,7 @@ class CBCProvider(BaseProvider):
         notes = [note['message'] for note in (data or {}).get('messages') or []
                  if note.get('message')]
         paragraphs = [(data or {}).get('description') or '', *notes]
-        return ".".join(text for text in paragraphs if text) or None
+        return " ".join(text for text in paragraphs if text) or None
 
     def _poster_candidates(self, data: Dict[str, Any]) -> List[str]:
         """Poster URLs derived from the background URL, most specific first.
@@ -273,21 +287,10 @@ class CBCProvider(BaseProvider):
                 return cached_episodes
             
             episodes = []
-            
-            # Single API call - s01e01 returns ALL seasons in lineups array
-            api_url = f"{self.catalog_api}/show/{show_slug}/s01e01?device=web&tier=Member"
-            
-            logger.debug("🔍 [CBC] API request: %s", api_url)
-            data = self.api_client.get(api_url, headers=self._get_headers_with_viewer_ip({
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Referer': 'https://gem.cbc.ca/',
-                'Origin': 'https://gem.cbc.ca',
-                'DNT': '1',
-                'Connection': 'keep-alive'
-            }))
-            
+
+            data = self._show_payload(show_slug)
+
+
             if data and 'content' in data and data['content']:
                 lineups = data['content'][0].get('lineups', [])
                 seasons = self._season_numbers(data)
