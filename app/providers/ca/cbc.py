@@ -169,7 +169,7 @@ class CBCProvider(BaseProvider):
         notes = [note['message'] for note in (data or {}).get('messages') or []
                  if note.get('message')]
         paragraphs = [(data or {}).get('description') or '', *notes]
-        return "\n\n".join(text for text in paragraphs if text) or None
+        return "\n".join(text for text in paragraphs if text) or None
 
     def _poster_candidates(self, data: Dict[str, Any]) -> List[str]:
         """Poster URLs derived from the background URL, most specific first.
