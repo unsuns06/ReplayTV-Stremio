@@ -1,10 +1,11 @@
 import json
 import logging
-from urllib.parse import quote
 
 from typing import Dict, List, Optional
 from fastapi import Request
 from app.utils.base_url import get_base_url, get_logo_url
+from app.utils.drm.pssh_extractor import extract_pssh_from_mpd
+from app.utils.encoding import normalize_key_id
 from app.utils.user_agent import get_random_windows_ua
 
 from app.utils.programs_loader import get_programs_for_provider
@@ -499,44 +500,55 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             
         return drm_keys_dict
 
-    def _build_dash_proxy_stream(self, video_url, license_url, license_headers, headers, drm_keys, episode_id) -> list:
-        """Build DASH proxy stream(s) for DRM-protected MPD content."""
-        encoded_manifest = quote(video_url, safe='')
-        encoded_license = quote(license_url, safe='')
+    def _select_drm_key(self, video_url: str, drm_keys: Dict[str, str]) -> Optional[Dict[str, str]]:
+        """Pick the single ``key_id``/``key`` pair MediaFlow decrypts with.
 
-        dash_proxy_base = self.proxy_config.get_proxy('dash_proxy')
-        proxy_params = f"mpd={encoded_manifest}&widevine.isActive=true&widevine.drmKeySystem=com.widevine.alpha&widevine.licenseServerUrl={encoded_license}"
+        MediaFlow takes one pair, a license can carry several. With one key
+        there is nothing to choose; with several, the manifest's ``default_KID``
+        decides (one extra manifest fetch, only in that case).
+        """
+        if not drm_keys:
+            return None
+        kid = next(iter(drm_keys))
+        if len(drm_keys) > 1:
+            _pssh, _mpd, drm_info = extract_pssh_from_mpd(video_url, "MyTF1")
+            default_kid = normalize_key_id((drm_info or {}).get('key_id'))
+            if default_kid in drm_keys:
+                kid = default_kid
+            else:
+                logger.warning("⚠️ [MyTF1] default_KID %s not in license (%d key(s)) — using first",
+                               default_kid, len(drm_keys))
+        return {"key_id": kid, "key": drm_keys[kid]}
 
-        final_url = f"{dash_proxy_base}/proxy?{proxy_params}"
+    def _build_direct_stream(self, video_url, license_url, license_headers, headers,
+                             drm_keys, manifest_type: str = 'mpd') -> Dict:
+        """MediaFlow-proxied stream straight from the TF1 CDN.
 
-        logger.debug("✅ [MyTF1] DASH proxy URL generated: %s", final_url)
+        With a locally extracted Widevine key MediaFlow decrypts the CENC
+        segments itself; without one it is pointed at the TF1 license proxy.
+        """
+        key_params = self._select_drm_key(video_url, drm_keys)
+        if key_params:
+            logger.debug("✅ [MyTF1] Direct stream decrypted by MediaFlow (KID %s)", key_params["key_id"])
+            license_url = license_headers = None
 
-        primary_stream = {
-            "url": final_url,
-            "manifest_type": "mpd",
-            "title": "DASH Proxy Stream (DRM)",
-            "headers": headers
+        proxied = self._build_mediaflow_proxied_url(
+            video_url, manifest_type,
+            extra_headers={'authorization': f"Bearer {self.auth_token}"},
+            license_url=license_url, license_headers=license_headers,
+            extra_params=key_params,
+        )
+        stream = {
+            "url": proxied or video_url,
+            "manifest_type": manifest_type,
+            "title": f"🌐 [{manifest_type.upper()}] Direct source (MediaFlow)",
+            "headers": headers,
         }
-
         if license_url:
-            primary_stream["licenseUrl"] = license_url
+            stream["licenseUrl"] = license_url
             if license_headers:
-                primary_stream["licenseHeaders"] = license_headers
-        
-        if drm_keys:
-            primary_stream["drm_keys"] = drm_keys
-
-        streams = [primary_stream]
-
-        if drm_keys:
-            formatted_keys = [f"{kid}:{key}" for kid, key in drm_keys.items()]
-            try:
-                logger.debug("✅ [MyTF1] Triggering background DRM processing...")
-                streams.append(self._start_drm_processing(video_url, episode_id, keys=formatted_keys))
-            except Exception as e:
-                logger.error("⚠️ [MyTF1] Background processing failed: %s", e)
-
-        return streams
+                stream["licenseHeaders"] = license_headers
+        return stream
 
     def _build_mediaflow_stream(self, video_url, license_url, license_headers, headers, manifest_type: str) -> list:
         """Build MediaFlow-proxied stream for HLS/non-DRM content."""
@@ -553,20 +565,23 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         return [{"url": proxied or video_url, **base}]
 
     def get_episode_stream_url(self, episode_id: str) -> Optional[List[Dict]]:
-        """Get stream URL for a specific episode (for replay content) with robust error handling"""
+        """Get streams for a replay episode: pre-processed file(s) *and* the direct source.
+
+        The TorBox/Real-Debrid copy is listed first when it exists; the
+        MediaFlow-proxied original is always offered alongside it, so playback
+        works before (or without) background DRM processing.
+        """
         actual_id = self._extract_after_marker(episode_id)
 
         try:
-            if not self._authenticated and not self._authenticate():
-                return None
+            existing = self._check_processed_file(actual_id) or []
 
-            existing = self._check_processed_file(actual_id)
-            if existing:
-                return existing
+            if not self._authenticated and not self._authenticate():
+                return existing or None
 
             delivery_data = self._fetch_episode_delivery(actual_id)
             if not delivery_data or delivery_data.get('delivery', {}).get('code', 500) > 400:
-                return None
+                return existing or None
 
             video_url = delivery_data['delivery']['url']
             license_url, license_headers = self._extract_drm_info(delivery_data['delivery'], actual_id)
@@ -575,13 +590,23 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
 
             if manifest_type == 'mpd' and license_url:
                 drm_keys = self._extract_drm_keys(video_url, license_url, actual_id)
-                return self._build_dash_proxy_stream(
-                    video_url, license_url, license_headers, headers, drm_keys, actual_id
-                )
-            else:
-                return self._build_mediaflow_stream(
-                    video_url, license_url, license_headers, headers, manifest_type
-                )
+                streams = [self._build_direct_stream(
+                    video_url, license_url, license_headers, headers, drm_keys, manifest_type
+                )]
+                # Don't re-download something that is already processed.
+                if drm_keys and not existing:
+                    try:
+                        streams.append(self._start_drm_processing(
+                            video_url, actual_id,
+                            keys=[f"{kid}:{key}" for kid, key in drm_keys.items()],
+                        ))
+                    except Exception as e:
+                        logger.error("⚠️ [MyTF1] Background processing failed: %s", e)
+                return existing + streams
+
+            return existing + self._build_mediaflow_stream(
+                video_url, license_url, license_headers, headers, manifest_type
+            )
         except Exception as e:
             logger.error("❌ [MyTF1] Error getting episode stream: %s", e, exc_info=True)
             return None
