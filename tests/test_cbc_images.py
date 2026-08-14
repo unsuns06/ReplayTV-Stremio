@@ -34,10 +34,12 @@ class _Response:
 
 @pytest.fixture(autouse=True)
 def _clear_url_cache():
-    """_first_existing caches per URL in the shared cache — keep tests independent."""
+    """_first_existing and the show payload are cached in the shared cache —
+    each test swaps in a different fake, so drop both between tests."""
     from app.utils.cache import cache
     for url in (DERIVED_POSTER, SHOW_POSTER):
         cache.delete(f"provider:cbc:url_ok:{url}")
+    cache.delete("provider:cbc:show:dragons-den")
     yield
 
 
@@ -175,6 +177,35 @@ def test_detail_page_gets_the_api_artwork(provider, monkeypatch):
     monkeypatch.setattr(provider, "shows", {"dragons-den": {"name": "Dragon's Den"}})
     meta = provider.enhance_series_meta({"logo": "http://host/static/logos/ca/cbc.png"}, "dragons-den")
     assert meta["logo"] == API_LOGO
+
+
+SYNOPSIS = "Entrepreneurs pitch their business concepts to a panel of moguls."
+
+
+def test_scheduling_messages_are_appended_to_the_description():
+    """Gem keeps "New season streaming September 17th" out of the synopsis."""
+    assert CBCProvider._description({
+        "description": SYNOPSIS,
+        "messages": [{"type": "Info", "message": "New season streaming September 17th"}],
+    }) == f"{SYNOPSIS}\n\nNew season streaming September 17th"
+
+
+def test_every_message_gets_its_own_paragraph():
+    assert CBCProvider._description({
+        "description": SYNOPSIS,
+        "messages": [{"message": "One"}, {"type": "Info"}, {"message": "Two"}],
+    }) == f"{SYNOPSIS}\n\nOne\n\nTwo"
+
+
+def test_description_is_untouched_without_messages():
+    assert CBCProvider._description({"description": SYNOPSIS}) == SYNOPSIS
+    assert CBCProvider._description({"description": SYNOPSIS, "messages": []}) == SYNOPSIS
+
+
+def test_a_message_alone_still_becomes_the_description():
+    assert CBCProvider._description({"messages": [{"message": "Coming soon"}]}) == "Coming soon"
+    assert CBCProvider._description({}) is None
+    assert CBCProvider._description(None) is None
 
 
 def test_empty_or_broken_payload_yields_nothing(monkeypatch):

@@ -10,6 +10,16 @@ from typing import Any, Dict, Optional
 DEFAULT_YEAR = 2024
 DEFAULT_RATING = "Tous publics"
 
+# Everything a provider's _get_show_api_metadata may contribute to a show dict.
+# programs.json only pins ``provider``/``slug``/``name``; these fields come from
+# the provider's own metadata endpoint. Anything else in an API-metadata dict
+# (FranceTV's raw ``images`` patterns, say) is provider-internal and never
+# merged into the Stremio meta.
+API_FIELDS = (
+    "description", "channel", "genres", "year", "rating",
+    "logo", "poster", "background", "fanart",
+)
+
 
 def build_show_dict(
     id_prefix: str,

@@ -147,9 +147,19 @@ def test_program_id_lookup_is_cached(provider, monkeypatch):
 @pytest.mark.integration
 def test_live_program_endpoint_serves_all_three_roles(provider):
     """66 minutes (program 825) against the real API — no programs.json overrides."""
-    images = provider._get_show_api_metadata("66-minutes", {"name": "66 minutes", "api_id": "825"})
-    assert set(images) == {"logo", "poster", "background", "fanart"}
-    assert len({images["logo"], images["poster"], images["background"]}) == 3
+    meta = provider._get_show_api_metadata("66-minutes", {"name": "66 minutes", "api_id": "825"})
+    assert {"logo", "poster", "background", "fanart"} <= set(meta)
+    assert len({meta["logo"], meta["poster"], meta["background"]}) == 3
+
+
+@pytest.mark.integration
+def test_live_program_endpoint_serves_the_written_metadata(provider):
+    """Everything programs.json used to hard-code now comes off the same call."""
+    meta = provider._get_show_api_metadata("66-minutes", {"name": "66 minutes", "api_id": "825"})
+    assert meta["channel"] == "M6"
+    assert meta["rating"] == "Tous publics"
+    assert meta["year"] == 2008
+    assert meta["genres"] and meta["description"]
 
 
 if __name__ == "__main__":

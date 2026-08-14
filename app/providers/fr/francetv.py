@@ -5,7 +5,10 @@ from typing import Dict, List, Optional
 from fastapi import Request
 from app.providers.fr.metadata import metadata_processor, image_extractor
 from app.utils.base_url import get_base_url, get_logo_url
+from app.utils.cache import cache
+from app.utils.cache_keys import CacheKeys, CacheTTL
 from app.utils.programs_loader import get_programs_for_provider
+from app.utils.show_meta import API_FIELDS, DEFAULT_RATING
 from app.providers.base_provider import BaseProvider, LiveProviderMixin, safe_provider_call
 
 logger = logging.getLogger(__name__)
@@ -64,36 +67,69 @@ class FranceTVProvider(LiveProviderMixin, BaseProvider):
         show_metadata = metadata_processor.get_show_metadata(f"{self.id_prefix}:{slug}", info)
         if extra:
             show_metadata = metadata_processor.enhance_metadata_with_api(show_metadata, extra)
-            if extra.get('logo'):
-                show_metadata['logo'] = extra['logo']
+            show_metadata.update({k: v for k, v in extra.items() if v and k in API_FIELDS})
         return show_metadata
+
+    def _taxonomy(self, api_id: str) -> Optional[Dict]:
+        """The taxonomy payload for *api_id*, cached.
+
+        Both the id probe below and the metadata read want it, and the id probe
+        already paid for the request.
+        """
+        return self._cached_payload(f"taxonomy:{api_id}", lambda: self.api_client.get(
+            f"{self.api_front}/standard/publish/taxonomies/{api_id}",
+            params={'platform': 'apps'},
+        ))
+
+    def _api_show_id(self, slug: str) -> Optional[str]:
+        """France TV addresses a show as ``<channel>_<slug>``.
+
+        The channels are probed in order, which costs nothing for a France 2
+        show and at most five cached requests for a franceinfo one.
+        """
+        key = CacheKeys.provider_resource(self.provider_name, f"api_id:{slug}")
+        api_id = cache.get(key)
+        if api_id is None:
+            api_id = ''
+            for channel, *_ in _CHANNELS:
+                if self._taxonomy(f"{channel}_{slug}"):
+                    api_id = f"{channel}_{slug}"
+                    break
+            cache.set(key, api_id, ttl=CacheTTL.PROGRAMS)
+        return api_id or None
 
     @safe_provider_call(default=None)
     def _get_show_api_metadata(self, show_id: str, show_info: Dict) -> Optional[Dict]:
-        show_api_id = show_info.get('api_id') or show_info.get('id', show_id)
-        api_url = f"{self.api_front}/standard/publish/taxonomies/{show_api_id}"
-        data = self.api_client.get(api_url, params={'platform': 'apps'})
+        api_id = self._api_show_id(show_id)
+        data = self._taxonomy(api_id) if api_id else None
         if not data:
             return None
-        images = data.get('media_image', {}).get('patterns', []) if 'media_image' in data else []
+        images = (data.get('media_image') or {}).get('patterns') or []
         extracted = image_extractor.extract(images, {"logo": "logo"})
+        age_min = data.get('age_min')
         return {
             'images': images,
-            'description': data.get('description', ''),
             'text': data.get('seo', ''),
             'logo': extracted.get('logo'),
+            # synopsis is the editorial pitch; description is the SEO blurb.
+            'description': html.unescape(data.get('synopsis') or data.get('description') or ''),
+            'channel': (data.get('parent') or {}).get('label'),
+            'genres': [t['taxonomy']['label'] for t in data.get('taxonomy_has_taxonomies') or []
+                       if (t.get('taxonomy') or {}).get('label')],
+            'rating': f"-{age_min}" if isinstance(age_min, int) and age_min > 3 else DEFAULT_RATING,
         }
 
     def enhance_series_meta(self, series_meta: Dict, show_id: str) -> Dict:
-        """Enrich series metadata from the France TV API."""
+        """Enrich series metadata from the France TV API.
+
+        Overrides the base merge because the API metadata carries raw image
+        pattern lists that ``populate_images`` has to transform first.
+        """
         try:
-            programs = get_programs_for_provider(self.provider_name)
-            show_data = programs.get(show_id, {})
-            provider_metadata = self._get_show_api_metadata(show_id, show_data)
-            if provider_metadata:
-                series_meta = metadata_processor.enhance_metadata_with_api(series_meta, provider_metadata)
-                if provider_metadata.get('logo'):
-                    series_meta['logo'] = provider_metadata['logo']
+            extra = self._get_show_api_metadata(show_id, self.shows.get(show_id) or {})
+            if extra:
+                series_meta = metadata_processor.enhance_metadata_with_api(series_meta, extra)
+                series_meta.update({k: v for k, v in extra.items() if v and k in API_FIELDS})
         except Exception as e:
             logger.warning("Could not enhance series metadata for %s: %s", show_id, e)
         return series_meta
@@ -242,8 +278,7 @@ class FranceTVProvider(LiveProviderMixin, BaseProvider):
 
     def _fetch_episodes_raw(self, slug: str) -> Optional[List[Dict]]:
         """Fetch and filter raw episode list from France TV API."""
-        show_info = self.shows[slug]
-        api_show_id = show_info.get('api_id') or show_info.get('id', slug)
+        api_show_id = self._api_show_id(slug)
         api_url = f"{self.api_front}/standard/publish/taxonomies/{api_show_id}/contents/"
         params = {'size': 20, 'page': 0, 'filter': "with-no-vod,only-visible", 'sort': "begin_date:desc"}
         data = self.api_client.get(api_url, params=params)

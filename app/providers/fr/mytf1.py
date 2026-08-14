@@ -12,8 +12,6 @@ from app.utils.programs_loader import get_programs_for_provider
 from app.providers.base_provider import BaseProvider, LiveProviderMixin, safe_provider_call
 from app.providers.drm_mixin import DRMProcessedFileMixin
 from app.utils.auth_cache import load_auth_state, store_auth_state
-from app.utils.cache import cache
-from app.utils.cache_keys import CacheKeys, CacheTTL
 
 
 logger = logging.getLogger(__name__)
@@ -263,52 +261,46 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             'authorization': f'Bearer {self.auth_token}'
         }
 
-        show_channel = self.shows[slug]['channel']
-        channel_filter = show_channel.lower()
-        show_name_lower = self.shows[slug]['name'].lower()
-
-        program_slug = None
-
-        for attempt, ch_filter in enumerate([channel_filter, None]):
-            programs_list = self._get_graphql_programs_list(headers, ch_filter)
-            if programs_list:
-                for program in programs_list:
-                    if program.get('name', '').lower() == show_name_lower:
-                        program_slug = program.get('slug')
-                        if attempt == 1:
-                            actual_ch = program.get('mainChannel', {}).get('label', 'unknown')
-                            logger.warning(
-                                "⚠️ [MyTF1] Show '%s' found on '%s' instead of '%s'",
-                                self.shows[slug]['name'], actual_ch, show_channel,
-                            )
-                        break
-            if program_slug:
-                break
-            elif attempt == 0:
-                logger.warning(
-                    "⚠️ [MyTF1] Program not found on channel '%s', retrying without channel filter...",
-                    channel_filter,
-                )
-
-        if not program_slug:
-            logger.error("❌ [MyTF1] Program not found for show: %s", slug)
+        program = self._find_program(slug, headers)
+        if not program:
             return None
 
-        return self._fetch_raw_video_items(program_slug, headers)
+        return self._fetch_raw_video_items(program['slug'], headers)
 
     def _fallback_episodes(self, slug: str) -> List[Dict]:
         logger.debug("✅ [MyTF1] Using fallback episode for %s", slug)
         return [self._create_fallback_episode(slug)]
-    
-    def _get_graphql_programs_list(self, headers: Dict, channel_filter: str = None) -> Optional[List[Dict]]:
-        """Fetch TF1 programs list from GraphQL API, with caching."""
-        cache_key = CacheKeys.provider_resource(
-            self.provider_name, f"graphql_programs:{channel_filter or 'all'}"
-        )
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return cached
 
+    # The programs list is the only TF1 endpoint carrying a show's logo,
+    # description and categories — programBySlug returns none of them
+    # reliably — and it can only be filtered by channel, never by name or
+    # slug.  The unfiltered page (the 500 most prominent programs) is tried
+    # first, the four channel lists after.  Every list is cached, so the
+    # second show usually costs no request at all.
+    _PROGRAM_LIST_FILTERS = (None, "tf1", "tmc", "tfx", "tf1-series-films")
+
+    def _find_program(self, slug: str, headers: Dict = None) -> Optional[Dict]:
+        """The TF1 programs-list entry for *slug*.
+
+        programs.json carries TF1's own slug, so that is the match; the name it
+        also carries is the fallback for a show TF1 has since re-slugged.  The
+        entry holds the artwork and the metadata, so the catalogue, the detail
+        page and the episode lookup all resolve a show exactly once.
+        """
+        show_name = (self.shows.get(slug) or {}).get('name', slug.replace('-', ' ')).lower()
+        headers = headers or {
+            'content-type': 'application/json',
+            'referer': 'https://www.tf1.fr/programmes-tv',
+        }
+        for channel in self._PROGRAM_LIST_FILTERS:
+            for program in self._get_graphql_programs_list(headers, channel) or []:
+                if program.get('slug') == slug or program.get('name', '').lower() == show_name:
+                    return program
+        logger.error("❌ [MyTF1] Program not found for show: %s", slug)
+        return None
+
+    def _get_graphql_programs_list(self, headers: Dict, channel_filter: str = None) -> Optional[List[Dict]]:
+        """Fetch a TF1 programs list from the GraphQL API, with caching."""
         variables = {
             "context": {
                 "persona": "PERSONA_2", "application": "WEB",
@@ -318,19 +310,20 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             "offset": 0,
             "limit": 500,
         }
-
         params = {'id': '483ce0f', 'variables': json.dumps(variables, separators=(',', ':'))}
-        data = self.api_client.get(self.api_url, headers=self._build_ip_headers(headers), params=params, max_retries=3)
 
-        if data and 'data' in data and 'programs' in data['data']:
-            items = data['data']['programs'].get('items', [])
-            cache.set(cache_key, items, ttl=CacheTTL.PROGRAMS)
-            return items
-        return None
+        def fetch():
+            data = self.api_client.get(self.api_url, headers=self._build_ip_headers(headers),
+                                       params=params, max_retries=3)
+            if data and 'data' in data and 'programs' in data['data']:
+                return data['data']['programs'].get('items', [])
+            return None
+
+        return self._cached_payload(f"graphql_programs:{channel_filter or 'all'}", fetch)
 
     @safe_provider_call(default=None)
     def _fetch_raw_video_items(self, program_slug: str, headers: Dict) -> Optional[List[Dict]]:
-        """Fetch raw video items from TF1 GraphQL API."""
+        """Fetch a program's raw replay video items from the TF1 GraphQL API."""
         variables = {
             "programSlug": program_slug,
             "offset": 0,
@@ -345,9 +338,9 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         data = self._fetch_with_proxy_fallback(
             self.api_url, params=params, headers=self._build_ip_headers(headers),
         )
-        if data and 'data' in data and 'programBySlug' in data['data']:
+        if data and 'data' in data and data['data'].get('programBySlug'):
             program_data = data['data']['programBySlug']
-            video_items = program_data.get('videos', {}).get('items') or []
+            video_items = (program_data.get('videos') or {}).get('items') or []
             if video_items:
                 logger.debug("✅ [MyTF1] Found %d video items", len(video_items))
                 return video_items
@@ -355,7 +348,7 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         else:
             logger.error("❌ [MyTF1] No programBySlug in response: %s", list(data.keys()) if data else 'No data')
         return None
-    
+
     @safe_provider_call(default=None)
     def _parse_episode(self, video: Dict, episode_number: int) -> Optional[Dict]:
         episode_id = video.get('id')
@@ -619,21 +612,19 @@ class MyTF1Provider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
 
     @safe_provider_call(default={})
     def _get_show_api_metadata(self, show_id: str, show_info: Dict) -> Dict:
-        headers = {
-            'content-type': 'application/json',
-            'referer': 'https://www.tf1.fr/programmes-tv'
-        }
-        channel_filter = show_info['channel'].lower()
-        for ch_filter in [channel_filter, None]:
-            for program in self._get_graphql_programs_list(headers, ch_filter) or []:
-                program_name = program.get('name', '').lower()
-                if show_id in program_name or show_info['name'].lower() in program_name:
-                    decoration = program.get('decoration')
-                    if decoration:
-                        return self._pick_artwork(
-                            {field: [self._decoration_url(decoration, key)]
-                             for field, key in self._DECORATION_IMAGES.items()},
-                            show_info,
-                        )
-        return {}
+        program = self._find_program(show_id)
+        if not program:
+            return {}
+        decoration = program.get('decoration') or {}
+        candidates = {field: [self._decoration_url(decoration, key)]
+                      for field, key in self._DECORATION_IMAGES.items()}
+        # ponytail: no rating here — TF1 rates videos, not programs, and reading
+        # one would cost a second request per show. Falls back to DEFAULT_RATING.
+        candidates.update({
+            'description': [decoration.get('description')],
+            'channel': [(program.get('mainChannel') or {}).get('label')],
+            'genres': [[c['label'] for c in program.get('categories') or [] if c.get('label')]],
+            'year': [int(program['releaseYear']) if str(program.get('releaseYear')).isdigit() else None],
+        })
+        return self._pick_fields(candidates, show_info)
     

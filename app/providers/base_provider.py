@@ -9,7 +9,9 @@ from urllib.parse import quote, urlencode
 from app.utils.credentials import get_provider_credentials
 from app.utils.api_client import ProviderAPIClient
 from app.utils.base_url import get_logo_url
-from app.utils.show_meta import DEFAULT_RATING, build_show_dict
+from app.utils.cache import cache
+from app.utils.cache_keys import CacheKeys, CacheTTL
+from app.utils.show_meta import API_FIELDS, DEFAULT_RATING, build_show_dict
 from app.utils.user_agent import get_random_windows_ua
 from app.utils.proxy_config import get_proxy_config
 from app.utils.client_ip import make_ip_headers, merge_ip_headers as _merge_ip_util
@@ -312,35 +314,36 @@ class BaseProvider(ABC):
             "note": "Fallback episode - API unavailable",
         }
 
-    def _pick_artwork(self, candidates: Dict[str, List[Optional[str]]], show_info: Dict) -> Dict[str, str]:
-        """Resolve artwork fields from ordered candidate URLs.
+    def _pick_fields(self, candidates: Dict[str, List], show_info: Dict) -> Dict:
+        """Resolve show fields (artwork, description, genres, …) from ordered candidates.
 
         The precedence rule shared by every self-fetching provider lives here:
-        a URL pinned in programs.json wins outright, otherwise the first
+        a value pinned in programs.json wins outright, otherwise the first
         non-empty candidate is used, and a field with nothing to offer is left
         out so ``build_show_dict``'s own fallback still applies.  Providers only
         supply the candidates, since extracting them is API-specific.
         """
         picked = {}
-        for field, urls in candidates.items():
+        for field, values in candidates.items():
             if show_info.get(field):
                 continue
-            url = next((u for u in urls if u), None)
-            if url:
-                picked[field] = url
+            value = next((v for v in values if v), None)
+            if value:
+                picked[field] = value
         return picked
 
     def enhance_series_meta(self, series_meta: Dict, show_id: str) -> Dict:
-        """Enrich series metadata with the provider's API artwork.
+        """Enrich series metadata with the provider's API metadata.
 
-        The /meta route builds the detail page from programs.json alone, so
-        without this a show that pins no URL falls back to the channel logo.
-        Providers needing a different merge (FranceTV) override this.
+        The /meta route builds the detail page from programs.json alone, which
+        now holds nothing but provider/slug/name, so everything else on the
+        detail page comes from here.  Providers needing a different merge
+        (FranceTV) override this.
         """
         show_info = getattr(self, 'shows', {}).get(show_id) or {}
-        for field, url in (self._get_show_api_metadata(show_id, show_info) or {}).items():
-            if url and isinstance(url, str):
-                series_meta[field] = url
+        for field, value in (self._get_show_api_metadata(show_id, show_info) or {}).items():
+            if value and field in API_FIELDS:
+                series_meta[field] = value
         return series_meta
 
     # ------------------------------------------------------------------
@@ -384,6 +387,22 @@ class BaseProvider(ABC):
         Override in providers that enrich show data via a network request.
         """
         return None
+
+    def _cached_payload(self, resource: str, fetch: Callable[[], Optional[_T]]) -> Optional[_T]:
+        """Memoise a provider API payload for the programs TTL.
+
+        The catalogue and the /meta detail page both build a show from the same
+        endpoint, so without this every show is fetched twice.  What is cached
+        is the raw payload, never the merged result — that one depends on which
+        fields programs.json pins.
+        """
+        key = CacheKeys.provider_resource(self.provider_name, resource)
+        data = cache.get(key)
+        if data is None:
+            data = fetch()
+            if data:
+                cache.set(key, data, ttl=CacheTTL.PROGRAMS)
+        return data
 
     def get_programs(self) -> List[ShowInfo]:
         """Return show list with optional per-show API enrichment (parallel).

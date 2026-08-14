@@ -13,7 +13,7 @@ API_POSTER = "https://photos.tf1.fr/700/933/flux-program-card-portrait-quotidien
 API_THUMBNAIL = "https://photos.tf1.fr/1200/720/flux-program-card-landscape-quotidien.jpg"
 API_BACKGROUND = "https://photos.tf1.fr/1920/1080/background-ott-quotidien.jpg"
 
-SHOW_INFO = {"name": "Quotidien", "channel": "TMC"}
+SHOW_INFO = {"name": "Quotidien"}
 
 DECORATION = {
     "logo": {"sources": [{"url": API_LOGO}, {"url": "small.png"}]},
@@ -25,8 +25,9 @@ DECORATION = {
 
 def _provider(monkeypatch, decoration=None):
     p = MyTF1Provider()
-    program = {"name": "Quotidien", "decoration": DECORATION if decoration is None else decoration}
-    monkeypatch.setattr(p, "_get_graphql_programs_list", lambda h, f=None: [program])
+    program = {"name": "Quotidien", "slug": "quotidien",
+               "decoration": DECORATION if decoration is None else decoration}
+    monkeypatch.setattr(p, "_find_program", lambda slug, headers=None: program)
     return p
 
 

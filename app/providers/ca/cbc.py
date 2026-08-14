@@ -116,15 +116,15 @@ class CBCProvider(BaseProvider):
 
     @safe_provider_call(default={})
     def _get_show_api_metadata(self, show_id: str, show_info: Dict[str, Any]) -> Dict[str, Any]:
-        """Fetch the show's artwork from the CBC catalog API."""
-        data = self.api_client.get(
+        """Fetch the show's metadata and artwork from the CBC catalog API."""
+        data = self._cached_payload(f"show:{show_id}", lambda: self.api_client.get(
             f"{self.catalog_api}/show/{show_id}/s01e01?device=web&tier=Member",
             headers=self._get_headers_with_viewer_ip({
                 'Accept': 'application/json, text/plain, */*',
                 'Referer': 'https://gem.cbc.ca/',
                 'Origin': 'https://gem.cbc.ca',
             }),
-        )
+        ))
         images = (data or {}).get('images') or {}
         candidates = {
             field: [(images.get(k) or {}).get('url') for k in keys]
@@ -137,7 +137,39 @@ class CBCProvider(BaseProvider):
                 self._first_existing(self._poster_candidates(data)),
                 ((data or {}).get('htmlMeta') or {}).get('og:image'),
             ]
-        return self._pick_artwork(candidates, show_info)
+        # Neither a year nor a rating is published at show level; both live on
+        # the episodes the same request already returned.
+        episodes = [item for lineup in ((data or {}).get('content') or [{}])[0].get('lineups') or []
+                    for item in lineup.get('items') or []]
+        air_years = sorted(m[:4] for m in
+                           ((e.get('metadata') or {}).get('airDate') or '' for e in episodes)
+                           if m[:4].isdigit())
+        ratings = [r for r in ((e.get('metadata') or {}).get('rating') for e in episodes) if r]
+        candidates.update({
+            'description': [self._description(data)],
+            # CBC publishes no channel — the provider is the channel — but only
+            # claim it when the payload is real (every show carries a title).
+            'channel': [self.display_name if (data or {}).get('title') else None],
+            'genres': [[f['title'] for f in (data or {}).get('navigationFilters') or []
+                        if f.get('title') and f['title'] != 'Shows']],
+            'year': [int(air_years[0]) if air_years else None],
+            'rating': [ratings[0] if ratings else None],
+        })
+        return self._pick_fields(candidates, show_info)
+
+    @staticmethod
+    def _description(data: Optional[Dict[str, Any]]) -> Optional[str]:
+        """The synopsis with CBC's scheduling notes appended as own paragraphs.
+
+        Gem keeps timely announcements ("New season streaming September 17th")
+        in ``messages`` rather than in the synopsis, so a reader who only sees
+        ``description`` misses them.  A blank line keeps them from reading as
+        the last sentence of the synopsis.
+        """
+        notes = [note['message'] for note in (data or {}).get('messages') or []
+                 if note.get('message')]
+        paragraphs = [(data or {}).get('description') or '', *notes]
+        return "\n\n".join(text for text in paragraphs if text) or None
 
     def _poster_candidates(self, data: Dict[str, Any]) -> List[str]:
         """Poster URLs derived from the background URL, most specific first.

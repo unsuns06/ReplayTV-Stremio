@@ -24,14 +24,15 @@ _get_show_api_metadata() requests to enrich the show's catalogue entry.
     http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_envoye-special?platform=apps
   cash-investigation — Cash Investigation
     http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_cash-investigation?platform=apps
-  complement-enquete — Complément d'enquête
+  complement-d-enquete — Complément d'enquête
     http://api-front.yatta.francetv.fr/standard/publish/taxonomies/france-2_complement-d-enquete?platform=apps
 
 [mytf1]  (2 shows)
-  sept-a-huit — Sept à huit
-    https://www.tf1.fr/graphql/web?id=483ce0f&variables=%7B%22context%22%3A%7B%22persona%22%3A%22PERSONA_2%22%2C%22application%22%3A%22WEB%22%2C%22device%22%3A%22DESKTOP%22%2C%22os%22%3A%22WINDOWS%22%7D%2C%22filter%22%3A%7B%22channel%22%3A%22lci%22%7D%2C%22offset%22%3A0%2C%22limit%22%3A500%7D
-  quotidien — Quotidien
-    https://www.tf1.fr/graphql/web?id=483ce0f&variables=%7B%22context%22%3A%7B%22persona%22%3A%22PERSONA_2%22%2C%22application%22%3A%22WEB%22%2C%22device%22%3A%22DESKTOP%22%2C%22os%22%3A%22WINDOWS%22%7D%2C%22filter%22%3A%7B%22channel%22%3A%22tmc%22%7D%2C%22offset%22%3A0%2C%22limit%22%3A500%7D
+  sept-a-huit — Sept à huit                     (found in the unfiltered page)
+  quotidien-avec-yann-barthes — Quotidien       (found in the unfiltered page)
+    https://www.tf1.fr/graphql/web?id=483ce0f&variables=%7B%22context%22%3A%7B%22persona%22%3A%22PERSONA_2%22%2C%22application%22%3A%22WEB%22%2C%22device%22%3A%22DESKTOP%22%2C%22os%22%3A%22WINDOWS%22%7D%2C%22filter%22%3A%7B%7D%2C%22offset%22%3A0%2C%22limit%22%3A500%7D
+    Per-channel fallbacks replace %22filter%22%3A%7B%7D with
+    %22filter%22%3A%7B%22channel%22%3A%22tf1%22%7D (then tmc, tfx, tf1-series-films).
 
 [cbc]  (1 shows)
   dragons-den — Dragon's Den
@@ -39,10 +40,18 @@ _get_show_api_metadata() requests to enrich the show's catalogue entry.
 
 Notes
 -----
+         programs.json holds only provider/slug/name; description, channel,
+         genres, year, rating and artwork all come from the endpoints above.
 6play    No show carries an api_id in programs.json, so every program ID above
          was resolved live through the programs API (name match, then Algolia).
-mytf1    TF1 has no per-show metadata endpoint: the show is matched by name
-         inside this channel-filtered programs list. If it is absent, the
-         provider retries the same URL without the channel filter.
+francetv A show is addressed as <channel>_<slug>; the channels are probed in
+         order and the answer cached.
+mytf1    TF1 has no per-show metadata endpoint: the show is matched inside the
+         programs list, whose channel filter is the only filter the query
+         accepts. The unfiltered page is tried first, then tf1, tmc, tfx and
+         tf1-series-films.
+         Episodes: https://www.tf1.fr/graphql/web?id=a6f9cf0e&variables=
+         {"programSlug":"<tf1-slug>","offset":0,"limit":50,...}
 cbc      No separate metadata call — this show endpoint returns metadata and
-         the full season lineup together.
+         the full season lineup together. Year and rating are read off the
+         episodes it already carries.

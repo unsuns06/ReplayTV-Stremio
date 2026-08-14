@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from app.routers import catalog, meta, stream, configure
+from app.routers import catalog, editor, meta, stream, configure
 from app.manifest import get_manifest
 import os
 import logging
@@ -137,6 +137,8 @@ app.include_router(catalog.router, prefix="", tags=["catalog"])
 app.include_router(meta.router, prefix="", tags=["meta"])
 app.include_router(stream.router, prefix="", tags=["stream"])
 app.include_router(configure.router, prefix="", tags=["configure"])
+# Owns "/" — the programs.json editor locally, the API greeting elsewhere.
+app.include_router(editor.router, prefix="", tags=["editor"])
 
 
 @app.get("/manifest.json")
@@ -148,10 +150,6 @@ async def manifest():
     except Exception:
         logger.exception("Error generating manifest")
         raise
-
-@app.get("/")
-async def root():
-    return {"message": "Catch-up TV & More for Stremio API"}
 
 @app.get("/health")
 async def health():

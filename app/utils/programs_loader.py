@@ -58,29 +58,13 @@ def get_programs_for_provider(provider_name: str) -> Dict[str, Dict]:
         if show.get('provider') == provider_name and show.get('enabled', True):
             slug = show.get('slug')
             if slug:
-                # Create a copy without provider-level fields
-                program_data = {
-                    'id': slug,
-                    'name': show.get('name', slug),
-                    'description': show.get('description', ''),
-                    'channel': show.get('channel', ''),
-                    'genres': show.get('genres', []),
-                    'year': show.get('year', 2024),
-                    'rating': show.get('rating', 'Tous publics'),
-                }
-                
-                # Add optional fields if present
-                if show.get('logo'):
-                    program_data['logo'] = show['logo']
-                if show.get('poster'):
-                    program_data['poster'] = show['poster']
-                if show.get('fanart'):
-                    program_data['fanart'] = show['fanart']
-                if show.get('background'):
-                    program_data['background'] = show['background']
-                if show.get('api_id'):
-                    program_data['api_id'] = show['api_id']
-                
+                # Pass every pinned field through untouched. Absent fields stay
+                # absent so providers can tell "not set" from "set to empty" and
+                # fill them from their metadata API; defaults are applied later
+                # by show_meta.build_show_dict.
+                program_data = {k: v for k, v in show.items()
+                                if k not in ('provider', 'enabled')}
+                program_data['id'] = slug
                 result[slug] = program_data
     
     logger.debug("✅ [ProgramsLoader] Found %d shows for provider '%s'", len(result), provider_name)

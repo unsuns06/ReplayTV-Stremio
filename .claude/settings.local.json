@@ -50,7 +50,20 @@
       "PowerShell(Stop-Process *)",
       "Bash(rm -f out2.log err2.log)",
       "Bash(python -c \"import app.main\")",
-      "Bash(echo \"import exit: $?\")"
+      "Bash(echo \"import exit: $?\")",
+      "Bash(cp programs.json __TRACKED_VAR__/pre.json)",
+      "Bash(cp programs.json \"C:/Users/Phantom/AppData/Local/Temp/claude/C--Users-Phantom-Desktop-Projects-ReplayTV-Stremio/aa943622-b796-4bf7-a126-1fb1f4c7c420/scratchpad/pre.json\")",
+      "Bash(node -e ' *)",
+      "Bash(cp programs.json \"C:/Users/Phantom/AppData/Local/Temp/claude/C--Users-Phantom-Desktop-Projects-ReplayTV-Stremio/aa943622-b796-4bf7-a126-1fb1f4c7c420/scratchpad/pre2.json\")",
+      "Bash(LOG_LEVEL=info PORT=7860 python run_server.py)",
+      "Bash(rm -f __TRACKED_VAR__/addon3.log)",
+      "Bash(cmd //c 'start /min cmd /c \"cd /d C:\\\\Users\\\\Phantom\\\\Desktop\\\\Projects\\\\ReplayTV-Stremio && set LOG_LEVEL=info&& python run_server.py > __TRACKED_VAR__\\\\addon3.log 2>&1\"')",
+      "Bash(git mv *)",
+      "Bash(mv tools/programs-editor/index.html app/static/editor.html)",
+      "Bash(rm -rf tools/programs-editor)",
+      "Bash(rmdir tools *)",
+      "Bash(python -m ruff check app tests)",
+      "Bash(python -m pytest tests -q)"
     ]
   }
 }

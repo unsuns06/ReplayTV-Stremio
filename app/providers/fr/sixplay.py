@@ -651,27 +651,45 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         program_id = show_info.get('api_id') or self._find_program_id(show_id)
         if not program_id:
             return {}
-        url = f"https://android.middleware.6play.fr/6play/v2/platforms/m6group_androidmob/services/6play/programs/{program_id}?with=links,subcats,rights"
+        program_data = self._cached_payload(
+            f"program:{program_id}", lambda: self._fetch_program(show_id, program_id)
+        )
+        return self._images_from_program(program_data, show_info) if program_data else {}
+
+    def _fetch_program(self, show_id: str, program_id: str) -> Optional[Dict]:
+        url = f"{self.api_url}/programs/{program_id}?with=links,subcats,rights"
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         response = self.api_client.raw_request('GET', url, headers=self._merge_ip_headers(headers))
         if response is None or response.status_code != 200:
             status = response.status_code if response is not None else "no response"
             logger.error("❌ [SixPlay] Failed to get program data for %s: %s", show_id, status)
-            return {}
-        return self._images_from_program(response.json(), show_info)
+            return None
+        return response.json()
 
     def _images_from_program(self, program_data: Dict, show_info: Dict) -> Dict:
-        """Map 6play image roles onto artwork fields. Precedence: _pick_artwork."""
+        """Map the 6play program payload onto show fields. Precedence: _pick_fields."""
         keys = {
             img.get('role'): img.get('external_key')
             for img in (program_data.get('images') or [])
             if img.get('external_key')
         }
-        return self._pick_artwork(
-            {field: [IMAGE_URL.format(keys[r]) for r in roles if r in keys]
-             for field, roles in self._IMAGE_ROLES.items()},
-            show_info,
-        )
+        candidates = {field: [IMAGE_URL.format(keys[r]) for r in roles if r in keys]
+                      for field, roles in self._IMAGE_ROLES.items()}
+        diffusions = program_data.get('next_diffusions') or []
+        # No channel field exists: the upcoming broadcast names it ("M6"), and
+        # the service code ("m6replay") covers shows with nothing scheduled.
+        service = (program_data.get('service_display') or {}).get('code') or ''
+        genre = (program_data.get('program_type_wording') or {}).get('singular') or ''
+        year = program_data.get('year_production') or ''
+        candidates.update({
+            'description': [program_data.get('description'), program_data.get('summary')],
+            'channel': [diffusions[0].get('channel') if diffusions else None,
+                        service.replace('replay', '').upper() or None],
+            'genres': [[genre.capitalize()] if genre else None],
+            'year': [int(year) if str(year).isdigit() else None],
+            'rating': [(program_data.get('csa') or {}).get('label')],
+        })
+        return self._pick_fields(candidates, show_info)
     
     def _find_program_id(self, show_id: str) -> Optional[str]:
         """Cached wrapper around :meth:`_resolve_program_id`.
