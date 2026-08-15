@@ -2,7 +2,6 @@ import logging
 import re
 import os
 
-from html import unescape
 from typing import Dict, List, Optional
 from app.auth.sixplay_auth import SixPlayAuth
 from app.utils.drm.pssh_extractor import extract_pssh_from_mpd
@@ -205,12 +204,9 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
     def _fetch_video_assets(self, episode_id: str) -> Optional[List[Dict]]:
         """Call the 6play video API and return the assets list for the episode."""
         headers = self._merge_ip_headers({"User-Agent": get_random_windows_ua()})
-        # The web platform's HD asset carries a 1080p rendition; the androidmob one
-        # is named upTo1080p but tops out at 720p.  Same default_KID, so the DRM
-        # path is untouched — only the manifest has more to choose from.
         url = (
-            f"https://pc.middleware.6play.fr/6play/v2/platforms/"
-            f"m6group_web/services/6play/videos/{episode_id}"
+            f"https://android.middleware.6play.fr/6play/v2/platforms/"
+            f"m6group_androidmob/services/6play/videos/{episode_id}"
             f"?csa=6&with=clips,freemiumpacks"
         )
         response = self.api_client.raw_request('GET', url, headers=headers)
@@ -329,13 +325,9 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
         if decryption_key:
             stream["decryption_key"] = decryption_key
             self._print_download_command(video_url, decryption_key, episode_id)
-            # _start_drm_processing returns None when the drm_processing toggle is
-            # off — appending it would put a null in the stream list.
-            placeholder = self._start_drm_processing(video_url, episode_id, key=decryption_key) if start_processing else None
-            if placeholder:
-                streams.append(placeholder)
-            # streams is empty only if MediaFlow is unconfigured too — fall back to the raw manifest.
-            return streams or [stream]
+            if start_processing:
+                streams.append(self._start_drm_processing(video_url, episode_id, key=decryption_key))
+            return streams
 
         # No key: hand the player the raw manifest and let it license the stream.
         if drm_token:
@@ -526,58 +518,15 @@ class SixPlayProvider(LiveProviderMixin, DRMProcessedFileMixin, BaseProvider):
             if not url:
                 continue
             fmt = 'hls' if 'http_h264' in atype else 'mpd'
-            if fmt == 'mpd':
-                url = self._resolve_cdn_url(url)
+            if 'usp_dashcenc_h264' in atype:
+                try:
+                    resp = self.api_client.raw_request('HEAD', url, allow_redirects=False)
+                    if resp is not None and 'location' in resp.headers:
+                        url = resp.headers['location']
+                except Exception:
+                    pass
             return url, fmt
         return None, None
-
-    def _resolve_cdn_url(self, url: str) -> str:
-        """Follow 6cloud's signed redirect to the real CDN host.
-
-        ``lbcdn.6cloud.fr`` 302s to the bedrock edge and serves a manifest whose
-        SegmentTemplate paths are root-relative (``/m6web/output/...``), so
-        segments are fetched from whatever host the manifest was fetched from.
-        Hand MediaFlow the signed lbcdn URL and every segment 404s — the redirect
-        has to be resolved here, before the URL leaves the provider.
-        """
-        # stream=True keeps this to headers only — the body is never read.
-        resp = self.api_client.raw_request('GET', url, stream=True, allow_redirects=True)
-        if resp is not None:
-            try:
-                if resp.status_code < 400 and resp.url:
-                    if resp.url != url:
-                        logger.debug("🔀 [SixPlay] Resolved CDN redirect → %s", resp.url)
-                    return resp.url
-                logger.debug("⚠️ [SixPlay] Direct CDN resolve returned %s — trying fr_router",
-                             resp.status_code)
-            finally:
-                resp.close()
-        return self._resolve_via_router(url) or url
-
-    def _resolve_via_router(self, url: str) -> Optional[str]:
-        """Resolve a signed URL through the fr_router proxy.
-
-        lbcdn is geo-restricted: from outside France the redirect itself answers
-        403, so the direct resolve above yields nothing and the signed URL would
-        leak to MediaFlow.  fr_router answers from a French IP with a
-        meta-refresh page naming the resolved URL, which works from any host.
-        """
-        routed = self._get_geo_proxy_url(url, 'fr_router')
-        if not routed:
-            return None
-        resp = self.api_client.raw_request('GET', routed)
-        if resp is None or resp.status_code != 200:
-            logger.warning("⚠️ [SixPlay] fr_router resolve failed (%s) — keeping signed URL",
-                           resp.status_code if resp is not None else "no response")
-            return None
-        match = re.search(r"""url=['"]([^'"]+)""", resp.text)
-        if not match:
-            logger.warning("⚠️ [SixPlay] fr_router returned no redirect target")
-            return None
-        # The target sits in an HTML attribute, so its '&' separators are &amp;-escaped.
-        final = unescape(match.group(1))
-        logger.debug("🔀 [SixPlay] Resolved via fr_router → %s", final)
-        return final
 
     def _extract_widevine_key(self, pssh_value: str, drm_token: str,
                               key_id_hex: Optional[str] = None) -> Optional[str]:
